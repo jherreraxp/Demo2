@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A Leer con Bloques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Layout: one-screen playroom — big picture/prompt on top, three wooden alphabet blocks below. Single bright theme by choice. */
+:root {
+  --sky: #cfeaf7;
+  --floor: #f7e3b5;
+  --ink: #23324a;
+  --block-red: #ef5b5b;
+  --block-blue: #3f8ee8;
+  --block-yellow: #f6c33b;
+  --block-green: #4cb87a;
+  --block-purple: #9a6ee0;
+  --block-orange: #f39a3b;
+  --paper: #ffffff;
+  --shadow: rgba(35, 50, 74, .28);
+  --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --font-letters: "Andika", "Century Gothic", system-ui, sans-serif; /* Andika: hecha para quienes aprenden a leer */
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: linear-gradient(var(--sky) 0 78%, var(--floor) 78% 100%) fixed;
+  color: var(--ink);
+  font-family: var(--font-display);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overflow-x: hidden;
+}
+#app {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding-inline: 16px;
+  padding-block: 12px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+button, a.mode { font: inherit; color: inherit; cursor: pointer; border: 0; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
+
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+.bar-right { display: flex; gap: 10px; align-items: center; }
+.round-btn {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--paper); box-shadow: 0 4px 0 var(--shadow);
+  font-size: 28px; display: grid; place-items: center;
+}
+.round-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
+.stars {
+  background: var(--paper); border-radius: 999px; padding: 6px 18px;
+  font-size: 28px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow);
+  font-variant-numeric: tabular-nums; display: flex; gap: 8px; align-items: center;
+}
+.dots { display: flex; gap: 8px; }
+.dot { width: 16px; height: 16px; border-radius: 50%; background: var(--paper); box-shadow: inset 0 0 0 3px var(--shadow); }
+.dot.on { background: var(--block-yellow); box-shadow: inset 0 0 0 3px #c99a1c; }
+
+/* inicio */
+.home h1 {
+  font-size: clamp(44px, 12vw, 76px); line-height: .95; margin: 8px 0 4px;
+  text-align: center; text-wrap: balance; font-weight: 800;
+}
+.home h1 span { display: inline-block; }
+.home h1 .w { white-space: nowrap; }
+.home p { text-align: center; font-size: 22px; margin: 0; }
+.home h2 { font-size: 24px; margin: 18px 0 8px; display: flex; align-items: center; gap: 10px; }
+.home h2 small { font-size: 16px; font-weight: 600; opacity: .75; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.mode {
+  border-radius: 24px; padding: 18px 12px; color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  box-shadow: 0 8px 0 var(--shadow); text-shadow: 0 2px 0 rgba(0,0,0,.18);
+}
+.mode:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--shadow); }
+.mode .big { font-family: var(--font-letters); font-weight: 700; font-size: 44px; line-height: 1.15; }
+.mode .name { font-size: 21px; font-weight: 800; line-height: 1.15; }
+.mode .step { font-size: 15px; opacity: .95; }
+.mode.hero {
+  grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 16px; padding: 20px 16px;
+  background: linear-gradient(160deg, #6fc7f0 0%, #3f8ee8 55%, #2f6fc4 100%);
+}
+.mode.hero .big { font-size: 64px; font-family: var(--font-display); }
+.mode.hero .txt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.mode.hero .name { font-size: 28px; }
+.badge { background: var(--block-yellow); color: var(--ink); text-shadow: none; border-radius: 999px; padding: 2px 12px; font-size: 15px; font-weight: 800; }
+.rainbow { background: linear-gradient(135deg, var(--block-red), var(--block-orange), var(--block-yellow), var(--block-green), var(--block-blue), var(--block-purple)); }
+
+/* juego */
+.stage {
+  background: var(--paper); border-radius: 32px; box-shadow: 0 8px 0 var(--shadow);
+  padding: 18px 16px 22px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+}
+.prompt { font-size: clamp(22px, 5.5vw, 30px); font-weight: 800; margin: 0; text-wrap: balance; }
+.picture { font-size: clamp(96px, 28vw, 150px); line-height: 1.1; }
+.listen {
+  background: var(--block-purple); color: #fff; border-radius: 999px;
+  padding: 10px 24px; font-size: 24px; font-weight: 800; box-shadow: 0 5px 0 #6b47a8;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.listen:active { transform: translateY(4px); box-shadow: 0 1px 0 #6b47a8; }
+.listen.pulse { animation: pulse 1.2s ease-in-out infinite; }
+
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.block {
+  aspect-ratio: 1 / 1; max-width: 100%;
+  border-radius: 20px; color: #fff;
+  font-family: var(--font-letters); font-weight: 700;
+  font-size: clamp(48px, 15vw, 92px); line-height: 1;
+  display: grid; place-items: center;
+  box-shadow: inset 0 0 0 6px rgba(255,255,255,.35), 0 10px 0 var(--shadow);
+  text-shadow: 0 3px 0 rgba(0,0,0,.18);
+  transition: transform .12s;
+}
+.block.syl { font-size: clamp(40px, 12vw, 76px); }
+.junta { display: flex; align-items: center; justify-content: center; gap: 18px; min-height: 130px; }
+.junta .pieza { font-family: var(--font-letters); font-weight: 700; font-size: clamp(64px, 18vw, 110px); line-height: 1; width: 1.3em; height: 1.3em; display: grid; place-items: center; border-radius: 22px; color: #fff; box-shadow: 0 8px 0 var(--shadow); transition: transform .7s cubic-bezier(.5,1.6,.5,1); }
+.junta .p1 { background: var(--block-blue); }
+.junta .p2 { background: var(--block-red); }
+.junta.unida .p1 { transform: translateX(calc(0.32em)); }
+.junta.unida .p2 { transform: translateX(calc(-0.32em)); }
+.turno-chip { background: var(--paper); border-radius: 999px; padding: 4px 14px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; }
+.block.word { font-size: clamp(26px, 8vw, 46px); aspect-ratio: auto; min-height: 110px; padding: 6px; }
+.block:active { transform: translateY(6px); }
+.block.wrong { animation: wobble .5s; opacity: .45; }
+.block.right { animation: hop .6s; box-shadow: inset 0 0 0 6px #fff, 0 10px 0 var(--shadow), 0 0 0 6px var(--block-yellow); }
+.c0 { background: var(--block-red); }
+.c1 { background: var(--block-blue); }
+.c2 { background: var(--block-green); }
+.c3 { background: var(--block-yellow); color: var(--ink); text-shadow: none; }
+.c4 { background: var(--block-purple); }
+.c5 { background: var(--block-orange); }
+
+.cheer { text-align: center; font-size: 30px; font-weight: 800; min-height: 44px; margin: 0; }
+.parent-note { font-size: 16px; text-align: center; margin: 4px 0 0; opacity: .85; font-family: system-ui, sans-serif; text-wrap: pretty; }
+details.credits { font-family: system-ui, sans-serif; font-size: 14px; opacity: .8; }
+details.credits summary { cursor: pointer; text-align: center; }
+details.credits p { text-align: left; font-size: 14px; }
+details.credits a { color: var(--ink); }
+
+@keyframes wobble { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px) rotate(-4deg)} 40%{transform:translateX(10px) rotate(4deg)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+@keyframes hop { 0%{transform:translateY(0)} 40%{transform:translateY(-22px) scale(1.06)} 100%{transform:translateY(0)} }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+@keyframes pop { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+.pop { animation: pop .35s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(() => {
+  const J = window.Juego, P = J.progress;
+  const { WORDS, pick, shuffle, strip, say } = J;
+  const $ = s => document.querySelector(s);
+
+  // Método fonético-silábico: primero el SONIDO de cada letra ("mmm"), luego se junta con la vocal ("ma").
+  const VOWELS = ['a', 'e', 'i', 'o', 'u'];
+  // primero letras cuyo sonido se puede alargar (m, s, l, n, f), luego p, t, d
+  const CONSONANTS = ['m', 's', 'l', 'n', 'p', 't', 'd', 'f'];
+  const CONT = ['m', 's', 'l', 'n', 'f'];
+
+  const firstSyl = w => strip(w[1].split('-')[0]).toLowerCase();
+  const SYL_WORDS = WORDS.filter(w => /^[^aeiou]?[aeiou]$/.test(firstSyl(w)));
+  const EASY_WORDS = WORDS.filter(w => w[0].length <= 5 && !/[áéíóú]/.test(w[0]) && w[1].split('-').length === 2);
+
+  const MODES = {
+    letras:   { name: 'Sonidos de las letras', color: 'c0' },
+    junta:    { name: 'Junta los sonidos', color: 'c1' },
+    silabas:  { name: 'Sílabas', color: 'c5' },
+    empieza:  { name: '¿Con qué sílaba empieza?', color: 'c2' },
+    palabras: { name: 'Palabras', color: 'c4' },
+  };
+  const params = new URLSearchParams(location.search);
+  const mode = MODES[params.get('modo')] ? params.get('modo') : 'letras';
+
+  const PRAISE = () => pick(['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Lo lograste!', '¡Excelente!', `¡Qué lista eres, ${J.player().name}!`, '¡Súper!']);
+  const RETRY = ['¡Casi! Prueba otra vez', 'Mmm… intenta otra', '¡Tú puedes! Otra vez'];
+  const ROUND = 5;
+  const level = P.level;
+  level[mode] = level[mode] || 0;
+  let streak = 0, q = null, locked = false, misses = 0;
+  const distinct = (pool, answer, n) => shuffle(pool.filter(x => x !== answer)).slice(0, n);
+
+  // ---------- preguntas ----------
+  function makeQuestion() {
+    const lv = level[mode];
+    if (mode === 'letras') {
+      // nivel 1-2: vocales; luego se suman consonantes de dos en dos
+      const pool = lv < 2 ? VOWELS : VOWELS.slice(0, 3).concat(CONSONANTS.slice(0, Math.min(CONSONANTS.length, lv * 2 - 2)));
+      const ans = lv >= 2 && Math.random() < .7 ? pick(CONSONANTS.slice(0, Math.min(CONSONANTS.length, lv * 2 - 2))) : pick(pool);
+      // una sola forma por pregunta: todas chiquitas o todas grandes, nunca juntas
+      const big = Math.random() < .5, size = big ? 'grande' : 'chiquita';
+      const show = l => big ? l.toUpperCase() : l;
+      const opts = shuffle([ans, ...distinct(pool, ans, 2)]);
+      const vowel = VOWELS.includes(ans);
+      return { ans, cls: '', opts: opts.map(l => ({ label: show(l), value: l })),
+        prompt: vowel ? `¿Dónde está? Letra ${size} 🔊` : `¿Cuál suena así? Letra ${size} 🔊`, pic: null,
+        speak: () => vowel ? say(`¿Dónde está la ${ans} ${size}?`) : (say('¿Cuál letra suena así?'), setTimeout(() => J.sound(ans), 1500)),
+        good: () => vowel ? say(`¡Sí! Es la ${ans}`, { queue: true }) : J.sound(ans, { then: `como en ${J.SOUND_WORD[ans]}` }),
+        bad: v => VOWELS.includes(v) ? say(`Esa es la ${v}.`) : (say('Esa suena'), setTimeout(() => J.sound(v), 800)) };
+    }
+    if (mode === 'junta') {
+      // "mmm" + "a" = "ma"
+      const cons = CONSONANTS.slice(0, Math.min(CONSONANTS.length, 2 + lv));
+      const c = lv < 1 ? pick(CONT.slice(0, 2)) : pick(cons), v = pick(VOWELS), ans = c + v;
+      const near = lv < 2 ? VOWELS.filter(x => x !== v).map(x => c + x) : cons.filter(x => x !== c).map(x => x + v).concat(VOWELS.filter(x => x !== v).map(x => c + x));
+      const opts = shuffle([ans, ...shuffle(near).slice(0, 2)]);
+      return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })), junta: [c, v],
+        prompt: '¿Qué dicen juntas?', pic: null,
+        speak: () => { J.sound(c); setTimeout(() => say(v, { rate: .7 }), 1300); setTimeout(() => { $('.junta')?.classList.add('unida'); say('¿Qué dicen juntas?', { queue: true }); }, 2300); },
+        good: () => { J.sound(c); setTimeout(() => say([v, '¡' + ans + '!'], { rate: .7 }), 1200); },
+        bad: v2 => say(['Esa dice', v2]) };
+    }
+    if (mode === 'silabas') {
+      const cons = CONSONANTS.slice(0, Math.min(CONSONANTS.length, 2 + lv));
+      const c = pick(cons), ans = c + pick(VOWELS);
+      const pool = lv < 2 ? VOWELS.map(v => c + v) : cons.flatMap(x => VOWELS.map(v => x + v));
+      const opts = shuffle([ans, ...distinct(pool, ans, 2)]);
+      return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })),
+        prompt: '¿Cuál dice…?', pic: null,
+        speak: () => say(['¿Cuál dice', ans + '?']),
+        good: () => say(ans, { queue: true }),
+        bad: v => say(['Esa dice', v]) };
+    }
+    if (mode === 'empieza') {
+      const pool = lv < 2 ? SYL_WORDS.filter(w => EASY_WORDS.includes(w)) : SYL_WORDS;
+      const w = pick(pool), ans = firstSyl(w);
+      const allSyl = [...new Set(SYL_WORDS.map(firstSyl))];
+      let near;
+      if (ans.length === 1) near = VOWELS.filter(v => v !== ans);
+      else if (lv < 2) near = VOWELS.map(v => ans[0] + v).filter(s => s !== ans);
+      else near = allSyl.filter(s => s !== ans && s.slice(-1) === ans.slice(-1));
+      if (near.length < 2) near = allSyl.filter(s => s !== ans);
+      const opts = shuffle([ans, ...shuffle(near).slice(0, 2)]);
+      return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })),
+        prompt: '¿Con qué sílaba empieza?', pic: w[2],
+        speak: () => say([w[0] + '. ¿Con qué sílaba empieza ' + w[0] + '?']),
+        good: () => say([w[1].split('-').join(', ') + '. ' + w[0] + ' empieza con ' + ans], { queue: true }),
+        bad: v => say([`${w[0]} no empieza con ${v}.`, `Escucha: ${w[1].split('-').join(', ')}`]) };
+    }
+    const pool = lv < 2 ? EASY_WORDS : WORDS;
+    const w = pick(pool);
+    let others = pool.filter(x => x[0] !== w[0]);
+    if (lv >= 3) { const near = others.filter(x => strip(x[0])[0] === strip(w[0])[0]); if (near.length >= 2) others = near; }
+    else others = others.filter(x => strip(x[0])[0] !== strip(w[0])[0]);
+    const opts = shuffle([w, ...shuffle(others).slice(0, 2)]);
+    return { ans: w[0], cls: 'word', opts: opts.map(x => ({ label: x[0], value: x[0] })),
+      prompt: '¿Qué palabra es?', pic: w[2],
+      speak: () => say('Mira el dibujo. ¿Qué palabra es?'),
+      good: () => say([w[1].split('-').join(', ') + '. ¡' + w[0] + '!'], { queue: true }),
+      bad: v => say(['Esa dice', v + '.', 'Busca la que dice ' + w[0]]) };
+  }
+
+  // ---------- pantalla ----------
+  function header() {
+    const dots = Array.from({ length: ROUND }, (_, i) => `<span class="dot ${i < streak ? 'on' : ''}"></span>`).join('');
+    const p = J.player();
+    return `<div class="bar">
+      <a class="round-btn" href="index.html" aria-label="Volver al inicio" style="text-decoration:none">🏠</a>
+      <div class="dots" aria-label="Progreso">${dots}</div>
+      <div class="bar-right">
+        <button class="round-btn" data-musica aria-label="Música">🎵</button>
+        <div class="stars" aria-label="Estrellas">${J.CHARS[p.char]?.emoji || '⭐'} <span id="starcount">${p.stars}</span></div>
+      </div>
+    </div>`;
+  }
+  function next() {
+    locked = false; misses = 0;
+    q = makeQuestion();
+    render();
+    setTimeout(() => q.speak(), 300);
+  }
+  function render() {
+    const colors = shuffle([0, 1, 2, 3, 4, 5]);
+    const p = J.player();
+    $('#app').innerHTML = `
+      ${header()}
+      ${P.two ? `<div style="text-align:center"><span class="turno-chip">Turno de ${J.esc(p.name)}</span></div>` : ''}
+      <section class="stage">
+        <p class="prompt">${q.prompt}</p>
+        ${q.pic ? `<div class="picture pop" aria-hidden="true">${q.pic}</div>` : ''}
+        ${q.junta ? `<div class="junta"><span class="pieza p1">${q.junta[0]}</span><span class="pieza p2">${q.junta[1]}</span></div>` : ''}
+        <button class="listen ${q.pic ? '' : 'pulse'}" id="listen">🔊 Escuchar</button>
+      </section>
+      <p class="cheer" id="cheer" aria-live="polite"></p>
+      <div class="choices">
+        ${q.opts.map((o, i) => `<button class="block ${q.cls} c${colors[i]}" data-v="${o.value}" id="opt-${i}">${o.label}</button>`).join('')}
+      </div>
+      <p class="parent-note">${MODES[mode].name} · nivel ${level[mode] + 1}</p>`;
+    J.refreshMusic();
+    $('#listen').onclick = () => { $('.junta')?.classList.remove('unida'); q.speak(); };
+    document.querySelectorAll('.block').forEach(b => b.onclick = () => answer(b));
+  }
+  function answer(btn) {
+    if (locked || btn.classList.contains('wrong')) return;
+    if (btn.dataset.v === q.ans) {
+      locked = true; misses = 0;
+      btn.classList.add('right');
+      $('.junta')?.classList.add('unida');
+      document.querySelectorAll('.block').forEach(b => { if (b !== btn) b.style.opacity = .35; });
+      J.cheer(); J.confetti(50);
+      streak++;
+      $('#starcount').textContent = J.addStar();
+      document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i < streak));
+      const praise = PRAISE();
+      $('#cheer').textContent = praise;
+      setTimeout(() => { q.good(); setTimeout(() => J.praiseVoice(praise), 1800); }, 700);
+      setTimeout(() => streak >= ROUND ? levelUp() : J.nextTurn(next), 4200);
+    } else {
+      btn.classList.add('wrong');
+      J.boing();
+      misses++;
+      $('#cheer').textContent = pick(RETRY);
+      q.bad(btn.dataset.v);
+      // ayuda: después de 2 errores, la respuesta correcta brilla
+      if (misses >= 2) document.querySelectorAll('.block').forEach(b => { if (b.dataset.v === q.ans) b.classList.add('pulse'), b.style.animation = 'pulse 1s ease-in-out infinite'; });
+      setTimeout(() => q.speak(), 2200);
+    }
+  }
+  function levelUp() {
+    level[mode]++; streak = 0; J.save();
+    J.gift(() => { say('¡Subiste de nivel!'); J.nextTurn(next); });
+  }
+
+  if (P.two) J.showTurn(next); else next();
+})();
+</script>
+</body>
+</html>

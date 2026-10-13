@@ -3,32 +3,40 @@
   'use strict';
 
   // ---------- palabras (palabra, sílabas, dibujo) ----------
+  // Palabras con vocabulario peruano (palta, choclo, llama, papa)
   const WORDS = [
-    ['oso','o-so','🐻'], ['uva','u-va','🍇'], ['ojo','o-jo','👁️'], ['isla','is-la','🏝️'],
-    ['abeja','a-be-ja','🐝'], ['elefante','e-le-fan-te','🐘'], ['árbol','ár-bol','🌳'],
-    ['mano','ma-no','✋'], ['mono','mo-no','🐒'], ['mapa','ma-pa','🗺️'], ['mesa','me-sa','🪑'],
-    ['pato','pa-to','🦆'], ['pera','pe-ra','🍐'], ['papa','pa-pa','🥔'], ['piña','pi-ña','🍍'], ['pino','pi-no','🌲'],
-    ['luna','lu-na','🌙'], ['lupa','lu-pa','🔍'], ['lobo','lo-bo','🐺'], ['loro','lo-ro','🦜'],
+    ['oso','o-so','🐻'], ['uva','u-va','🍇'], ['ojo','o-jo','👁️'], ['isla','is-la','🏝️'], ['abeja','a-be-ja','🐝'], ['árbol','ár-bol','🌳'],
+    ['mamá','ma-má','👩'], ['papá','pa-pá','👨'], ['mano','ma-no','✋'], ['mono','mo-no','🐒'], ['mapa','ma-pa','🗺️'],
+    ['pato','pa-to','🦆'], ['papa','pa-pa','🥔'], ['pera','pe-ra','🍐'], ['piña','pi-ña','🍍'], ['palta','pal-ta','🥑'],
+    ['pelota','pe-lo-ta','⚽'], ['perro','pe-rro','🐶'], ['pez','pez','🐟'],
+    ['luna','lu-na','🌙'], ['lupa','lu-pa','🔍'], ['llama','lla-ma','🦙'], ['loro','lo-ro','🦜'], ['lobo','lo-bo','🐺'],
     ['sol','sol','☀️'], ['sopa','so-pa','🍲'], ['sapo','sa-po','🐸'],
     ['taza','ta-za','☕'], ['tomate','to-ma-te','🍅'], ['tortuga','tor-tu-ga','🐢'],
-    ['nube','nu-be','☁️'], ['nariz','na-riz','👃'],
-    ['dado','da-do','🎲'], ['dedo','de-do','☝️'], ['dona','do-na','🍩'],
+    ['nube','nu-be','☁️'], ['nariz','na-riz','👃'], ['dado','da-do','🎲'], ['dedo','de-do','☝️'],
     ['gato','ga-to','🐱'], ['casa','ca-sa','🏠'], ['vaca','va-ca','🐮'], ['bota','bo-ta','👢'], ['cama','ca-ma','🛏️'],
+    ['carro','ca-rro','🚗'], ['choclo','cho-clo','🌽'], ['flor','flor','🌸'], ['conejo','co-ne-jo','🐰'],
   ];
 
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-  // ---------- progreso (estrellas y niveles, en este navegador) ----------
+  // ---------- progreso y ajustes (se guardan en este navegador) ----------
   const KEY = 'bloques-letras';
+  const CHARS = { nieve: { name: 'Princesa Nieve', emoji: '👸' }, estrella: { name: 'Estrella Pop', emoji: '🎤' }, llama: { name: 'Llamita Lula', emoji: '🦙' }, zorro: { name: 'Zorrito', emoji: '🦊' } };
   function load() {
-    try { return Object.assign({ stars: 0, level: {}, music: true }, JSON.parse(localStorage.getItem(KEY) || '{}')); }
-    catch (e) { return { stars: 0, level: {}, music: true }; }
+    let d;
+    try { d = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { d = {}; }
+    d = Object.assign({ level: {}, music: true, two: false, turn: 0, sessionMin: 15, rate: 0.8 }, d);
+    if (!Array.isArray(d.players)) d.players = [{ name: 'Avelu', char: 'nieve', stars: d.stars || 0 }, { name: 'Mamá', char: 'estrella', stars: 0 }];
+    return d;
   }
   function save(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   const progress = load();
-  function addStar(n = 1) { progress.stars += n; save(progress); return progress.stars; }
+  const player = () => progress.players[progress.two ? progress.turn % 2 : 0];
+  Object.defineProperty(progress, 'stars', { get: () => player().stars, set: v => { player().stars = v; }, enumerable: false });
+  const childName = () => progress.players[0].name || 'Avelu';
+  function addStar(n = 1) { player().stars += n; save(progress); return player().stars; }
 
   // ---------- voz ----------
   let voice = null;
@@ -36,7 +44,7 @@
   function loadVoice() {
     if (!hasTTS) return;
     const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
-    voice = vs.find(v => /es-(MX|US|419|CO)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
+    voice = vs.find(v => /es-PE/i.test(v.lang)) || vs.find(v => /es-(US|MX|419|CO)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
   }
   if (hasTTS) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
 
@@ -48,7 +56,7 @@
       const u = new SpeechSynthesisUtterance(t);
       u.lang = voice ? voice.lang : 'es-MX';
       if (voice) u.voice = voice;
-      u.rate = opts.rate || 0.8;
+      u.rate = (opts.rate || 0.8) * (progress.rate / 0.8);
       u.pitch = opts.pitch || 1.15;
       u.onstart = () => { speaking++; duck(true); };
       u.onend = u.onerror = () => { speaking = Math.max(0, speaking - 1); if (!speaking) duck(false); };
@@ -291,6 +299,117 @@
   @media (prefers-reduced-motion: reduce){.regalo-abrir,.regalo-caja{animation:none}}`;
   document.head.appendChild(css);
 
-  window.Juego = { refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, WORDS, pick, shuffle, strip, progress, save: () => save(progress), addStar, say, stopVoice,
+
+  // ---------- turnos (modo 2 jugadores) ----------
+  // Muestra "¡Turno de …!" y llama a cb. En modo de 1 jugador llama a cb directamente.
+  function nextTurn(cb, opts = {}) {
+    if (!progress.two) { cb && cb(); return; }
+    progress.turn = (progress.turn + 1) % 2; save(progress);
+    showTurn(cb, opts);
+  }
+  function showTurn(cb, opts = {}) {
+    const p = player();
+    const w = document.createElement('div');
+    w.className = 'turno';
+    w.innerHTML = `<div class="turno-caja"><div class="turno-cara">${CHARS[p.char]?.emoji || '⭐'}</div><p>¡Turno de</p><p class="turno-nombre">${esc(p.name)}!</p></div>`;
+    document.body.appendChild(w);
+    sfx('pop'); say('¡Turno de ' + p.name + '!');
+    setTimeout(() => { w.classList.add('fuera'); setTimeout(() => { w.remove(); cb && cb(); }, 300); }, opts.ms || 1700);
+    if (opts.onShow) opts.onShow(p);
+  }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- sonidos de las letras (método fonético) ----------
+  // Si mamá o papá grabaron el sonido, se usa la grabación; si no, la voz del dispositivo.
+  const SOUNDS = {
+    a: 'a', e: 'e', i: 'i', o: 'o', u: 'u',
+    m: 'mmmm', s: 'ssss', n: 'nnnn', f: 'ffff', l: 'llll',
+    p: 'pa', t: 'ta', d: 'da', c: 'ca', g: 'ga', b: 'ba', r: 'ra', ñ: 'ña', j: 'ja', ch: 'cha', ll: 'lla', v: 'va',
+  };
+  // ejemplo de palabra para cada sonido
+  const SOUND_WORD = { a: 'abeja', e: 'elefante', i: 'isla', o: 'oso', u: 'uva', m: 'mamá', s: 'sapo', n: 'nube', f: 'flor', l: 'luna',
+    p: 'papá', t: 'taza', d: 'dedo', c: 'casa', g: 'gato', b: 'bota', r: 'rana', ñ: 'piña', j: 'jugo', ch: 'choclo', ll: 'llama', v: 'vaca' };
+  const RECORDABLE = ['a', 'e', 'i', 'o', 'u', 'm', 's', 'l', 'n', 'f', 'p', 't', 'd', 'c', 'g', 'b', 'r', 'ch', 'll', 'ñ', 'j', 'bravo', 'nombre'];
+
+  let db = null;
+  function openDB() {
+    if (db) return Promise.resolve(db);
+    return new Promise((ok, no) => {
+      try {
+        const r = indexedDB.open('bloques-letras-voces', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('sonidos');
+        r.onsuccess = () => { db = r.result; ok(db); };
+        r.onerror = () => no(r.error);
+      } catch (e) { no(e); }
+    });
+  }
+  const tx = (mode, fn) => openDB().then(d => new Promise((ok, no) => { const t = d.transaction('sonidos', mode); const st = t.objectStore('sonidos'); const r = fn(st); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }));
+  const voices = {
+    get: k => tx('readonly', st => st.get(k)).catch(() => null),
+    set: (k, blob) => tx('readwrite', st => st.put(blob, k)),
+    del: k => tx('readwrite', st => st.delete(k)),
+    keys: () => tx('readonly', st => st.getAllKeys()).catch(() => []),
+  };
+  // 1) grabaciones de este navegador (IndexedDB)  2) grabaciones públicas del repositorio (assets/voz/lista.json)
+  const cache = {}, publicVoice = {};
+  voices.keys().then(ks => (ks || []).forEach(k => voices.get(k).then(b => { if (b) cache[k] = URL.createObjectURL(b); })));
+  const vozBase = base.replace(/sonidos\/$/, 'voz/');
+  fetch(vozBase + 'lista.json').then(r => r.ok ? r.json() : {}).then(list => { Object.entries(list || {}).forEach(([k, f]) => { publicVoice[k] = vozBase + f; }); }).catch(() => {});
+  voices.refresh = k => voices.get(k).then(b => { if (cache[k]) URL.revokeObjectURL(cache[k]); if (b) cache[k] = URL.createObjectURL(b); else delete cache[k]; });
+  voices.has = k => !!cache[k];
+  voices.hasPublic = k => !!publicVoice[k];
+  // exportar todas las grabaciones en un solo archivo .json (audio en base64)
+  voices.export = async () => {
+    const out = {};
+    for (const k of await voices.keys()) {
+      const b = await voices.get(k); if (!b) continue;
+      out[k] = { type: b.type, data: await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }) };
+    }
+    return out;
+  };
+  voices.import = async obj => {
+    for (const [k, v] of Object.entries(obj || {})) {
+      if (!RECORDABLE.includes(k) || !v || !v.data) continue;
+      const blob = await (await fetch(v.data)).blob();
+      await voices.set(k, blob); await voices.refresh(k);
+    }
+  };
+  let playing = null;
+  function playRec(k) {
+    const url = cache[k] || publicVoice[k];
+    if (!url) return false;
+    try { if (playing) playing.pause(); stopVoice(); playing = new Audio(url); duck(true); playing.onended = () => duck(false); playing.play(); return true; } catch (e) { return false; }
+  }
+  // sonido de una letra: grabación o voz del dispositivo
+  function sound(letter, opts = {}) {
+    if (playRec(letter)) { if (opts.then) setTimeout(() => say(opts.then, { queue: true }), 900); return; }
+    say([SOUNDS[letter] || letter].concat(opts.then ? [opts.then] : []), { rate: 0.7 });
+  }
+  function praiseVoice(text) { if (!playRec('bravo')) say(text, { queue: true }); }
+
+  // ---------- descanso ----------
+  const T0 = (() => { try { const v = +sessionStorage.getItem('bl-inicio'); if (v) return v; const n = Date.now(); sessionStorage.setItem('bl-inicio', n); return n; } catch (e) { return Date.now(); } })();
+  let restShown = false;
+  setInterval(() => {
+    if (restShown || !progress.sessionMin || Date.now() - T0 < progress.sessionMin * 60000) return;
+    restShown = true;
+    const w = document.createElement('div');
+    w.className = 'regalo';
+    w.innerHTML = `<div class="regalo-caja"><div style="font-size:90px">😴🌙</div><p class="regalo-titulo">¡Jugaste muy bien, ${esc(childName())}!</p><p class="regalo-sub">Es hora de descansar los ojitos.</p><div class="regalo-opciones"><button class="regalo-op op-seguir"><span>👩</span>Mamá: 5 minutos más</button></div></div>`;
+    document.body.appendChild(w);
+    say(`¡Jugaste muy bien, ${childName()}! Es hora de descansar.`);
+    w.querySelector('button').onclick = () => { w.remove(); try { sessionStorage.setItem('bl-inicio', Date.now() - (progress.sessionMin - 5) * 60000); } catch (e) {} setTimeout(() => { restShown = false; }, 1000); };
+  }, 30000);
+
+  const css2 = document.createElement('style');
+  css2.textContent = `
+  .turno{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#fff6c8,#ffc2dd);animation:regalo-in .3s ease-out;font-family:"Baloo 2",system-ui,sans-serif;color:#23324a;text-align:center;transition:opacity .3s}
+  .turno.fuera{opacity:0}
+  .turno-cara{font-size:120px;line-height:1;animation:regalo-bote 1s ease-in-out infinite}
+  .turno p{margin:0;font-size:34px;font-weight:800}
+  .turno .turno-nombre{font-size:56px;line-height:1.1}`;
+  document.head.appendChild(css2);
+
+  window.Juego = { CHARS, player, childName, nextTurn, showTurn, esc, SOUNDS, SOUND_WORD, RECORDABLE, voices, sound, praiseVoice, playRec, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, WORDS, pick, shuffle, strip, progress, save: () => save(progress), addStar, say, stopVoice,
     sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift, startMusic, setMusic, audio };
 })();

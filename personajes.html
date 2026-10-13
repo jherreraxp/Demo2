@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Elige tu Personaje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: radial-gradient(circle at 50% 30%, #ffe3f1, #c9b8ff 70%); }
+.titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); text-align: center; z-index: 5; pointer-events: none; }
+.titulo h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); line-height: 1.05; }
+.tabs { display: inline-flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
+.tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 4px 16px; font-size: 20px; font-weight: 800; }
+.tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 5; }
+.nombres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 640px; }
+.nombres button { background: rgba(255,255,255,.75); border-radius: 18px; padding: 8px 4px; font-size: 16px; font-weight: 800; line-height: 1.1; box-shadow: 0 4px 0 var(--shadow); }
+.nombres button span { display: block; font-size: 28px; }
+.nombres button.on { background: var(--gold); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Personajes en un escenario"></canvas>
+<div class="hud">
+  <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
+  <div class="hud-side"><button class="round-btn" data-musica aria-label="Música">🎵</button></div>
+</div>
+<div class="titulo">
+  <h1>Elige tu personaje</h1>
+  <div class="tabs" id="tabs" hidden></div>
+</div>
+<div class="abajo">
+  <div class="nombres" id="nombres"></div>
+  <a class="go btn" href="index.html" id="listo">✔ ¡Listo!</a>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { crearMundo, chispitas } from './js/mundo3d.js';
+import { crearPersonaje, PERSONAJES } from './js/personajes.js';
+
+const J = window.Juego, P = J.progress;
+const $ = s => document.querySelector(s);
+const volver = new URLSearchParams(location.search).get('volver');
+if (volver && /^[a-z]+\.html$/.test(volver)) $('#listo').href = volver;
+
+const W = crearMundo($('#mundo'), { fog: null });
+const { scene, camera } = W;
+W.fovFor = a => a < .8 ? 62 : 42;
+camera.position.set(0, 2.2, 7.5); camera.lookAt(0, 1.1, 0);
+const fx = chispitas(scene);
+
+// escenario: piso redondo y focos
+const stage = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }));
+stage.position.y = -.2; stage.receiveShadow = true; scene.add(stage);
+const cols = [0x8fd3f4, 0xb07de8, 0xffd23f, 0xff9a5a];
+const chars = [];
+let editing = 0; // jugador que está eligiendo
+
+const narrow = () => innerWidth / innerHeight < .8;
+function layout() {
+  const n = narrow();
+  chars.forEach((c, i) => {
+    const x = n ? ((i % 2) - .5) * 2.3 : (i - 1.5) * 2.2;
+    const z = n ? (i < 2 ? -1.5 : 1.5) : 0;
+    c.base.position.set(x, 0, z);
+  });
+  camera.position.set(0, n ? 6.5 : 2.2, n ? 9 : 7.5); camera.lookAt(0, n ? .4 : 1.1, 0);
+}
+addEventListener('resize', layout);
+
+for (const [i, id] of PERSONAJES.entries()) {
+  const base = new THREE.Group(); scene.add(base);
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .18, 32), new THREE.MeshStandardMaterial({ color: cols[i], roughness: .4 }));
+  ped.position.y = .09; ped.receiveShadow = true; base.add(ped);
+  const ch = await crearPersonaje(id);
+  ch.group.position.y = .18; base.add(ch.group);
+  chars.push({ id, base, ch, ped });
+}
+layout();
+
+function render() {
+  const two = P.two;
+  $('#tabs').hidden = !two;
+  $('#tabs').innerHTML = P.players.map((p, i) => `<button class="${i === editing ? 'on' : ''}" data-p="${i}">${J.esc(p.name)}</button>`).join('');
+  $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${J.CHARS[id].emoji}</span>${J.CHARS[id].name}</button>`).join('');
+}
+function pick(id) {
+  P.players[editing].char = id; J.save();
+  const c = chars.find(c => c.id === id);
+  fx.burst(c.base.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 40);
+  J.cheer(); J.say(`¡${P.players[editing].name} es ${J.CHARS[id].name}!`, { queue: true });
+  render();
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) { editing = +b.dataset.p; J.sfx('pop'); render(); } });
+$('#nombres').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) pick(b.dataset.id); });
+
+const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+$('#mundo').addEventListener('pointerdown', e => {
+  v2.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(v2, camera);
+  for (const c of chars) { if (ray.intersectObject(c.base, true).length) { pick(c.id); break; } }
+});
+
+W.onFrame((dt, t) => {
+  for (const c of chars) {
+    const mine = P.players[editing].char === c.id;
+    c.ch.update(dt, mine ? 'festejar' : 'bailar');
+    c.ped.material.emissive = new THREE.Color(mine ? 0x664400 : 0x000000);
+    c.base.rotation.y = mine ? 0 : Math.sin(t * .8 + c.base.position.x) * .3;
+  }
+  fx.update(dt);
+});
+render(); J.refreshMusic(); W.start();
+setTimeout(() => J.say('¡Elige tu personaje!'), 400);
+</script>
+</body>
+</html>

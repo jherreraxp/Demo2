@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Pinta a la Princesa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b8ff); }
+.titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 64px); text-align: center; z-index: 5; pointer-events: none; }
+.titulo h1 { margin: 0; font-size: clamp(26px, 6.5vw, 40px); line-height: 1.05; }
+.titulo p { margin: 2px 0 0; font-size: 18px; }
+.tabs { display: inline-flex; gap: 6px; margin-top: 6px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
+.tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 3px 14px; font-size: 18px; font-weight: 800; }
+.tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
+.paleta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.colores { display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 4px 4px 8px; }
+.c { flex: none; width: 50px; height: 50px; border-radius: 50%; box-shadow: inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 0 var(--shadow); }
+.c.on { outline: 4px solid var(--ink); outline-offset: 2px; transform: translateY(-3px); }
+.arco { background: conic-gradient(#ef5b5b, #f39a3b, #f6c33b, #4cb87a, #3f8ee8, #9a6ee0, #ff7eb6, #ef5b5b); }
+.acciones { display: flex; gap: 10px; }
+.acciones button { background: #fff; border-radius: 999px; padding: 8px 16px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Princesa en 3D para pintar"></canvas>
+<div class="hud">
+  <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
+  <div class="hud-side"><button class="round-btn" data-musica aria-label="Música">🎵</button></div>
+</div>
+<div class="titulo">
+  <h1>Pinta a tu princesa</h1>
+  <p>Elige un color y toca el vestido, el pelo o la corona</p>
+  <div class="tabs" id="tabs"></div>
+</div>
+<div class="paleta">
+  <div class="colores" id="colores" aria-label="Colores"></div>
+  <div class="acciones">
+    <button id="girar">🔄 Girar</button>
+    <button id="foto">📸 Foto</button>
+    <button id="limpiar">✨ Como nueva</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { crearMundo, chispitas } from './js/mundo3d.js';
+import { crearPersonaje, pintarParte } from './js/personajes.js';
+
+const J = window.Juego, P = J.progress;
+const $ = s => document.querySelector(s);
+P.colors = P.colors || {};
+
+const COLORS = [
+  ['arcoiris', null, 'arcoíris'], ['#ef5b5b', 'rojo'], ['#f39a3b', 'naranja'], ['#f6c33b', 'amarillo'], ['#4cb87a', 'verde'],
+  ['#8fd3f4', 'celeste'], ['#3f8ee8', 'azul'], ['#9a6ee0', 'morado'], ['#ff7eb6', 'rosado'], ['#ffffff', 'blanco'],
+  ['#9a6a43', 'marrón'], ['#23324a', 'negro'], ['#ffd700', 'dorado'],
+].map(([v, a, b]) => v === 'arcoiris' ? { v, name: b } : { v, name: a });
+const PARTS = { vestido: 'el vestido', capa: 'la capa', pelo: 'el pelo', piel: 'la piel', zapatos: 'los zapatos', corona: 'la corona', chaqueta: 'la chaqueta', blusa: 'la blusa', lana: 'la lana', manta: 'la manta', pompones: 'los pompones' };
+const PINTABLES = [['nieve', '👸 Nieve'], ['estrella', '🎤 Estrella'], ['llama', '🦙 Lula']];
+
+const W = crearMundo($('#mundo'), { fog: null });
+const { scene, camera, renderer } = W;
+W.fovFor = a => a < .8 ? 52 : 34;
+camera.position.set(0, 1.6, 7); camera.lookAt(0, 1.05, 0);
+const fx = chispitas(scene);
+const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.3, .25, 40), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .35 }));
+ped.position.y = -.12; ped.receiveShadow = true; scene.add(ped);
+
+let char = null, charId = PINTABLES.some(p => p[0] === P.players[0].char) ? P.players[0].char : 'nieve';
+let color = COLORS[8], spin = 0, autoSpin = false, hue = 0;
+
+async function load(id) {
+  if (char) scene.remove(char.group);
+  charId = id;
+  char = await crearPersonaje(id);
+  char.group.scale.setScalar(id === 'llama' ? 1.15 : 1.3);
+  scene.add(char.group);
+  render();
+}
+function render() {
+  $('#tabs').innerHTML = PINTABLES.map(([id, n]) => `<button class="${id === charId ? 'on' : ''}" data-id="${id}">${n}</button>`).join('');
+  $('#colores').innerHTML = COLORS.map((c, i) => `<button class="c ${c.v === 'arcoiris' ? 'arco' : ''} ${c === color ? 'on' : ''}" data-i="${i}" aria-label="${c.name}" style="${c.v !== 'arcoiris' ? 'background:' + c.v : ''}"></button>`).join('');
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) { J.sfx('pop'); load(b.dataset.id); } });
+$('#colores').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; color = COLORS[+b.dataset.i]; J.sfx('pop2'); J.say(color.name); render(); });
+
+// tocar para pintar, arrastrar para girar
+const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+let down = null, lastX = 0;
+$('#mundo').addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; lastX = e.clientX; });
+$('#mundo').addEventListener('pointermove', e => { if (!down) return; spin += (e.clientX - lastX) * .012; lastX = e.clientX; });
+$('#mundo').addEventListener('pointerup', e => {
+  if (!down) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8; down = null;
+  if (moved || !char) return;
+  v2.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(v2, camera);
+  const hit = ray.intersectObject(char.group, true).find(h => h.object.userData.part);
+  if (!hit) return;
+  const part = hit.object.userData.part;
+  let hex = color.v;
+  if (hex === 'arcoiris') { hue = (hue + 47) % 360; hex = '#' + new THREE.Color().setHSL(hue / 360, .8, .62).getHexString(); }
+  pintarParte(char, part, hex);
+  P.colors[charId] = P.colors[charId] || {}; P.colors[charId][part] = hex; J.save();
+  fx.burst(hit.point, 18, .4); J.sparkle();
+  J.say(`${PARTS[part] || part} ${color.name}`);
+});
+$('#girar').onclick = () => { autoSpin = !autoSpin; J.sfx('pop'); };
+$('#limpiar').onclick = async () => { delete P.colors[charId]; J.save(); J.sfx('pop2'); await load(charId); J.say('¡Como nueva!'); };
+$('#foto').onclick = () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a'); a.href = renderer.domElement.toDataURL('image/png'); a.download = `mi-${charId}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+  J.cheer(); J.say('¡Qué linda quedó!', { queue: true });
+};
+
+W.onFrame((dt, t) => {
+  if (!char) return;
+  if (autoSpin) spin += dt * .8;
+  char.group.rotation.y = spin;
+  char.update(dt, 'quieto');
+  fx.update(dt);
+});
+await load(charId);
+W.start(); J.refreshMusic();
+setTimeout(() => J.say('¡Pinta a tu princesa con tus colores favoritos!'), 400);
+</script>
+</body>
+</html>
