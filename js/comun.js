@@ -1,9 +1,11 @@
-// Bloques de Letras — utilidades compartidas: palabras, progreso, voz, música, sonidos, confeti y regalos.
+// El Reino de las Letras — utilidades compartidas:
+// palabras, progreso, jugadores y turnos, voz (grabaciones de la familia o voz del dispositivo),
+// música, sonidos, confeti, regalos y publicación de grabaciones en GitHub.
 (function () {
   'use strict';
 
   // ---------- palabras (palabra, sílabas, dibujo) ----------
-  // Palabras con vocabulario peruano (palta, choclo, llama, papa)
+  // Vocabulario peruano (palta, choclo, llama, papa). Las marcadas con 3D tienen modelo para buscar o atrapar.
   const WORDS = [
     ['oso','o-so','🐻'], ['uva','u-va','🍇'], ['ojo','o-jo','👁️'], ['isla','is-la','🏝️'], ['abeja','a-be-ja','🐝'], ['árbol','ár-bol','🌳'],
     ['mamá','ma-má','👩'], ['papá','pa-pá','👨'], ['mano','ma-no','✋'], ['mono','mo-no','🐒'], ['mapa','ma-pa','🗺️'],
@@ -15,59 +17,36 @@
     ['nube','nu-be','☁️'], ['nariz','na-riz','👃'], ['dado','da-do','🎲'], ['dedo','de-do','☝️'],
     ['gato','ga-to','🐱'], ['casa','ca-sa','🏠'], ['vaca','va-ca','🐮'], ['bota','bo-ta','👢'], ['cama','ca-ma','🛏️'],
     ['carro','ca-rro','🚗'], ['choclo','cho-clo','🌽'], ['flor','flor','🌸'], ['conejo','co-ne-jo','🐰'],
+    ['toro','to-ro','🐂'], ['ratón','ra-tón','🐭'], ['gusano','gu-sa-no','🐛'],
   ];
 
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  // ---------- progreso y ajustes (se guardan en este navegador) ----------
+  // ---------- progreso y ajustes (en este navegador) ----------
   const KEY = 'bloques-letras';
-  const CHARS = { nieve: { name: 'Princesa Nieve', emoji: '👸' }, estrella: { name: 'Estrella Pop', emoji: '🎤' }, llama: { name: 'Llamita Lula', emoji: '🦙' }, zorro: { name: 'Zorrito', emoji: '🦊' } };
+  const CHARS = {
+    nieve: { name: 'Princesa Nieve', emoji: '👸' }, ana: { name: 'Princesa Ana', emoji: '👸🏾' },
+    estrella: { name: 'Estrella Pop', emoji: '🎤' }, zoe: { name: 'Zoe', emoji: '🎧' }, mira: { name: 'Mira', emoji: '💃' },
+    llama: { name: 'Llamita Lula', emoji: '🦙' }, rojito: { name: 'Monstruito Rojo', emoji: '❤️' }, raton: { name: 'Ratoncito Pipo', emoji: '🐭' },
+    zorro: { name: 'Zorrito', emoji: '🦊' }, lobo: { name: 'Lobito', emoji: '🐺' }, toro: { name: 'Torito', emoji: '🐂' },
+  };
   function load() {
     let d;
     try { d = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { d = {}; }
-    d = Object.assign({ level: {}, music: true, two: false, turn: 0, sessionMin: 15, rate: 0.8 }, d);
+    d = Object.assign({ level: {}, music: true, two: false, turn: 0, sessionMin: 15, rate: 0.8, colors: {} }, d);
     if (!Array.isArray(d.players)) d.players = [{ name: 'Avelu', char: 'nieve', stars: d.stars || 0 }, { name: 'Mamá', char: 'estrella', stars: 0 }];
     return d;
   }
   function save(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   const progress = load();
   const player = () => progress.players[progress.two ? progress.turn % 2 : 0];
-  Object.defineProperty(progress, 'stars', { get: () => player().stars, set: v => { player().stars = v; }, enumerable: false });
   const childName = () => progress.players[0].name || 'Avelu';
   function addStar(n = 1) { player().stars += n; save(progress); return player().stars; }
 
-  // ---------- voz ----------
-  let voice = null;
-  const hasTTS = 'speechSynthesis' in window;
-  function loadVoice() {
-    if (!hasTTS) return;
-    const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
-    voice = vs.find(v => /es-PE/i.test(v.lang)) || vs.find(v => /es-(US|MX|419|CO)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
-  }
-  if (hasTTS) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
-
-  let speaking = 0;
-  function say(parts, opts = {}) {
-    if (!hasTTS) return;
-    if (!opts.queue) speechSynthesis.cancel();
-    (Array.isArray(parts) ? parts : [parts]).forEach(t => {
-      const u = new SpeechSynthesisUtterance(t);
-      u.lang = voice ? voice.lang : 'es-MX';
-      if (voice) u.voice = voice;
-      u.rate = (opts.rate || 0.8) * (progress.rate / 0.8);
-      u.pitch = opts.pitch || 1.15;
-      u.onstart = () => { speaking++; duck(true); };
-      u.onend = u.onerror = () => { speaking = Math.max(0, speaking - 1); if (!speaking) duck(false); };
-      if (opts.onboundary) u.onboundary = opts.onboundary;
-      if (opts.onend) u.addEventListener('end', opts.onend);
-      speechSynthesis.speak(u);
-    });
-  }
-  function stopVoice() { if (hasTTS) speechSynthesis.cancel(); speaking = 0; duck(false); }
-
-  // ---------- audio ----------
+  // ---------- audio base ----------
   let ctx = null, master = null, musicGain = null;
   function audio() {
     if (!ctx) {
@@ -80,9 +59,134 @@
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
+  const script = document.currentScript && document.currentScript.src;
+  const ROOT = script ? new URL('../', script).href : '';
+  const base = ROOT + 'assets/sonidos/';
+  const vozBase = ROOT + 'assets/voz/';
 
-  // Sonidos de Kenney (CC0), convertidos a mp3
-  const base = (document.currentScript && document.currentScript.src) ? new URL('../assets/sonidos/', document.currentScript.src).href : 'assets/sonidos/';
+  // ---------- grabaciones de voz ----------
+  // Clave de una frase: minúsculas, sin signos. "¡Busca: gato!" → "busca gato"
+  const norm = t => String(t).toLowerCase().replace(/[¡!¿?.,:;"“”()…—–\-]/g, ' ').replace(/\s+/g, ' ').trim();
+  let db = null;
+  function openDB() {
+    if (db) return Promise.resolve(db);
+    return new Promise((ok, no) => {
+      try {
+        const r = indexedDB.open('bloques-letras-voces', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('sonidos');
+        r.onsuccess = () => { db = r.result; ok(db); };
+        r.onerror = () => no(r.error);
+      } catch (e) { no(e); }
+    });
+  }
+  const tx = (mode, fn) => openDB().then(d => new Promise((ok, no) => { const t = d.transaction('sonidos', mode); const r = fn(t.objectStore('sonidos')); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }));
+  const local = {}, pub = {};
+  const voices = {
+    get: k => tx('readonly', st => st.get(k)).catch(() => null),
+    set: (k, blob) => tx('readwrite', st => st.put(blob, k)),
+    del: k => tx('readwrite', st => st.delete(k)),
+    keys: () => tx('readonly', st => st.getAllKeys()).catch(() => []),
+    refresh: k => voices.get(k).then(b => { if (local[k]) URL.revokeObjectURL(local[k]); if (b) local[k] = URL.createObjectURL(b); else delete local[k]; }),
+    has: k => !!local[norm(k)] || !!local[k],
+    hasPublic: k => !!pub[norm(k)] || !!pub[k],
+    publicList: () => Object.assign({}, pub),
+  };
+  let lista = {};
+  const ready = Promise.all([
+    voices.keys().then(ks => Promise.all((ks || []).map(k => voices.get(k).then(b => { if (b) local[k] = URL.createObjectURL(b); })))),
+    fetch(vozBase + 'lista.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).then(l => { lista = l || {}; Object.entries(lista).forEach(([k, f]) => { pub[k] = vozBase + f; }); }).catch(() => {}),
+  ]);
+  voices.ready = ready;
+  voices.lista = () => lista;
+  // URL de la grabación de una frase (primero la de este navegador, luego la publicada)
+  function recUrl(text) {
+    const k = norm(text);
+    if (local[k]) return local[k];
+    if (pub[k]) return pub[k];
+    if (k && k === norm(childName())) return local.nombre || pub.nombre || null;
+    return null;
+  }
+
+  // ---------- voz: cola de frases ----------
+  // say(['Busca', 'gato']) reproduce cada trozo con la grabación de la familia si existe;
+  // los trozos sin grabar se juntan y los dice la voz del dispositivo.
+  let voice = null;
+  const hasTTS = 'speechSynthesis' in window;
+  function loadVoice() {
+    if (!hasTTS) return;
+    const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
+    voice = vs.find(v => /es-PE/i.test(v.lang)) || vs.find(v => /es-(US|MX|419|CO)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
+  }
+  if (hasTTS) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
+
+  let queue = [], busy = false, run = 0, current = null;
+  function say(parts, opts = {}) {
+    if (!opts.queue) stopVoice();
+    (Array.isArray(parts) ? parts : [parts]).filter(Boolean).forEach(t => queue.push({ t: String(t), opts }));
+    if (opts.onend) queue.push({ fn: opts.onend });
+    pump();
+  }
+  function pump() {
+    if (busy) return;
+    const it = queue.shift();
+    if (!it) { duck(false); return; }
+    if (it.fn) { it.fn(); return pump(); }
+    const id = run;
+    busy = true; duck(true);
+    const done = () => { if (id !== run) return; busy = false; current = null; pump(); };
+    const url = it.url || recUrl(it.t);
+    if (url) {
+      current = new Audio(url);
+      current.onended = done;
+      current.onerror = () => { if (id !== run) return; current = null; tts(it.t, it.opts, done); };
+      current.play().catch(() => { if (id !== run) return; current = null; tts(it.t, it.opts, done); });
+      return;
+    }
+    // juntar los siguientes trozos que tampoco tienen grabación
+    let text = it.t;
+    while (queue[0] && !queue[0].fn && !queue[0].url && !recUrl(queue[0].t) && queue[0].opts === it.opts) text += ' ' + queue.shift().t;
+    tts(text, it.opts, done);
+  }
+  function tts(text, opts, done) {
+    if (!hasTTS) { setTimeout(done, 300); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = voice ? voice.lang : 'es-PE';
+    if (voice) u.voice = voice;
+    u.rate = (opts.rate || 0.85) * ((progress.rate || .8) / 0.8);
+    u.pitch = opts.pitch || 1.1;
+    if (opts.onboundary) u.onboundary = opts.onboundary;
+    let fired = false;
+    const fin = () => { if (fired) return; fired = true; done(); };
+    u.onend = fin; u.onerror = fin;
+    // algunos navegadores no avisan el final: seguro por tiempo
+    setTimeout(fin, 1500 + text.length * 140);
+    speechSynthesis.speak(u);
+  }
+  function stopVoice() {
+    run++; queue = []; busy = false;
+    if (current) { try { current.pause(); } catch (e) {} current = null; }
+    if (hasTTS) speechSynthesis.cancel();
+    duck(false);
+  }
+
+  // ---------- sonidos de las letras (método fonético) ----------
+  const SOUNDS = {
+    a: 'a', e: 'e', i: 'i', o: 'o', u: 'u',
+    m: 'mmmm', s: 'ssss', n: 'nnnn', f: 'ffff', l: 'llll',
+    p: 'pa', t: 'ta', d: 'da', c: 'ca', g: 'ga', b: 'ba', r: 'ra', ñ: 'ña', j: 'ja', ch: 'cha', ll: 'lla', v: 'va',
+  };
+  const SOUND_WORD = { a: 'abeja', e: 'elefante', i: 'isla', o: 'oso', u: 'uva', m: 'mamá', s: 'sapo', n: 'nube', f: 'flor', l: 'luna',
+    p: 'papá', t: 'taza', d: 'dedo', c: 'casa', g: 'gato', b: 'bota', r: 'ratón', ñ: 'piña', j: 'jugo', ch: 'choclo', ll: 'llama', v: 'vaca' };
+  function sound(letter, opts = {}) {
+    // la grabación del sonido usa la clave "sonido m"; también vale una grabación vieja con clave "m"
+    const url = local['sonido ' + letter] || pub['sonido ' + letter] || local[letter] || pub[letter];
+    if (!opts.queue) stopVoice();
+    queue.push(url ? { t: letter, url, opts: {} } : { t: SOUNDS[letter] || letter, opts: { rate: .7 } });
+    if (opts.then) [].concat(opts.then).forEach(t => queue.push({ t, opts: {} }));
+    pump();
+  }
+
+  // ---------- efectos ----------
   const SFX = { coin: 'coin.mp3', jump: 'jump.mp3', land: 'land.mp3', pop: 'placement-a.mp3', pop2: 'placement-c.mp3', tick: 'toggle.mp3' };
   const buffers = {};
   function loadSfx() {
@@ -103,15 +207,14 @@
       s.connect(g).connect(master); s.start();
     } else tones([880, 1320], 0.08, 'triangle', 0.2);
   }
-
-  function tones(freqs, dur = 0.12, type = 'sine', vol = 0.25, out) {
+  function tones(freqs, dur = 0.12, type = 'sine', vol = 0.25) {
     const c = audio(); if (!c) return;
     freqs.forEach((f, i) => {
       const o = c.createOscillator(), g = c.createGain();
       o.type = type; o.frequency.value = f;
       const t = c.currentTime + i * dur;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 1.6);
-      o.connect(g).connect(out || master); o.start(t); o.stop(t + dur * 1.8);
+      o.connect(g).connect(master); o.start(t); o.stop(t + dur * 1.8);
     });
   }
   const ding = () => tones([660, 880, 1175], 0.11, 'triangle');
@@ -124,15 +227,12 @@
   };
   const fanfare = () => tones([523, 659, 784, 1047, 784, 1047, 1319], 0.12, 'triangle', 0.22);
   const sparkle = () => tones([1568, 2093, 2637, 3136], 0.05, 'sine', 0.08);
-
-  // Aplausos (ruido filtrado en ráfagas) + corneta de fiesta + grito de niños con la voz
   function applause(seconds = 1.6) {
     const c = audio(); if (!c) return;
     const len = Math.floor(c.sampleRate * 0.05);
     const noise = c.createBuffer(1, len, c.sampleRate), d = noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-    const claps = Math.floor(seconds * 28);
-    for (let i = 0; i < claps; i++) {
+    for (let i = 0; i < Math.floor(seconds * 28); i++) {
       const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
       s.buffer = noise; f.type = 'bandpass'; f.frequency.value = 900 + Math.random() * 1800; f.Q.value = 1.2;
       const t = c.currentTime + Math.random() * seconds;
@@ -143,87 +243,131 @@
   function partyHorn() {
     const c = audio(); if (!c) return;
     const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(), t = c.currentTime;
-    o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(640, t + 0.15); o.frequency.setValueAtTime(640, t + 0.5);
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(640, t + 0.15);
     f.type = 'lowpass'; f.frequency.value = 2200;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.03); g.gain.setValueAtTime(0.12, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
     o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 0.62);
   }
-  const SHOUTS = ['¡Yupiii!', '¡Bravooo!', '¡Wiii!', '¡Hurraaa!', '¡Siii!', '¡Olé!'];
+  const SHOUTS = ['¡Yupi!', '¡Bravo!', '¡Wiii!', '¡Hurra!', '¡Sí!'];
+  const PRAISES = ['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Súper!', '¡Excelente!', '¡Lo lograste!', '¡Qué lista eres!'];
   function cheer(big = false) {
     ding(); partyHorn();
-    if (big) { applause(2.2); setTimeout(fanfare, 250); }
-    else applause(1.1);
-    say(pick(SHOUTS), { pitch: 1.7, rate: 1.05, queue: true });
+    if (big) { applause(2.2); setTimeout(fanfare, 250); } else applause(1.1);
+    say(pick(SHOUTS), { queue: true, pitch: 1.6, rate: 1.05 });
   }
 
-  // ---------- música alegre (composición original, sintetizada en el navegador) ----------
-  // Do mayor, 120 bpm, I–V–vi–IV. Corcheas: 8 por compás, 8 compases.
+  // ---------- música ----------
+  // Si se publicó una canción (assets/voz/lista.json → "musica"), se usa; si no, una melodía original sintetizada.
+  const NO_MUSIC = !!window.SIN_MUSICA;
+  let musicOn = progress.music !== false && !NO_MUSIC, timer = null, songEl = null, step = 0, nextTime = 0, hatNoise = null, speakingDuck = false;
   const MELODY = [
-    76,79,81,79,76,79,84,0,  74,71,67,71,74,71,67,0,  72,69,64,69,72,74,76,0,  77,76,74,72,71,72,74,0,
-    76,76,79,79,81,81,79,0,  79,79,74,74,71,74,79,0,  81,79,76,74,72,76,81,0,  77,76,74,72,74,0,72,0,
+    72,0,76,79,84,0,79,76, 74,0,77,81,86,0,81,77, 76,0,79,83,88,0,83,79, 77,79,81,79,77,76,74,0,
+    72,72,76,76,79,79,81,79, 77,77,74,74,71,74,79,0, 81,79,77,76,74,76,77,79, 84,0,79,0,72,0,0,0,
   ];
-  const CHORDS = [[48,[60,64,67]], [43,[59,62,67]], [45,[57,60,64]], [41,[57,60,65]]];
+  const CHORDS = [[48, [60, 64, 67]], [50, [62, 65, 69]], [52, [64, 67, 71]], [53, [65, 69, 72]], [48, [60, 64, 67]], [50, [62, 65, 69]], [55, [62, 67, 71]], [48, [60, 64, 67]]];
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-  let musicOn = progress.music !== false, step = 0, nextTime = 0, timer = null, hatNoise = null;
-  const STEP = 0.25; // corchea a 120 bpm
-
-  function note(freq, t, dur, type, vol, dest) {
+  const STEP = 60 / 132 / 2;
+  function note(freq, t, dur, type, vol) {
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(dest); o.start(t); o.stop(t + dur + 0.02);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(musicGain); o.start(t); o.stop(t + dur + 0.02);
   }
   function schedule() {
     while (nextTime < ctx.currentTime + 0.15) {
       const t = nextTime, bar = Math.floor(step / 8) % 8, beat = step % 8;
-      const [root, chord] = CHORDS[bar % 4];
+      const [root, chord] = CHORDS[bar];
       const m = MELODY[step % MELODY.length];
-      if (m) note(midi(m), t, STEP * 0.9, 'square', 0.05, musicGain);
-      if (m) note(midi(m + 12), t, STEP * 0.6, 'sine', 0.025, musicGain); // brillo de campanita
-      note(midi(beat % 2 ? root + 12 : root), t, STEP * 0.8, 'triangle', 0.18, musicGain); // bajo saltarín
-      if (beat === 1 || beat === 3 || beat === 5 || beat === 7) chord.forEach(n => note(midi(n), t, STEP * 0.5, 'triangle', 0.035, musicGain));
-      if (beat % 2 === 0) { // bombo
+      if (m) { note(midi(m), t, STEP * 0.85, 'square', 0.04); note(midi(m + 12), t, STEP * 0.5, 'triangle', 0.03); }
+      note(midi(beat % 2 ? root + 7 : root - 12), t, STEP * 0.9, 'triangle', 0.2);
+      if (beat % 2) chord.forEach(n => note(midi(n), t, STEP * 0.6, 'square', 0.015));
+      if (beat % 4 === 0) {
         const o = ctx.createOscillator(), g = ctx.createGain();
-        o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-        g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+        o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+        g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
         o.connect(g).connect(musicGain); o.start(t); o.stop(t + 0.16);
-      } else { // platillo
+      }
+      if (beat % 4 === 2) { // palmas
         const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-        s.buffer = hatNoise; f.type = 'highpass'; f.frequency.value = 7000; g.gain.value = 0.08;
+        s.buffer = hatNoise; f.type = 'bandpass'; f.frequency.value = 1500; g.gain.value = .25;
         s.connect(f).connect(g).connect(musicGain); s.start(t);
       }
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = hatNoise; f.type = 'highpass'; f.frequency.value = 7000; g.gain.value = beat % 2 ? .07 : .03;
+      s.connect(f).connect(g).connect(musicGain); s.start(t);
       step++; nextTime += STEP;
     }
   }
   function startMusic() {
-    if (!musicOn || timer) return;
+    if (!musicOn || NO_MUSIC) return;
     const c = audio(); if (!c) return;
+    if (pub.musica) {
+      if (!songEl) { songEl = new Audio(pub.musica); songEl.loop = true; songEl.volume = .35; }
+      songEl.volume = speakingDuck ? .1 : .35;
+      songEl.play().catch(() => {});
+      return;
+    }
+    if (timer) return;
     if (!hatNoise) {
-      hatNoise = c.createBuffer(1, Math.floor(c.sampleRate * 0.04), c.sampleRate);
+      hatNoise = c.createBuffer(1, Math.floor(c.sampleRate * 0.05), c.sampleRate);
       const d = hatNoise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
     }
     nextTime = c.currentTime + 0.05;
     musicGain.gain.cancelScheduledValues(c.currentTime);
-    musicGain.gain.setTargetAtTime(speaking ? 0.12 : 0.45, c.currentTime, 0.3);
+    musicGain.gain.setTargetAtTime(speakingDuck ? 0.12 : 0.42, c.currentTime, 0.3);
     timer = setInterval(schedule, 25);
   }
   function stopMusic() {
+    if (songEl) songEl.pause();
     if (!timer) return;
     clearInterval(timer); timer = null;
     if (ctx) musicGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
   }
-  function duck(on) { if (ctx && timer) musicGain.gain.setTargetAtTime(on ? 0.12 : 0.45, ctx.currentTime, 0.15); }
-  function setMusic(on) { musicOn = on; progress.music = on; save(progress); on ? startMusic() : stopMusic(); updateMusicButtons(); }
+  function duck(on) {
+    speakingDuck = on;
+    if (songEl) songEl.volume = on ? .1 : .35;
+    if (ctx && timer) musicGain.gain.setTargetAtTime(on ? 0.12 : 0.42, ctx.currentTime, 0.15);
+  }
+  function setMusic(on) { musicOn = on && !NO_MUSIC; progress.music = on; save(progress); musicOn ? startMusic() : stopMusic(); updateMusicButtons(); }
   function updateMusicButtons() {
     document.querySelectorAll('[data-musica]').forEach(b => { b.textContent = musicOn ? '🎵' : '🔇'; b.setAttribute('aria-label', musicOn ? 'Apagar música' : 'Prender música'); });
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else if (musicOn && ctx) startMusic(); });
-
-  // Primer toque: desbloquear audio, cargar sonidos y arrancar la música
-  function unlock() { audio(); loadSfx(); startMusic(); }
+  function unlock() { audio(); loadSfx(); ready.then(startMusic); }
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, unlock, { once: true, passive: true }));
   document.addEventListener('click', e => { const b = e.target.closest('[data-musica]'); if (b) setMusic(!musicOn); });
   document.addEventListener('DOMContentLoaded', updateMusicButtons);
+
+  // ---------- turnos (modo 2 jugadores) ----------
+  function nextTurn(cb, opts = {}) {
+    if (!progress.two) { cb && cb(); return; }
+    progress.turn = (progress.turn + 1) % 2; save(progress);
+    showTurn(cb, opts);
+  }
+  function showTurn(cb, opts = {}) {
+    const p = player();
+    const w = document.createElement('div');
+    w.className = 'turno';
+    w.innerHTML = `<div class="turno-caja"><div class="turno-cara">${CHARS[p.char]?.emoji || '⭐'}</div><p>¡Turno de</p><p class="turno-nombre">${esc(p.name)}!</p></div>`;
+    document.body.appendChild(w);
+    sfx('pop'); say(['¡Turno de', p.name + '!']);
+    if (opts.onShow) opts.onShow(p);
+    setTimeout(() => { w.classList.add('fuera'); setTimeout(() => { w.remove(); cb && cb(); }, 300); }, opts.ms || 1800);
+  }
+
+  // ---------- descanso ----------
+  const T0 = (() => { try { const v = +sessionStorage.getItem('bl-inicio'); if (v) return v; const n = Date.now(); sessionStorage.setItem('bl-inicio', n); return n; } catch (e) { return Date.now(); } })();
+  let restShown = false;
+  if (!NO_MUSIC) setInterval(() => {
+    if (restShown || !progress.sessionMin || Date.now() - T0 < progress.sessionMin * 60000) return;
+    restShown = true;
+    const w = document.createElement('div');
+    w.className = 'regalo';
+    w.innerHTML = `<div class="regalo-caja"><div style="font-size:90px">😴🌙</div><p class="regalo-titulo">¡Jugaste muy bien, ${esc(childName())}!</p><p class="regalo-sub">Es hora de descansar los ojitos.</p><div class="regalo-opciones"><button class="regalo-op op-seguir"><span>👩</span>Mamá: 5 minutos más</button></div></div>`;
+    document.body.appendChild(w);
+    say(['¡Jugaste muy bien!', childName(), 'Es hora de descansar.']);
+    w.querySelector('button').onclick = () => { w.remove(); try { sessionStorage.setItem('bl-inicio', Date.now() - (progress.sessionMin - 5) * 60000); } catch (e) {} setTimeout(() => { restShown = false; }, 1000); };
+  }, 30000);
 
   // ---------- confeti ----------
   let cv = null, cx = null, bits = [], raf = null;
@@ -252,8 +396,7 @@
   }
 
   // ---------- regalo ----------
-  // Muestra una caja de regalo; al abrirla elige entre el cuento y el lienzo arcoíris.
-  function gift(onContinue, root = '') {
+  function gift(onContinue) {
     const wrap = document.createElement('div');
     wrap.className = 'regalo';
     wrap.innerHTML = `
@@ -262,26 +405,25 @@
         <p class="regalo-titulo">¡Ganaste un regalo!</p>
         <p class="regalo-sub">Toca la caja para abrirla</p>
         <div class="regalo-opciones" hidden>
-          <a class="regalo-op op-cuento" href="${root}cuento.html"><span>📖</span>Un cuento</a>
-          <a class="regalo-op op-pintar" href="${root}pintar.html"><span>🌈</span>Pintar</a>
+          <a class="regalo-op op-cuento" href="${ROOT}cuento.html"><span>📖</span>Un cuento</a>
+          <a class="regalo-op op-pintar" href="${ROOT}princesa.html"><span>🎨</span>Pintar</a>
           <button class="regalo-op op-seguir"><span>▶️</span>Seguir jugando</button>
         </div>
       </div>`;
     document.body.appendChild(wrap);
     cheer(true); confetti(160);
-    say('¡Ganaste un regalo! Toca la caja para abrirla.', { queue: true });
+    say(['¡Ganaste un regalo!', 'Toca la caja para abrirla.'], { queue: true });
     const box = wrap.querySelector('.regalo-abrir');
     box.onclick = () => {
       box.classList.add('abierta'); box.textContent = '✨';
       sparkle(); confetti(80);
       wrap.querySelector('.regalo-sub').hidden = true;
       wrap.querySelector('.regalo-opciones').hidden = false;
-      say('¿Quieres un cuento, o pintar con colores del arcoíris?');
+      say('¿Quieres un cuento, pintar, o seguir jugando?');
     };
     wrap.querySelector('.op-seguir').onclick = () => { wrap.remove(); stopVoice(); onContinue && onContinue(); };
   }
 
-  // estilos del regalo (se comparten entre páginas)
   const css = document.createElement('style');
   css.textContent = `
   .regalo{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(35,50,74,.55)}
@@ -294,122 +436,21 @@
   .regalo-op{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px;border-radius:20px;border:0;font:inherit;font-size:20px;font-weight:800;color:#fff;text-decoration:none;cursor:pointer;box-shadow:0 6px 0 rgba(35,50,74,.3)}
   .regalo-op span{font-size:44px;line-height:1.1}
   .op-cuento{background:#3f8ee8}.op-pintar{background:linear-gradient(135deg,#ef5b5b,#f6c33b,#4cb87a,#3f8ee8,#9a6ee0)}.op-seguir{background:#4cb87a}
-  @keyframes regalo-bote{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-12px) rotate(4deg)}}
-  @keyframes regalo-in{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-  @media (prefers-reduced-motion: reduce){.regalo-abrir,.regalo-caja{animation:none}}`;
-  document.head.appendChild(css);
-
-
-  // ---------- turnos (modo 2 jugadores) ----------
-  // Muestra "¡Turno de …!" y llama a cb. En modo de 1 jugador llama a cb directamente.
-  function nextTurn(cb, opts = {}) {
-    if (!progress.two) { cb && cb(); return; }
-    progress.turn = (progress.turn + 1) % 2; save(progress);
-    showTurn(cb, opts);
-  }
-  function showTurn(cb, opts = {}) {
-    const p = player();
-    const w = document.createElement('div');
-    w.className = 'turno';
-    w.innerHTML = `<div class="turno-caja"><div class="turno-cara">${CHARS[p.char]?.emoji || '⭐'}</div><p>¡Turno de</p><p class="turno-nombre">${esc(p.name)}!</p></div>`;
-    document.body.appendChild(w);
-    sfx('pop'); say('¡Turno de ' + p.name + '!');
-    setTimeout(() => { w.classList.add('fuera'); setTimeout(() => { w.remove(); cb && cb(); }, 300); }, opts.ms || 1700);
-    if (opts.onShow) opts.onShow(p);
-  }
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-  // ---------- sonidos de las letras (método fonético) ----------
-  // Si mamá o papá grabaron el sonido, se usa la grabación; si no, la voz del dispositivo.
-  const SOUNDS = {
-    a: 'a', e: 'e', i: 'i', o: 'o', u: 'u',
-    m: 'mmmm', s: 'ssss', n: 'nnnn', f: 'ffff', l: 'llll',
-    p: 'pa', t: 'ta', d: 'da', c: 'ca', g: 'ga', b: 'ba', r: 'ra', ñ: 'ña', j: 'ja', ch: 'cha', ll: 'lla', v: 'va',
-  };
-  // ejemplo de palabra para cada sonido
-  const SOUND_WORD = { a: 'abeja', e: 'elefante', i: 'isla', o: 'oso', u: 'uva', m: 'mamá', s: 'sapo', n: 'nube', f: 'flor', l: 'luna',
-    p: 'papá', t: 'taza', d: 'dedo', c: 'casa', g: 'gato', b: 'bota', r: 'rana', ñ: 'piña', j: 'jugo', ch: 'choclo', ll: 'llama', v: 'vaca' };
-  const RECORDABLE = ['a', 'e', 'i', 'o', 'u', 'm', 's', 'l', 'n', 'f', 'p', 't', 'd', 'c', 'g', 'b', 'r', 'ch', 'll', 'ñ', 'j', 'bravo', 'nombre'];
-
-  let db = null;
-  function openDB() {
-    if (db) return Promise.resolve(db);
-    return new Promise((ok, no) => {
-      try {
-        const r = indexedDB.open('bloques-letras-voces', 1);
-        r.onupgradeneeded = () => r.result.createObjectStore('sonidos');
-        r.onsuccess = () => { db = r.result; ok(db); };
-        r.onerror = () => no(r.error);
-      } catch (e) { no(e); }
-    });
-  }
-  const tx = (mode, fn) => openDB().then(d => new Promise((ok, no) => { const t = d.transaction('sonidos', mode); const st = t.objectStore('sonidos'); const r = fn(st); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }));
-  const voices = {
-    get: k => tx('readonly', st => st.get(k)).catch(() => null),
-    set: (k, blob) => tx('readwrite', st => st.put(blob, k)),
-    del: k => tx('readwrite', st => st.delete(k)),
-    keys: () => tx('readonly', st => st.getAllKeys()).catch(() => []),
-  };
-  // 1) grabaciones de este navegador (IndexedDB)  2) grabaciones públicas del repositorio (assets/voz/lista.json)
-  const cache = {}, publicVoice = {};
-  voices.keys().then(ks => (ks || []).forEach(k => voices.get(k).then(b => { if (b) cache[k] = URL.createObjectURL(b); })));
-  const vozBase = base.replace(/sonidos\/$/, 'voz/');
-  fetch(vozBase + 'lista.json').then(r => r.ok ? r.json() : {}).then(list => { Object.entries(list || {}).forEach(([k, f]) => { publicVoice[k] = vozBase + f; }); }).catch(() => {});
-  voices.refresh = k => voices.get(k).then(b => { if (cache[k]) URL.revokeObjectURL(cache[k]); if (b) cache[k] = URL.createObjectURL(b); else delete cache[k]; });
-  voices.has = k => !!cache[k];
-  voices.hasPublic = k => !!publicVoice[k];
-  // exportar todas las grabaciones en un solo archivo .json (audio en base64)
-  voices.export = async () => {
-    const out = {};
-    for (const k of await voices.keys()) {
-      const b = await voices.get(k); if (!b) continue;
-      out[k] = { type: b.type, data: await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }) };
-    }
-    return out;
-  };
-  voices.import = async obj => {
-    for (const [k, v] of Object.entries(obj || {})) {
-      if (!RECORDABLE.includes(k) || !v || !v.data) continue;
-      const blob = await (await fetch(v.data)).blob();
-      await voices.set(k, blob); await voices.refresh(k);
-    }
-  };
-  let playing = null;
-  function playRec(k) {
-    const url = cache[k] || publicVoice[k];
-    if (!url) return false;
-    try { if (playing) playing.pause(); stopVoice(); playing = new Audio(url); duck(true); playing.onended = () => duck(false); playing.play(); return true; } catch (e) { return false; }
-  }
-  // sonido de una letra: grabación o voz del dispositivo
-  function sound(letter, opts = {}) {
-    if (playRec(letter)) { if (opts.then) setTimeout(() => say(opts.then, { queue: true }), 900); return; }
-    say([SOUNDS[letter] || letter].concat(opts.then ? [opts.then] : []), { rate: 0.7 });
-  }
-  function praiseVoice(text) { if (!playRec('bravo')) say(text, { queue: true }); }
-
-  // ---------- descanso ----------
-  const T0 = (() => { try { const v = +sessionStorage.getItem('bl-inicio'); if (v) return v; const n = Date.now(); sessionStorage.setItem('bl-inicio', n); return n; } catch (e) { return Date.now(); } })();
-  let restShown = false;
-  setInterval(() => {
-    if (restShown || !progress.sessionMin || Date.now() - T0 < progress.sessionMin * 60000) return;
-    restShown = true;
-    const w = document.createElement('div');
-    w.className = 'regalo';
-    w.innerHTML = `<div class="regalo-caja"><div style="font-size:90px">😴🌙</div><p class="regalo-titulo">¡Jugaste muy bien, ${esc(childName())}!</p><p class="regalo-sub">Es hora de descansar los ojitos.</p><div class="regalo-opciones"><button class="regalo-op op-seguir"><span>👩</span>Mamá: 5 minutos más</button></div></div>`;
-    document.body.appendChild(w);
-    say(`¡Jugaste muy bien, ${childName()}! Es hora de descansar.`);
-    w.querySelector('button').onclick = () => { w.remove(); try { sessionStorage.setItem('bl-inicio', Date.now() - (progress.sessionMin - 5) * 60000); } catch (e) {} setTimeout(() => { restShown = false; }, 1000); };
-  }, 30000);
-
-  const css2 = document.createElement('style');
-  css2.textContent = `
   .turno{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#fff6c8,#ffc2dd);animation:regalo-in .3s ease-out;font-family:"Baloo 2",system-ui,sans-serif;color:#23324a;text-align:center;transition:opacity .3s}
   .turno.fuera{opacity:0}
   .turno-cara{font-size:120px;line-height:1;animation:regalo-bote 1s ease-in-out infinite}
   .turno p{margin:0;font-size:34px;font-weight:800}
-  .turno .turno-nombre{font-size:56px;line-height:1.1}`;
-  document.head.appendChild(css2);
+  .turno .turno-nombre{font-size:56px;line-height:1.1}
+  @keyframes regalo-bote{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-12px) rotate(4deg)}}
+  @keyframes regalo-in{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion: reduce){.regalo-abrir,.regalo-caja,.turno-cara{animation:none}}`;
+  document.head.appendChild(css);
 
-  window.Juego = { CHARS, player, childName, nextTurn, showTurn, esc, SOUNDS, SOUND_WORD, RECORDABLE, voices, sound, praiseVoice, playRec, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, WORDS, pick, shuffle, strip, progress, save: () => save(progress), addStar, say, stopVoice,
-    sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift, startMusic, setMusic, audio };
+  window.Juego = {
+    WORDS, CHARS, pick, shuffle, strip, esc, norm, progress, save: () => save(progress), player, childName, addStar,
+    say, stopVoice, sound, SOUNDS, SOUND_WORD, PRAISES, SHOUTS, voices, recUrl, ROOT,
+    sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift,
+    startMusic, stopMusic, setMusic, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, audio,
+    nextTurn, showTurn,
+  };
 })();

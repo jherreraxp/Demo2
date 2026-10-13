@@ -1,6 +1,6 @@
-// Bosque de las Palabras — laberinto 3D con misiones de lectura.
-// Se lee la palabra de la misión y hay que encontrar el animalito u objeto escondido
-// en una cajita, un árbol o un arbusto, caminando por las callecitas.
+// Bosque de las Palabras — laberinto 3D con retos de lectura.
+// Cada cajita de regalo guarda un reto escrito ("gato"). La niña lo lee, busca al animalito
+// que pasea por las callecitas y lo guarda en su mochila.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { crearMundo, chispitas, esperaFuente, tarjeta } from './mundo3d.js';
@@ -13,12 +13,12 @@ const PLAYER_R = .45, SPEED = 4.2;
 
 // Niveles: cada vez más grande y con más pistas que leer
 const NIVELES = [
-  { n: 4, spots: 4, missions: 3, tipo: 'palabra', dibujo: true },
-  { n: 5, spots: 5, missions: 3, tipo: 'palabra', dibujo: false },
-  { n: 6, spots: 6, missions: 3, tipo: 'palabra', dibujo: false },
-  { n: 6, spots: 6, missions: 3, tipo: 'silaba' },
-  { n: 7, spots: 7, missions: 4, tipo: 'palabra', dibujo: false },
-  { n: 8, spots: 8, missions: 4, tipo: 'mezcla' },
+  { n: 6, objs: 5, missions: 3, tipo: 'palabra', dibujo: true },
+  { n: 7, objs: 6, missions: 3, tipo: 'palabra', dibujo: false },
+  { n: 8, objs: 7, missions: 4, tipo: 'palabra', dibujo: false },
+  { n: 8, objs: 7, missions: 4, tipo: 'silaba' },
+  { n: 9, objs: 8, missions: 5, tipo: 'palabra', dibujo: false },
+  { n: 10, objs: 9, missions: 5, tipo: 'mezcla' },
 ];
 const ITEMS = BUSCABLES.map(w => J.WORDS.find(x => x[0] === w)).filter(Boolean); // [palabra, sílabas, emoji]
 
@@ -59,7 +59,7 @@ function fit(obj, height) {
 
 // ---------- estado ----------
 const state = {
-  nivel: 0, maze: null, walls: [], spots: [], missions: [], mi: 0, brillos: 0,
+  nivel: 0, maze: null, walls: [], boxes: [], objs: [], missions: [], mi: 0, brillos: 0, brillosObj: [], stage: 'caja', mochila: [],
   pos: new THREE.Vector3(), dir: 0, path: [], joy: new THREE.Vector2(), keys: {}, moving: false,
   lastFound: 0, playing: false, celebrate: 0, hada: null, hadaOn: false,
 };
@@ -113,7 +113,7 @@ function distances(cells) {
   return d;
 }
 
-// ---------- escondites ----------
+// ---------- cajita de regalo ----------
 function makeCaja(color) {
   const g = new THREE.Group();
   const m = new THREE.MeshStandardMaterial({ color, roughness: .5 });
@@ -126,34 +126,10 @@ function makeCaja(color) {
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return { g, open: k => { lid.rotation.x = -k * 1.9; } };
 }
-function makeArbol() {
-  const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.25, .35, 1.6, 10), new THREE.MeshStandardMaterial({ color: 0x8a5a3c })); trunk.position.y = .8; g.add(trunk);
-  const crown = new THREE.Group(); crown.position.y = 2.1; g.add(crown);
-  const leaf = new THREE.MeshStandardMaterial({ color: 0x4fb35b, roughness: .8 });
-  [[0, 0, 0, 1.1], [.6, -.3, .2, .75], [-.6, -.2, -.1, .8], [0, .55, 0, .75], [.1, -.2, .6, .7]].forEach(([x, y, z, r]) => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), leaf); s.position.set(x, y, z); crown.add(s); });
-  // manzanitas
-  [[.5, .2, .8], [-.7, .1, .6], [.2, .6, .7]].forEach(p => { const a = new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), new THREE.MeshStandardMaterial({ color: 0xef3b4a })); a.position.set(...p); crown.add(a); });
-  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { g, open: k => { crown.rotation.z = Math.sin(k * 20) * .15 * (1 - k); crown.scale.setScalar(1 + Math.sin(k * Math.PI) * .08); } };
-}
-function makeArbusto() {
-  const g = new THREE.Group();
-  const leaf = new THREE.MeshStandardMaterial({ color: 0x3fa64f, roughness: .85 });
-  [[0, .5, 0, .7], [.5, .4, .1, .5], [-.5, .4, 0, .55], [0, .8, -.1, .5], [.2, .35, .45, .45]].forEach(([x, y, z, r]) => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), leaf); s.position.set(x, y, z); g.add(s); });
-  const flowers = [0xff7eb6, 0xffd23f, 0xffffff];
-  for (let i = 0; i < 7; i++) { const f = new THREE.Mesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshStandardMaterial({ color: flowers[i % 3] })); const a = i * .9; f.position.set(Math.cos(a) * .6, .5 + (i % 3) * .2, Math.sin(a) * .5 + .1); g.add(f); }
-  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { g, open: k => { g.rotation.z = Math.sin(k * 25) * .12 * (1 - k); g.scale.set(1 + Math.sin(k * Math.PI) * .15, 1 - Math.sin(k * Math.PI) * .1, 1); } };
-}
-
-// ---------- hada guía ----------
 function makeHada() {
   const g = new THREE.Group();
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(.18, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff6a8 }));
-  g.add(glow);
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(.38, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff6a8, transparent: true, opacity: .3 }));
-  g.add(halo);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(.18, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff6a8 })));
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(.38, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff6a8, transparent: true, opacity: .3 })));
   const wingM = new THREE.MeshBasicMaterial({ color: 0xc9f0ff, transparent: true, opacity: .75, side: THREE.DoubleSide });
   const wings = [-1, 1].map(sx => { const w = new THREE.Mesh(new THREE.CircleGeometry(.28, 16), wingM); w.position.set(sx * .25, .08, 0); w.scale.set(1, .6, 1); g.add(w); return w; });
   g.visible = false; scene.add(g);
@@ -164,20 +140,16 @@ function makeHada() {
 async function buildLevel(i) {
   if (level) { scene.remove(level); level.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
   level = new THREE.Group(); scene.add(level);
-  const cfg = NIVELES[i];
-  const n = cfg.n;
+  const cfg = NIVELES[i], n = cfg.n;
   const cells = genMaze(n);
-  state.maze = cells; state.walls = []; state.spots = []; state.path = [];
-  state.nivel = i;
+  Object.assign(state, { maze: cells, walls: [], boxes: [], objs: [], path: [], nivel: i, mi: 0, stage: 'caja', mochila: [] });
 
-  // piso de caminito
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(n * C, n * C), new THREE.MeshLambertMaterial({ map: pathTex.clone() }));
   floor.material.map.repeat.set(n * 1.5, n * 1.5); floor.material.map.needsUpdate = true;
   floor.rotation.x = -Math.PI / 2; floor.position.y = .01; floor.receiveShadow = true; level.add(floor);
 
-  // paredes de arbustos (instanciadas para que vaya rápido en tablets)
-  const segs = [];
-  const half = (n * C) / 2;
+  // paredes de arbustos (instanciadas: rápido en tablets)
+  const segs = [], half = (n * C) / 2;
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
     const p = cellPos(r, c, n), cl = cells[r][c];
     if (cl.n) segs.push([p.x, p.z - C / 2, C + .8, .8]);
@@ -185,7 +157,7 @@ async function buildLevel(i) {
     if (r === 0 && cl.s && c !== 0) segs.push([p.x, p.z + C / 2, C + .8, .8]);
     if (c === 0 && cl.w) segs.push([p.x - C / 2, p.z, .8, C + .8]);
   }
-  const H = 1.3;
+  const H = 1.2;
   const hedge = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ map: hedgeTex }), segs.length);
   const m4 = new THREE.Matrix4();
   segs.forEach(([x, z, sx, sz], k) => {
@@ -194,77 +166,70 @@ async function buildLevel(i) {
     state.walls.push({ minX: x - sx / 2, maxX: x + sx / 2, minZ: z - sz / 2, maxZ: z + sz / 2 });
   });
   hedge.castShadow = true; hedge.receiveShadow = true; level.add(hedge);
-  // florcitas encima de los arbustos
   const fl = new THREE.InstancedMesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff }), segs.length * 2);
   const fcols = [0xff7eb6, 0xffd23f, 0xffffff, 0xb07de8];
-  segs.forEach(([x, z, sx, sz], k) => {
-    for (let j = 0; j < 2; j++) {
-      m4.makeTranslation(x + (Math.random() - .5) * sx * .8, H + .05, z + (Math.random() - .5) * sz * .8);
-      fl.setMatrixAt(k * 2 + j, m4); fl.setColorAt(k * 2 + j, new THREE.Color(fcols[(k + j) % 4]));
-    }
-  });
+  segs.forEach(([x, z, sx, sz], k) => { for (let j = 0; j < 2; j++) { m4.makeTranslation(x + (Math.random() - .5) * sx * .8, H + .05, z + (Math.random() - .5) * sz * .8); fl.setMatrixAt(k * 2 + j, m4); fl.setColorAt(k * 2 + j, new THREE.Color(fcols[(k + j) % 4])); } });
   level.add(fl);
 
-  // entrada con arco de colores
   const start = cellPos(0, 0, n);
   const arch = new THREE.Mesh(new THREE.TorusGeometry(1.4, .14, 10, 30, Math.PI), new THREE.MeshStandardMaterial({ color: 0xff7eb6 }));
   arch.position.set(start.x, 0, start.z + C / 2); level.add(arch);
 
-  // decoración alrededor: casitas y árboles (callecitas del pueblo)
+  // casitas y árboles alrededor (el pueblo)
   const ring = [];
-  for (let k = -half - 4; k <= half + 4; k += 4.5) { ring.push([k, -half - 4.5], [k, half + 5], [-half - 4.5, k], [half + 4.5, k]); }
+  for (let k = -half - 4; k <= half + 4; k += 4.5) ring.push([k, -half - 4.5], [k, half + 5], [-half - 4.5, k], [half + 4.5, k]);
   ring.forEach(([x, z], k) => {
-    const keys = ['houseA', 'houseB', 'houseC', 'treesTall', 'trees', 'treesTall'];
-    const key = keys[k % keys.length];
+    const key = ['houseA', 'houseB', 'houseC', 'treesTall', 'trees', 'treesTall'][k % 6];
     if (!deco[key]) return;
     const o = fit(deco[key].scene.clone(true), key.startsWith('house') ? 3.4 : 3.2);
     o.position.set(x, 0, z); o.lookAt(0, 0, 0); level.add(o);
   });
 
-  // escondites: callejones sin salida, del más lejano al más cercano
-  const dist = distances(cells);
-  const dead = [];
+  // celdas: las cajitas van en callejones lejanos; los animalitos en otras calles
+  const dist = distances(cells), all = [];
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-    if (r === 0 && c === 0) continue;
-    const cl = cells[r][c], open = ['n', 's', 'e', 'w'].filter(d => !cl[d]);
-    dead.push({ r, c, d: dist[r][c], dead: open.length === 1, open });
+    if (r + c < 2) continue;
+    const cl = cells[r][c];
+    all.push({ r, c, d: dist[r][c], dead: ['n', 's', 'e', 'w'].filter(k => !cl[k]).length === 1 });
   }
-  dead.sort((a, b) => (b.dead - a.dead) || (b.d - a.d));
-  // repartir: tomar de forma salteada para que no estén todos juntos
-  const chosen = [];
-  for (const cand of dead) {
-    if (chosen.length >= cfg.spots) break;
-    if (chosen.some(o => Math.abs(o.r - cand.r) + Math.abs(o.c - cand.c) < 2)) continue;
-    chosen.push(cand);
-  }
-  for (const cand of dead) { if (chosen.length >= cfg.spots) break; if (!chosen.includes(cand)) chosen.push(cand); }
+  const far = (list, a, min) => list.every(o => Math.abs(o.r - a.r) + Math.abs(o.c - a.c) >= min);
+  const boxCells = [];
+  for (const cand of all.slice().sort((a, b) => (b.dead - a.dead) || (b.d - a.d))) { if (boxCells.length >= cfg.missions) break; if (far(boxCells, cand, 3)) boxCells.push(cand); }
+  const objCells = [];
+  for (const cand of J.shuffle(all)) { if (objCells.length >= cfg.objs) break; if (far(boxCells, cand, 1) && far(objCells, cand, 2)) objCells.push(cand); }
+  for (const cand of J.shuffle(all)) { if (objCells.length >= cfg.objs) break; if (!boxCells.includes(cand) && !objCells.includes(cand)) objCells.push(cand); }
 
-  const items = J.shuffle(ITEMS).slice(0, chosen.length);
-  const kinds = ['caja', 'arbol', 'arbusto'];
+  // animalitos y cosas, visibles, paseando
+  const words = J.shuffle(ITEMS).slice(0, objCells.length);
+  objCells.forEach((cell, k) => {
+    const o = crearObjeto(words[k][0]);
+    o.group.scale.setScalar(1.6);
+    const home = cellPos(cell.r, cell.c, n);
+    o.group.position.copy(home);
+    level.add(o.group);
+    state.objs.push({ word: words[k], o, home, phase: Math.random() * 6, got: false, cool: 0, fly: 0 });
+  });
+
+  // retos (uno por cajita)
+  const tipo = cfg.tipo;
+  const missionWords = J.shuffle(words).slice(0, boxCells.length);
+  const syl = w => J.strip(w[1].split('-')[0]);
+  state.missions = missionWords.map((w, k) => {
+    let t = tipo === 'mezcla' ? (k % 2 ? 'silaba' : 'palabra') : tipo;
+    if (t === 'silaba' && words.filter(x => syl(x) === syl(w)).length > 1) t = 'palabra';
+    return { word: w, tipo: t, dibujo: !!cfg.dibujo };
+  });
   const boxCols = [0xef5b5b, 0x3f8ee8, 0x9a6ee0, 0xf39a3b, 0x4cb87a, 0xff7eb6];
-  chosen.forEach((cand, k) => {
-    const p = cellPos(cand.r, cand.c, n);
-    // lado cerrado (contra la pared) para dejar libre el camino
-    const closed = ['n', 's', 'e', 'w'].filter(d => cells[cand.r][cand.c][d]);
-    const side = closed[0] || 'n';
-    const off = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[side];
-    const kind = kinds[k % 3];
-    const h = kind === 'caja' ? makeCaja(boxCols[k % boxCols.length]) : kind === 'arbol' ? makeArbol() : makeArbusto();
-    h.g.position.set(p.x + off[0] * 1.35, 0, p.z + off[1] * 1.35);
+  boxCells.forEach((cell, k) => {
+    const p = cellPos(cell.r, cell.c, n);
+    const closed = ['n', 's', 'e', 'w'].filter(d => cells[cell.r][cell.c][d]);
+    const off = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[closed[0] || 'n'];
+    const h = makeCaja(boxCols[k % boxCols.length]);
+    h.g.position.set(p.x + off[0] * 1.3, 0, p.z + off[1] * 1.3);
     level.add(h.g);
-    const obj = crearObjeto(items[k][0]);
-    obj.group.visible = false;
-    obj.group.position.set(p.x - off[0] * .5 + (off[1] ? 1 : 0), 0, p.z - off[1] * .5 + (off[0] ? .8 : 0));
-    obj.group.userData.size = 1.7;
-    level.add(obj.group);
-    // cartel con la palabra encima del animalito
-    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tarjeta(items[k][0], { color: '#ffd23f' }), depthTest: false }));
-    label.scale.set(1.5, 1.5, 1); label.position.y = 2.6 / 1.7; label.renderOrder = 10;
-    obj.group.add(label);
-    // anillo brillante para marcar que hay algo
-    const ringM = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.3, 32), new THREE.MeshBasicMaterial({ color: 0xfff6a8, transparent: true, opacity: .55, side: THREE.DoubleSide }));
+    const ringM = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.35, 32), new THREE.MeshBasicMaterial({ color: 0xfff6a8, transparent: true, opacity: .55, side: THREE.DoubleSide }));
     ringM.rotation.x = -Math.PI / 2; ringM.position.set(h.g.position.x, .03, h.g.position.z); level.add(ringM);
-    state.spots.push({ r: cand.r, c: cand.c, word: items[k], kind, h, obj, ring: ringM, opened: false, openK: 0, found: false, center: p });
+    state.boxes.push({ h, ring: ringM, r: cell.r, c: cell.c, opened: false, openK: 0, card: null });
   });
 
   // estrellitas por los caminos
@@ -273,114 +238,105 @@ async function buildLevel(i) {
   const starMat = new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0x8a6a00, emissiveIntensity: .5, metalness: .3, roughness: .3 });
   for (let k = 0; k < n * 2; k++) {
     const r = Math.floor(Math.random() * n), c = Math.floor(Math.random() * n);
-    if (r === 0 && c === 0) continue;
-    if (state.spots.some(s => s.r === r && s.c === c)) continue;
-    const s = new THREE.Mesh(starGeo, starMat); s.castShadow = true;
-    const p = cellPos(r, c, n); s.position.set(p.x + (Math.random() - .5) * 1.5, .7, p.z + (Math.random() - .5) * 1.5);
-    level.add(s); state.brillosObj.push(s);
+    if (r + c < 1) continue;
+    const s2 = new THREE.Mesh(starGeo, starMat); s2.castShadow = true;
+    const p = cellPos(r, c, n); s2.position.set(p.x + (Math.random() - .5) * 1.5, .7, p.z + (Math.random() - .5) * 1.5);
+    level.add(s2); state.brillosObj.push(s2);
   }
-
-  // misiones
-  const pool = state.spots.map(s => s.word);
-  const tipo = cfg.tipo;
-  state.missions = J.shuffle(pool).slice(0, cfg.missions).map((w, k) => {
-    const t = tipo === 'mezcla' ? (k % 2 ? 'silaba' : 'palabra') : tipo;
-    return { word: w, tipo: t, dibujo: !!cfg.dibujo };
-  });
-  // en misiones de sílaba, la sílaba inicial no debe repetirse en otro escondite
-  state.missions.forEach(m => {
-    if (m.tipo !== 'silaba') return;
-    const syl = J.strip(m.word[1].split('-')[0]);
-    if (state.spots.filter(s => J.strip(s.word[1].split('-')[0]) === syl).length > 1) m.tipo = 'palabra';
-  });
-  state.mi = 0;
   $('#metas').innerHTML = state.missions.map(() => '<span class="meta">⭐</span>').join('');
-
-  // jugador en la entrada
+  renderMochila();
   state.pos.copy(start); state.pos.z += 1.2; state.dir = Math.PI;
-  camera.position.set(state.pos.x, 11, state.pos.z + 9);
+  camera.position.set(state.pos.x, 12, state.pos.z + 9);
 }
 
-// ---------- misiones ----------
+// ---------- retos ----------
 const syl0 = w => J.strip(w[1].split('-')[0]);
-function showMission() {
-  const m = state.missions[state.mi];
-  if (!m) return;
+const activeBox = () => state.boxes[state.mi];
+function showBoxStep() {
+  // paso 1: ir a la cajita que brilla
+  state.stage = 'caja';
+  state.boxes.forEach((b, k) => { b.ring.visible = k === state.mi; });
   const box = $('#mision');
-  if (m.tipo === 'silaba') { $('#m-etq').textContent = 'Empieza con'; $('#m-word').textContent = syl0(m.word); $('#m-pic').textContent = '🔍'; }
-  else { $('#m-etq').textContent = 'Busca'; $('#m-word').textContent = m.word[0]; $('#m-pic').textContent = m.dibujo ? m.word[2] : '🔍'; }
+  $('#m-etq').textContent = 'Abre la cajita'; $('#m-pic').textContent = '🎁'; $('#m-word').textContent = '';
   box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
+  state.lastFound = performance.now(); hideHada();
+  J.say('Abre una cajita y lee.');
+}
+function openBox(b) {
+  b.opened = true; b.openK = .001; J.sfx('pop', .9);
+  const m = state.missions[state.mi];
+  const text = m.tipo === 'silaba' ? syl0(m.word) + '…' : m.word[0];
+  const card = new THREE.Sprite(new THREE.SpriteMaterial({ map: tarjeta(text, { emoji: m.dibujo ? m.word[2] : '', color: '#9a6ee0' }) }));
+  card.scale.set(1.7, 1.7, 1); card.position.set(b.h.g.position.x, 1.2, b.h.g.position.z); card.userData.rise = 0;
+  level.add(card); b.card = card;
+  fx.burst(card.position.clone(), 30, .6);
+  // paso 2: leer y buscar
+  state.stage = 'buscar';
+  $('#m-etq').textContent = m.tipo === 'silaba' ? 'Empieza con' : 'Busca';
+  $('#m-word').textContent = m.tipo === 'silaba' ? syl0(m.word) : m.word[0];
+  $('#m-pic').textContent = m.dibujo ? m.word[2] : '🔍';
+  const box = $('#mision'); box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
   state.lastFound = performance.now();
-  hideHada();
-  sayMission();
+  // si ya sabe leer la dejamos leer sola; la voz ayuda si pasa un rato
+  if (m.dibujo) sayMission(); else J.say('¿Qué dice la cajita?');
+  clearTimeout(openBox.t); openBox.t = setTimeout(() => { if (state.stage === 'buscar' && state.missions[state.mi] === m) sayMission(); }, 9000);
 }
 function sayMission() {
   const m = state.missions[state.mi]; if (!m) return;
-  if (m.tipo === 'silaba') J.say(['Busca algo que empieza con', syl0(m.word)]);
-  else J.say(['Busca:', m.word[1].split('-').join(', '), m.word[0]]);
+  if (state.stage === 'caja') return J.say('Abre una cajita y lee.');
+  if (m.tipo === 'silaba') J.say(['Algo que empieza con', syl0(m.word)]);
+  else J.say(['Busca', m.word[0]]);
 }
 $('#m-say').onclick = sayMission;
-
 function message(text, secs = 1.8) {
   const el = $('#mensaje'); el.textContent = text;
   el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
   clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
 }
-
-function matches(spot, m) {
-  if (m.tipo === 'silaba') return syl0(spot.word) === syl0(m.word);
-  return spot.word[0] === m.word[0];
-}
-
-function openSpot(s) {
-  s.opened = true; s.openK = .001;
-  s.obj.group.visible = true; s.obj.group.scale.setScalar(.01);
-  J.sfx('pop', .8);
-  check(s, true);
-}
-function check(s, fresh) {
+const matches = (o, m) => m.tipo === 'silaba' ? syl0(o.word) === syl0(m.word) : o.word[0] === m.word[0];
+function touch(o) {
   const m = state.missions[state.mi];
-  if (!m || s.found) return;
-  if (matches(s, m)) {
-    s.found = true; s.ring.visible = false;
-    state.celebrate = 2.2;
-    J.cheer(); fx.burst(s.obj.group.position.clone().add(new THREE.Vector3(0, 1, 0)), 50);
-    message('¡Lo encontraste!');
+  if (!m || o.got) return;
+  if (matches(o, m)) {
+    o.got = true; o.fly = .001;
+    state.celebrate = 2;
+    J.cheer(); fx.burst(o.o.group.position.clone().add(new THREE.Vector3(0, 1, 0)), 50);
+    message('¡A la mochila!');
     J.addStar(); updatePlayer();
+    state.mochila.push(o.word[2]); renderMochila();
     $('#metas').children[state.mi].classList.add('on');
-    setTimeout(() => J.say([`¡${s.word[1].split('-').join(', ')}! ¡${s.word[0]}!`, J.pick(['¡Muy bien!', '¡Bravo!', `¡Genial, ${J.player().name}!`])], { queue: true }), 600);
-    state.mi++;
-    hideHada();
-    if (state.mi >= state.missions.length) setTimeout(levelDone, 3200);
-    else setTimeout(() => J.nextTurn(showMission, { onShow: swapActor }), 3000);
-  } else if (fresh) {
+    const b = activeBox(); if (b && b.card) { level.remove(b.card); b.card = null; }
+    J.say([o.word[0], J.pick(J.PRAISES)], { queue: true });
+    state.mi++; state.stage = 'listo'; hideHada();
+    if (state.mi >= state.missions.length) setTimeout(levelDone, 3000);
+    else setTimeout(() => J.nextTurn(showBoxStep, { onShow: swapActor }), 2800);
+  } else if (o.cool <= 0) {
+    o.cool = 5; J.boing();
     message('¡Casi!', 1.2);
-    J.boing();
-    const what = s.word[0];
-    setTimeout(() => J.say([`Aquí hay: ${what}.`, 'Sigue buscando.'].concat(m.tipo === 'silaba' ? ['Algo que empieza con ' + syl0(m.word)] : [m.word[0]])), 500);
+    J.say(['Ese es', o.word[0]].concat(m.tipo === 'silaba' ? ['Algo que empieza con', syl0(m.word)] : ['Busca', m.word[0]]));
   }
 }
+function renderMochila() { $('#mochila').innerHTML = '🎒 ' + (state.mochila || []).map(e => `<span>${e}</span>`).join(''); }
 function levelDone() {
   state.playing = false;
   P.level.bosque = Math.max(P.level.bosque || 0, state.nivel + 1); J.save();
-  J.gift(() => {
-    const next = Math.min(state.nivel + 1, NIVELES.length - 1);
-    startLevel(next);
-  });
+  J.gift(() => startLevel(Math.min(state.nivel + 1, NIVELES.length - 1)));
 }
 
-// ---------- hada ----------
+// ---------- hada guía ----------
 const hada = makeHada();
-let hadaPath = [], hadaT = 0;
+let hadaPath = [];
 function showHada() {
   const m = state.missions[state.mi]; if (!m) return;
-  const target = state.spots.find(s => !s.found && matches(s, m)); if (!target) return;
   const n = state.maze.length;
+  let to, end;
+  if (state.stage === 'caja') { const b = activeBox(); to = [b.r, b.c]; end = b.h.g.position.clone(); }
+  else { const o = state.objs.find(x => !x.got && matches(x, m)); if (!o) return; to = posCell(o.o.group.position, n); end = o.o.group.position.clone(); }
   const from = posCell(state.pos, n).map(v => Math.max(0, Math.min(n - 1, v)));
-  hadaPath = bfs(state.maze, from, [target.r, target.c]).map(([r, c]) => cellPos(r, c, n));
+  hadaPath = bfs(state.maze, from, to.map(v => Math.max(0, Math.min(n - 1, v)))).map(([r, c]) => cellPos(r, c, n));
   if (!hadaPath.length) return;
-  hadaPath.push(target.h.g.position.clone());
-  hadaT = 0; hada.g.visible = true; state.hadaOn = true;
+  hadaPath.push(end);
+  hada.g.visible = true; state.hadaOn = true;
   J.sparkle(); J.say('¡Sigue al hada!');
 }
 function hideHada() { hada.g.visible = false; state.hadaOn = false; }
@@ -403,36 +359,25 @@ const joyEnd = () => { joyId = null; knob.style.transform = ''; state.joy.set(0,
 joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
 addEventListener('keydown', e => { state.keys[e.key.toLowerCase()] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); });
 addEventListener('keyup', e => { state.keys[e.key.toLowerCase()] = false; });
-
-// tocar el camino para caminar hasta ahí
 const ray = new THREE.Raycaster(), v2 = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
 $('#mundo').addEventListener('pointerdown', e => {
   if (!state.playing) return;
   v2.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(v2, camera);
   if (!ray.ray.intersectPlane(plane, hit)) return;
-  const n = state.maze.length;
-  const to = posCell(hit, n), from = posCell(state.pos, n);
+  const n = state.maze.length, to = posCell(hit, n), from = posCell(state.pos, n);
   if (to[0] < 0 || to[1] < 0 || to[0] >= n || to[1] >= n) return;
   const cells = bfs(state.maze, from, to).map(([r, c]) => cellPos(r, c, n));
-  cells.shift();
-  cells.push(hit.clone());
+  cells.shift(); cells.push(hit.clone());
   state.path = cells;
   fx.burst(hit.clone().setY(.2), 8, .3);
 });
-
 function collide(x, z) {
-  for (const w of state.walls) {
-    if (x > w.minX - PLAYER_R && x < w.maxX + PLAYER_R && z > w.minZ - PLAYER_R && z < w.maxZ + PLAYER_R) return true;
-  }
+  for (const w of state.walls) if (x > w.minX - PLAYER_R && x < w.maxX + PLAYER_R && z > w.minZ - PLAYER_R && z < w.maxZ + PLAYER_R) return true;
   return false;
 }
-
-function updatePlayer() {
-  const p = J.player();
-  $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`;
-}
-function swapActor() { actors.forEach((a, i) => { a.group.visible = a === actor(); }); updatePlayer(); }
+function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; }
+function swapActor() { actors.forEach(a => { a.group.visible = a === actor(); }); updatePlayer(); }
 
 // ---------- bucle ----------
 const tmp = new THREE.Vector3();
@@ -444,11 +389,7 @@ W.onFrame((dt, t) => {
     mx = state.joy.x + ((k.arrowright || k.d) ? 1 : 0) - ((k.arrowleft || k.a) ? 1 : 0);
     mz = state.joy.y + ((k.arrowdown || k.s) ? 1 : 0) - ((k.arrowup || k.w) ? 1 : 0);
     if (mx || mz) state.path = [];
-    else if (state.path.length) {
-      tmp.copy(state.path[0]).sub(state.pos); tmp.y = 0;
-      if (tmp.length() < .35) state.path.shift();
-      else { tmp.normalize(); mx = tmp.x; mz = tmp.z; }
-    }
+    else if (state.path.length) { tmp.copy(state.path[0]).sub(state.pos); tmp.y = 0; if (tmp.length() < .35) state.path.shift(); else { tmp.normalize(); mx = tmp.x; mz = tmp.z; } }
   }
   const len = Math.hypot(mx, mz);
   state.moving = len > .15;
@@ -457,45 +398,48 @@ W.onFrame((dt, t) => {
     const nx = state.pos.x + mx * SPEED * dt, nz = state.pos.z + mz * SPEED * dt;
     if (!collide(nx, state.pos.z)) state.pos.x = nx;
     if (!collide(state.pos.x, nz)) state.pos.z = nz;
-    const target = Math.atan2(mx, mz);
-    let d = target - state.dir; d = Math.atan2(Math.sin(d), Math.cos(d));
+    let d = Math.atan2(mx, mz) - state.dir; d = Math.atan2(Math.sin(d), Math.cos(d));
     state.dir += d * Math.min(1, dt * 12);
   }
   const a = actor();
   if (a) {
-    a.group.position.copy(state.pos);
-    a.group.rotation.y = state.dir;
+    a.group.position.copy(state.pos); a.group.rotation.y = state.dir;
     state.celebrate -= dt;
     a.update(dt, state.celebrate > 0 ? 'festejar' : state.moving ? 'correr' : 'quieto', .8);
   }
-
-  // escondites
-  for (const s of state.spots) {
-    const d = Math.hypot(s.h.g.position.x - state.pos.x, s.h.g.position.z - state.pos.z);
-    if (state.playing && !s.opened && d < 2.1) openSpot(s);
-    else if (state.playing && s.opened && !s.found && d < 2.1) check(s, false);
-    if (s.openK > 0 && s.openK < 1) { s.openK = Math.min(1, s.openK + dt * 1.6); s.h.open(s.openK); }
-    if (s.obj.group.visible) {
-      const full = s.obj.group.userData.size || 1, sc = s.obj.group.scale.x;
-      if (sc < full) s.obj.group.scale.setScalar(Math.min(full, sc + dt * 4));
-      s.obj.update(dt, s.found);
+  // cajitas
+  state.boxes.forEach((b, k) => {
+    if (b.openK > 0 && b.openK < 1) { b.openK = Math.min(1, b.openK + dt * 1.6); b.h.open(b.openK); }
+    if (b.card) { b.card.userData.rise = Math.min(1, b.card.userData.rise + dt * 1.5); b.card.position.y = 1.2 + b.card.userData.rise * 1.5 + Math.sin(t * 2) * .08; }
+    b.ring.material.opacity = .35 + Math.sin(t * 4) * .25;
+    if (state.playing && state.stage === 'caja' && k === state.mi && !b.opened && Math.hypot(b.h.g.position.x - state.pos.x, b.h.g.position.z - state.pos.z) < 2) openBox(b);
+  });
+  // animalitos que pasean en su calle
+  for (const o of state.objs) {
+    const g = o.o.group;
+    if (o.fly) {
+      // vuela a la mochila
+      o.fly += dt; tmp.copy(state.pos); tmp.y = 1.4;
+      g.position.lerp(tmp, Math.min(1, dt * 4)); g.scale.multiplyScalar(.93);
+      if (o.fly > .9) { g.visible = false; o.fly = 0; }
+      continue;
     }
-    s.ring.material.opacity = s.opened ? .15 : .35 + Math.sin(t * 3) * .2;
+    if (o.got) continue;
+    o.cool -= dt;
+    const px = o.home.x + Math.cos(t * .35 + o.phase) * 1.1, pz = o.home.z + Math.sin(t * .35 + o.phase) * 1.1;
+    const dx = px - g.position.x, dz = pz - g.position.z;
+    g.position.set(px, 0, pz);
+    if (Math.abs(dx) + Math.abs(dz) > 1e-4) g.rotation.y = Math.atan2(dx, dz);
+    o.o.update(dt, false);
+    if (state.playing && state.stage === 'buscar' && Math.hypot(px - state.pos.x, pz - state.pos.z) < 1.7) touch(o);
   }
-  // estrellitas
   for (const st of state.brillosObj) {
     if (!st.visible) continue;
     st.rotation.y += dt * 2; st.position.y = .7 + Math.sin(t * 3 + st.position.x) * .1;
-    if (Math.hypot(st.position.x - state.pos.x, st.position.z - state.pos.z) < 1) {
-      st.visible = false; state.brillos++; $('#brillos').textContent = state.brillos;
-      J.sfx('coin', .5, 1 + (state.brillos % 5) * .06);
-    }
+    if (Math.hypot(st.position.x - state.pos.x, st.position.z - state.pos.z) < 1) { st.visible = false; state.brillos++; $('#brillos').textContent = state.brillos; J.sfx('coin', .5, 1 + (state.brillos % 5) * .06); }
   }
-  // hada: aparece sola si pasa mucho tiempo sin encontrar
-  if (state.playing && !state.hadaOn && state.celebrate <= 0 && performance.now() - state.lastFound > 35000) showHada();
+  if (state.playing && !state.hadaOn && (state.stage === 'caja' || state.stage === 'buscar') && performance.now() - state.lastFound > 35000) showHada();
   if (hada.g.visible && hadaPath.length) {
-    hadaT += dt * 1.2;
-    // el hada va un poco adelante de la niña por el camino
     const n = state.maze.length, here = posCell(state.pos, n);
     let idx = hadaPath.findIndex(p => { const [r, c] = posCell(p, n); return r === here[0] && c === here[1]; });
     idx = Math.min(hadaPath.length - 1, (idx < 0 ? 0 : idx) + 1);
@@ -505,10 +449,8 @@ W.onFrame((dt, t) => {
     if (Math.random() < .3) fx.burst(hada.g.position.clone(), 1, .2);
   }
   fx.update(dt);
-
-  // cámara desde arriba y atrás, siguiendo a la niña
   const narrow = innerWidth / innerHeight < .8;
-  tmp.set(state.pos.x, narrow ? 13 : 10.5, state.pos.z + (narrow ? 8.5 : 8));
+  tmp.set(state.pos.x, narrow ? 14 : 11.5, state.pos.z + (narrow ? 8.5 : 8.5));
   camera.position.lerp(tmp, Math.min(1, dt * 4));
   camera.lookAt(state.pos.x, 0, state.pos.z - 1.2);
   sun.position.set(state.pos.x + 6, 14, state.pos.z + 8); sun.target.position.copy(state.pos);
@@ -527,7 +469,7 @@ async function startLevel(i) {
   await buildLevel(i);
   state.playing = true;
   J.startMusic();
-  J.showTurn ? (P.two ? J.showTurn(showMission, { onShow: swapActor }) : showMission()) : showMission();
+  P.two ? J.showTurn(showBoxStep, { onShow: swapActor }) : showBoxStep();
 }
 
 function renderLevels() {

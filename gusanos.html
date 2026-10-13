@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Aplasta Gusanos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#8fd6f8, #f2fbe6 70%); }
+canvas.mundo { cursor: pointer; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Jardín con gusanitos que salen de sus hoyos"></canvas>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="mision" id="mision" hidden>
+  <span class="etq">Aplasta</span>
+  <span class="word" id="m-word"></span>
+  <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
+</div>
+<div class="metas" id="metas"></div>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:64px;line-height:1">🐛🔨</div>
+    <h1>Aplasta Gusanos</h1>
+    <p>Los gusanitos salen de sus hoyos con letreros. <b>Toca</b> al que dice lo que escuchas. ¡Pum!</p>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script type="module" src="js/gusanos.js"></script>
+</body>
+</html>

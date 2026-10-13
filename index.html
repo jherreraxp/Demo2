@@ -125,13 +125,14 @@ details.credits a { color: var(--ink); }
     { t: 'Isla de las Palabras', q: 'Conocer palabras jugando: escuchar, ver y buscar.', done: () => lv('carrera') >= 2 && lv('bosque') >= 1,
       cards: [
         ['carrera.html', 'd3', '🏃‍♀️', 'Carrera de Palabras', 'Atrapa la burbuja', '3D'],
-        ['bosque.html', 'd3b', '🌳🔍', 'Bosque de las Palabras', 'Busca a los animalitos', '3D'],
+        ['bosque.html', 'd3b', '🎁🐱', 'Bosque de las Palabras', 'Lee y busca', '3D'],
         ['cuento.html', 'blue', '📖', 'Cuento', 'Lola y la luna'],
       ] },
     { t: 'Castillo de las Vocales', q: 'a e i o u — grandes o chiquitas, nunca juntas.', done: () => lv('letras') >= 2 && lv('globos') >= 1,
       cards: [
         ['lectura.html?modo=letras', 'red', 'a e i', 'Vocales y sonidos', 'Escucha y toca'],
         ['globos.html', 'pink', '🎈', 'Revienta Globos', 'Toca la que oyes', '3D'],
+        ['gusanos.html', 'green', '🐛🔨', 'Aplasta Gusanos', '¡Pum! al que oyes', '3D'],
       ] },
     { t: 'Bosque de m · s · l · n', q: 'El sonido de cada letra y cómo se junta con la vocal: mmm + a = ma.', done: () => lv('junta') >= 2 && lv('silabas') >= 2,
       cards: [
@@ -143,7 +144,8 @@ details.credits a { color: var(--ink); }
       cards: [
         ['lectura.html?modo=empieza', 'green', '🐺 lo', '¿Con qué sílaba empieza?', 'Mira el dibujo'],
         ['lectura.html?modo=palabras', 'purple', 'gato', 'Palabras', '¡Ya leo!'],
-        ['bosque.html', 'd3b', '🔍', 'Misiones de lectura', 'Niveles 2 a 4 del bosque', '3D'],
+        ['bosque.html', 'd3b', '🎁🔍', 'Retos del bosque', 'Lee la cajita y busca', '3D'],
+        ['gusanos.html', 'green', '🐛', 'Gusanos de sílabas', 'Niveles 3 a 6', '3D'],
       ] },
     { t: 'Escenario de las Frases', q: 'Leer frases cortas y cuentos.', done: () => lv('carrera') >= 6,
       cards: [
@@ -152,7 +154,7 @@ details.credits a { color: var(--ink); }
       ] },
     { t: 'Rincón de los Regalos', q: 'Para crear y descansar.', regalos: true,
       cards: [
-        ['princesa.html', 'pink', '👸🎨', 'Pinta a tu princesa', 'En 3D', '3D'],
+        ['princesa.html', 'pink', '👸🎨', 'Pinta tu personaje', 'Falda, guantes, corona…', '3D'],
         ['pintar.html', 'rainbow', '🌈', 'Lienzo arcoíris', 'Pinta y colorea'],
         ['personajes.html', 'yellow', '🦙', 'Personajes', 'Elige el tuyo', '3D'],
       ] },
@@ -194,8 +196,7 @@ details.credits a { color: var(--ink); }
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('#papas').addEventListener(ev, stopHold));
 
   render();
-  // si mamá grabó el nombre, se usa su voz
-  setTimeout(() => { if (J.voices.has('nombre') || J.voices.hasPublic('nombre')) { J.say('¡Hola!'); setTimeout(() => J.playRec('nombre'), 700); setTimeout(() => J.say('¿A qué jugamos hoy?', { queue: true }), 2000); } else J.say(`¡Hola, ${J.childName()}! ¿A qué jugamos hoy?`); }, 900);
+  setTimeout(() => J.say(['¡Hola!', J.childName(), '¿A qué jugamos hoy?']), 900);
 })();
 </script>
 <script type="module">

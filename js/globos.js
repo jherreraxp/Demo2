@@ -118,8 +118,8 @@ function newTarget() {
 function sayTarget() {
   const c = cfg(), t = state.target;
   if (c.tipo === 'vocal') J.say(['Revienta la', t, state.bigCase ? 'grande' : 'chiquita']);
-  else if (c.tipo === 'sonido') { J.say('Revienta la letra que suena', { rate: .8 }); setTimeout(() => J.sound(t), 1600); }
-  else J.say(['Revienta:', t]);
+  else if (c.tipo === 'sonido') { J.say('Revienta la letra que suena'); J.sound(t, { queue: true }); }
+  else J.say(['Revienta', t]);
 }
 $('#m-say').onclick = sayTarget;
 function message(text, secs = 1.4) {
@@ -138,7 +138,7 @@ function hitBalloon(o) {
     J.addStar(); swapActor();
     state.wins++; state.celebrate = 1.2; renderMetas();
     const c = cfg();
-    setTimeout(() => { if (c.tipo === 'sonido') J.sound(state.target); else J.say(o.label, { queue: true }); }, 500);
+    if (c.tipo === 'sonido') J.sound(state.target, { queue: true }); else J.say(o.label, { queue: true });
     if (state.wins >= WIN) { state.running = false; setTimeout(levelUp, 1500); return; }
     state.running = false;
     setTimeout(() => J.nextTurn(() => { state.running = true; newTarget(); }, { onShow: swapActor }), 1500);
@@ -146,7 +146,7 @@ function hitBalloon(o) {
     o.wob = 1; J.boing();
     message('¡Ese no!', 1);
     const c = cfg();
-    if (c.tipo === 'sonido') { J.say('Ese suena'); setTimeout(() => J.sound(o.value), 700); }
+    if (c.tipo === 'sonido') { J.say('Ese suena'); J.sound(o.value, { queue: true }); }
     else J.say(['Ese dice', o.label]);
   }
 }
@@ -155,7 +155,7 @@ function levelUp() {
   J.gift(() => {
     state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1); state.wins = 0; renderMetas();
     $('#nivel-num').textContent = state.nivel + 1;
-    message('Nivel ' + (state.nivel + 1), 2); J.say('Nivel ' + (state.nivel + 1) + '. ' + cfg().nombre);
+    message('Nivel ' + (state.nivel + 1), 2); J.say(['Nivel', ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis'][state.nivel]]);
     state.running = true; newTarget();
   });
 }

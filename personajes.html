@@ -16,9 +16,9 @@ body { background: radial-gradient(circle at 50% 30%, #ffe3f1, #c9b8ff 70%); }
 .tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 4px 16px; font-size: 20px; font-weight: 800; }
 .tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
 .abajo { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 5; }
-.nombres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 640px; }
-.nombres button { background: rgba(255,255,255,.75); border-radius: 18px; padding: 8px 4px; font-size: 16px; font-weight: 800; line-height: 1.1; box-shadow: 0 4px 0 var(--shadow); }
-.nombres button span { display: block; font-size: 28px; }
+.nombres { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; width: 100%; max-width: 980px; }
+.nombres button { background: rgba(255,255,255,.75); border-radius: 16px; padding: 6px 4px; font-size: 14px; font-weight: 800; line-height: 1.1; box-shadow: 0 4px 0 var(--shadow); }
+.nombres button span { display: block; font-size: 24px; }
 .nombres button.on { background: var(--gold); }
 </style>
 <script type="importmap">
@@ -53,26 +53,28 @@ if (volver && /^[a-z]+\.html$/.test(volver)) $('#listo').href = volver;
 
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera } = W;
-W.fovFor = a => a < .8 ? 62 : 42;
+W.fovFor = a => a < .8 ? 60 : 44;
 camera.position.set(0, 2.2, 7.5); camera.lookAt(0, 1.1, 0);
 const fx = chispitas(scene);
 
 // escenario: piso redondo y focos
-const stage = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }));
+const stage = new THREE.Mesh(new THREE.CylinderGeometry(9, 9.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }));
 stage.position.y = -.2; stage.receiveShadow = true; scene.add(stage);
-const cols = [0x8fd3f4, 0xb07de8, 0xffd23f, 0xff9a5a];
+const cols = [0x8fd3f4, 0xffd23f, 0xb07de8, 0x4cb87a, 0xff4fa3, 0xffe3a8, 0xef5b5b, 0x9aa3ad, 0xff9a5a, 0xc9d1dc, 0xd8b48f];
 const chars = [];
 let editing = 0; // jugador que está eligiendo
 
 const narrow = () => innerWidth / innerHeight < .8;
+// escenario en filas: 6 + 5 en pantallas anchas, 3 por fila en el celular
 function layout() {
-  const n = narrow();
+  const n = narrow(), perRow = n ? 3 : 6, gap = n ? 2.1 : 2.2, rowGap = n ? 2.6 : 2.4;
+  const rows = Math.ceil(chars.length / perRow);
   chars.forEach((c, i) => {
-    const x = n ? ((i % 2) - .5) * 2.3 : (i - 1.5) * 2.2;
-    const z = n ? (i < 2 ? -1.5 : 1.5) : 0;
-    c.base.position.set(x, 0, z);
+    const r = Math.floor(i / perRow), inRow = Math.min(perRow, chars.length - r * perRow), k = i % perRow;
+    c.base.position.set((k - (inRow - 1) / 2) * gap, 0, (r - (rows - 1) / 2) * rowGap);
   });
-  camera.position.set(0, n ? 6.5 : 2.2, n ? 9 : 7.5); camera.lookAt(0, n ? .4 : 1.1, 0);
+  const far = n ? 14 : 11;
+  camera.position.set(0, n ? 10 : 5.5, far); camera.lookAt(0, n ? -.6 : .6, n ? 1.6 : .3);
 }
 addEventListener('resize', layout);
 
@@ -96,7 +98,7 @@ function pick(id) {
   P.players[editing].char = id; J.save();
   const c = chars.find(c => c.id === id);
   fx.burst(c.base.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 40);
-  J.cheer(); J.say(`¡${P.players[editing].name} es ${J.CHARS[id].name}!`, { queue: true });
+  J.cheer(); J.say([P.players[editing].name, 'es', J.CHARS[id].name], { queue: true });
   render();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) { editing = +b.dataset.p; J.sfx('pop'); render(); } });

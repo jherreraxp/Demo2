@@ -22,6 +22,7 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 .c.on { outline: 4px solid var(--ink); outline-offset: 2px; transform: translateY(-3px); }
 .arco { background: conic-gradient(#ef5b5b, #f39a3b, #f6c33b, #4cb87a, #3f8ee8, #9a6ee0, #ff7eb6, #ef5b5b); }
 .acciones { display: flex; gap: 10px; }
+.partes button { flex: none; background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 16px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); white-space: nowrap; }
 .acciones button { background: #fff; border-radius: 999px; padding: 8px 16px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); }
 </style>
 <script type="importmap">
@@ -41,6 +42,7 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
   <div class="tabs" id="tabs"></div>
 </div>
 <div class="paleta">
+  <div class="colores partes" id="partes" aria-label="Partes para pintar"></div>
   <div class="colores" id="colores" aria-label="Colores"></div>
   <div class="acciones">
     <button id="girar">🔄 Girar</button>
@@ -51,19 +53,27 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, pintarParte } from './js/personajes.js';
+import { crearPersonaje, pintarParte, PINTABLES as IDS } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
 P.colors = P.colors || {};
 
 const COLORS = [
-  ['arcoiris', null, 'arcoíris'], ['#ef5b5b', 'rojo'], ['#f39a3b', 'naranja'], ['#f6c33b', 'amarillo'], ['#4cb87a', 'verde'],
+  ['arcoiris', 'arcoíris'], ['#ef5b5b', 'rojo'], ['#f39a3b', 'naranja'], ['#f6c33b', 'amarillo'], ['#4cb87a', 'verde'],
   ['#8fd3f4', 'celeste'], ['#3f8ee8', 'azul'], ['#9a6ee0', 'morado'], ['#ff7eb6', 'rosado'], ['#ffffff', 'blanco'],
-  ['#9a6a43', 'marrón'], ['#23324a', 'negro'], ['#ffd700', 'dorado'],
-].map(([v, a, b]) => v === 'arcoiris' ? { v, name: b } : { v, name: a });
-const PARTS = { vestido: 'el vestido', capa: 'la capa', pelo: 'el pelo', piel: 'la piel', zapatos: 'los zapatos', corona: 'la corona', chaqueta: 'la chaqueta', blusa: 'la blusa', lana: 'la lana', manta: 'la manta', pompones: 'los pompones' };
-const PINTABLES = [['nieve', '👸 Nieve'], ['estrella', '🎤 Estrella'], ['llama', '🦙 Lula']];
+  ['#9a6a43', 'marrón'], ['#23324a', 'negro'], ['#ffd700', 'dorado'], ['#c9ccd6', 'plateado'],
+].map(([v, name]) => ({ v, name }));
+// nombre de cada parte con su artículo, y si el color se dice en femenino
+const PARTS = {
+  vestido: ['el vestido', 'm'], falda: ['la falda', 'f'], blusa: ['la blusa', 'f'], mangas: ['las mangas', 'fp'], guantes: ['los guantes', 'mp'],
+  cinturon: ['el cinturón', 'm'], 'moño': ['el moño', 'm'], collar: ['el collar', 'm'], capa: ['la capa', 'f'], pelo: ['el pelo', 'm'], piel: ['la piel', 'f'],
+  zapatos: ['los zapatos', 'mp'], corona: ['la corona', 'f'], chaqueta: ['la chaqueta', 'f'], pantalon: ['el pantalón', 'm'], gorra: ['la gorra', 'f'],
+  lana: ['la lana', 'f'], manta: ['la manta', 'f'], pompones: ['los pompones', 'mp'], orejas: ['las orejas', 'fp'], nariz: ['la nariz', 'f'],
+  cuernos: ['los cuernos', 'mp'], pelaje: ['el pelaje', 'm'], panza: ['la panza', 'f'], botones: ['los botones', 'mp'],
+};
+const PARTE_EMOJI = { vestido: '👗', falda: '👗', blusa: '👚', mangas: '🧥', guantes: '🧤', cinturon: '🎀', 'moño': '🎀', collar: '📿', capa: '🦸', pelo: '💇', piel: '🙂', zapatos: '👠', corona: '👑', chaqueta: '🧥', pantalon: '👖', gorra: '🧢', lana: '🧶', manta: '🟥', pompones: '🎈', orejas: '👂', nariz: '👃', cuernos: '🐂', pelaje: '🐾', panza: '⚪', botones: '🔘' };
+const PINTABLES = IDS.map(id => [id, (J.CHARS[id]?.emoji || '') + ' ' + (J.CHARS[id]?.name || id)]);
 
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera, renderer } = W;
@@ -74,18 +84,19 @@ const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.3, .25, 40), new TH
 ped.position.y = -.12; ped.receiveShadow = true; scene.add(ped);
 
 let char = null, charId = PINTABLES.some(p => p[0] === P.players[0].char) ? P.players[0].char : 'nieve';
-let color = COLORS[8], spin = 0, autoSpin = false, hue = 0;
+let color = COLORS[8], spin = 0, autoSpin = false, rainbowI = 0;
 
 async function load(id) {
   if (char) scene.remove(char.group);
   charId = id;
   char = await crearPersonaje(id);
-  char.group.scale.setScalar(id === 'llama' ? 1.15 : 1.3);
+  char.group.scale.setScalar(['llama', 'lobo', 'toro'].includes(id) ? 1.1 : 1.3);
   scene.add(char.group);
   render();
 }
 function render() {
   $('#tabs').innerHTML = PINTABLES.map(([id, n]) => `<button class="${id === charId ? 'on' : ''}" data-id="${id}">${n}</button>`).join('');
+  $('#partes').innerHTML = Object.keys(char?.parts || {}).filter(p => PARTS[p]).map(p => `<button data-p="${p}">${PARTE_EMOJI[p] || ''} ${PARTS[p][0].split(' ').slice(1).join(' ')}</button>`).join('');
   $('#colores').innerHTML = COLORS.map((c, i) => `<button class="c ${c.v === 'arcoiris' ? 'arco' : ''} ${c === color ? 'on' : ''}" data-i="${i}" aria-label="${c.name}" style="${c.v !== 'arcoiris' ? 'background:' + c.v : ''}"></button>`).join('');
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) { J.sfx('pop'); load(b.dataset.id); } });
@@ -104,14 +115,29 @@ $('#mundo').addEventListener('pointerup', e => {
   ray.setFromCamera(v2, camera);
   const hit = ray.intersectObject(char.group, true).find(h => h.object.userData.part);
   if (!hit) return;
-  const part = hit.object.userData.part;
-  let hex = color.v;
-  if (hex === 'arcoiris') { hue = (hue + 47) % 360; hex = '#' + new THREE.Color().setHSL(hue / 360, .8, .62).getHexString(); }
-  pintarParte(char, part, hex);
-  P.colors[charId] = P.colors[charId] || {}; P.colors[charId][part] = hex; J.save();
-  fx.burst(hit.point, 18, .4); J.sparkle();
-  J.say(`${PARTS[part] || part} ${color.name}`);
+  paint(hit.object.userData.part, hit.point);
 });
+// adjetivo del color según la parte: "la falda roja", "los zapatos rojos"
+function colorWord(name, g) {
+  const fem = g[0] === 'f', pl = g.length > 1;
+  let w = name;
+  if (name.endsWith('o') && !['marrón'].includes(name)) w = fem ? name.slice(0, -1) + 'a' : name;
+  if (pl) w = /[aeiou]$/.test(w) ? w + 's' : w === 'marrón' ? 'marrones' : w + 'es';
+  if (name === 'arcoíris') w = name;
+  return w;
+}
+function paint(part, point) {
+  let c = color;
+  if (c.v === 'arcoiris') { rainbowI = rainbowI % (COLORS.length - 1) + 1; c = COLORS[rainbowI]; }
+  pintarParte(char, part, c.v);
+  P.colors[charId] = P.colors[charId] || {}; P.colors[charId][part] = c.v; J.save();
+  if (point) fx.burst(point, 18, .4);
+  J.sparkle();
+  const [nombre, g] = PARTS[part] || [part, 'm'];
+  // dice la parte y el color: "la falda" + "rosada" (se graban por separado en el Estudio de voz)
+  J.say([nombre, colorWord(c.name, g)]);
+}
+$('#partes').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) paint(b.dataset.p, null); });
 $('#girar').onclick = () => { autoSpin = !autoSpin; J.sfx('pop'); };
 $('#limpiar').onclick = async () => { delete P.colors[charId]; J.save(); J.sfx('pop2'); await load(charId); J.say('¡Como nueva!'); };
 $('#foto').onclick = () => {
@@ -130,7 +156,7 @@ W.onFrame((dt, t) => {
 });
 await load(charId);
 W.start(); J.refreshMusic();
-setTimeout(() => J.say('¡Pinta a tu princesa con tus colores favoritos!'), 400);
+setTimeout(() => J.say('¡Pinta a tu princesa!'), 400);
 </script>
 </body>
 </html>

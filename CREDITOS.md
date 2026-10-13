@@ -11,6 +11,6 @@ Bloques de Letras usa estos recursos libres:
 | Motor 3D (`vendor/three/`, con GLTFLoader y SkeletonUtils) | three.js | MIT | [threejs.org](https://threejs.org) |
 | Letras Andika y Baloo 2 | SIL International · Ek Type | SIL Open Font License | Google Fonts |
 
-Las princesas (Princesa Nieve y Estrella Pop), la Llamita Lula, los animalitos escondidos, el castillo y el laberinto son diseños originales del juego, hechos con formas 3D en código.
+Los personajes (Princesa Nieve, Princesa Ana, Estrella Pop, Zoe, Mira, Llamita Lula, Monstruito Rojo, Ratoncito Pipo, Lobito y Torito), los animalitos y cosas para buscar, el castillo, el jardín de gusanos y el laberinto son diseños originales del juego, hechos con formas 3D en código.
 
 La música alegre, los aplausos y la corneta de fiesta se generan en el navegador con Web Audio (composición original del juego). Las voces usan la voz en español del dispositivo.

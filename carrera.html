@@ -15,6 +15,9 @@
 .ejemplo { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .ejemplo span { background: #eef6fb; border-radius: 999px; padding: 4px 12px; font-family: var(--font-letters); font-weight: 700; font-size: 20px; }
 .ejemplo span.si { background: var(--go); color: #fff; }
+.mochila { position: fixed; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 140px); z-index: 5; background: rgba(255,255,255,.9); border-radius: 22px; padding: 6px 10px; font-size: 26px; box-shadow: 0 4px 0 var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mochila span { font-size: 24px; animation: brinco .5s; }
+@media (max-width: 600px) { .mochila { top: calc(env(safe-area-inset-top, 0px) + 175px); font-size: 20px; padding: 4px 6px; } .mochila span { font-size: 18px; } }
 #nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
 @media (max-width: 420px) { .flecha { width: 76px; height: 76px; font-size: 40px; } }
 </style>
@@ -38,12 +41,13 @@
 </div>
 
 <div class="mision" id="mision" hidden>
-  <span class="etq">Atrapa</span>
+  <span class="etq" id="m-etq">Atrapa</span>
   <span class="pic" id="m-pic"></span>
   <span class="word" id="m-word"></span>
   <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
 </div>
 <div class="metas" id="metas" aria-label="Palabras para el regalo"></div>
+<div class="mochila" id="mochila" aria-label="Mochila">🎒</div>
 <div id="mensaje" aria-live="polite"></div>
 
 <div class="flechas">
@@ -55,7 +59,7 @@
   <div class="portada-caja">
     <div style="font-size:64px;line-height:1">🏃‍♀️💬</div>
     <h1>Carrera de Palabras</h1>
-    <p>Escucha la palabra y atrapa <b>su burbuja</b>.</p>
+    <p>Lee el letrero y atrapa al animalito correcto. ¡Guárdalo en tu mochila 🎒!</p>
     <div class="ejemplo" aria-hidden="true"><span>🐸 sapo</span><span class="si">🐱 gato</span><span>🍐 pera</span></div>
     <p style="font-size:16px">Usa las flechas ⬅️ ➡️ o desliza el dedo.</p>
     <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>

@@ -189,8 +189,8 @@ details.credits a { color: var(--ink); }
   const params = new URLSearchParams(location.search);
   const mode = MODES[params.get('modo')] ? params.get('modo') : 'letras';
 
-  const PRAISE = () => pick(['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Lo lograste!', '¡Excelente!', `¡Qué lista eres, ${J.player().name}!`, '¡Súper!']);
-  const RETRY = ['¡Casi! Prueba otra vez', 'Mmm… intenta otra', '¡Tú puedes! Otra vez'];
+  const PRAISE = () => pick(J.PRAISES);
+  const RETRY = ['¡Casi!', '¡Tú puedes!', 'Intenta otra'];
   const ROUND = 5;
   const level = P.level;
   level[mode] = level[mode] || 0;
@@ -211,9 +211,9 @@ details.credits a { color: var(--ink); }
       const vowel = VOWELS.includes(ans);
       return { ans, cls: '', opts: opts.map(l => ({ label: show(l), value: l })),
         prompt: vowel ? `¿Dónde está? Letra ${size} 🔊` : `¿Cuál suena así? Letra ${size} 🔊`, pic: null,
-        speak: () => vowel ? say(`¿Dónde está la ${ans} ${size}?`) : (say('¿Cuál letra suena así?'), setTimeout(() => J.sound(ans), 1500)),
-        good: () => vowel ? say(`¡Sí! Es la ${ans}`, { queue: true }) : J.sound(ans, { then: `como en ${J.SOUND_WORD[ans]}` }),
-        bad: v => VOWELS.includes(v) ? say(`Esa es la ${v}.`) : (say('Esa suena'), setTimeout(() => J.sound(v), 800)) };
+        speak: () => vowel ? say(['¿Dónde está la', ans, size]) : (say('¿Cuál letra suena así?'), J.sound(ans, { queue: true })),
+        good: () => vowel ? say(['¡Sí! Es la', ans], { queue: true }) : J.sound(ans, { queue: true, then: ['como en', J.SOUND_WORD[ans]] }),
+        bad: v => VOWELS.includes(v) ? say(['Esa es la', v]) : (say('Esa suena'), J.sound(v, { queue: true })) };
     }
     if (mode === 'junta') {
       // "mmm" + "a" = "ma"
@@ -223,8 +223,8 @@ details.credits a { color: var(--ink); }
       const opts = shuffle([ans, ...shuffle(near).slice(0, 2)]);
       return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })), junta: [c, v],
         prompt: '¿Qué dicen juntas?', pic: null,
-        speak: () => { J.sound(c); setTimeout(() => say(v, { rate: .7 }), 1300); setTimeout(() => { $('.junta')?.classList.add('unida'); say('¿Qué dicen juntas?', { queue: true }); }, 2300); },
-        good: () => { J.sound(c); setTimeout(() => say([v, '¡' + ans + '!'], { rate: .7 }), 1200); },
+        speak: () => { J.sound(c); say([v], { queue: true, onend: () => $('.junta')?.classList.add('unida') }); say('¿Qué dicen juntas?', { queue: true }); },
+        good: () => { J.sound(c, { queue: true }); say([v, ans], { queue: true }); },
         bad: v2 => say(['Esa dice', v2]) };
     }
     if (mode === 'silabas') {
@@ -234,7 +234,7 @@ details.credits a { color: var(--ink); }
       const opts = shuffle([ans, ...distinct(pool, ans, 2)]);
       return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })),
         prompt: '¿Cuál dice…?', pic: null,
-        speak: () => say(['¿Cuál dice', ans + '?']),
+        speak: () => say(['¿Cuál dice', ans]),
         good: () => say(ans, { queue: true }),
         bad: v => say(['Esa dice', v]) };
     }
@@ -250,9 +250,9 @@ details.credits a { color: var(--ink); }
       const opts = shuffle([ans, ...shuffle(near).slice(0, 2)]);
       return { ans, cls: 'syl', opts: opts.map(s => ({ label: s, value: s })),
         prompt: '¿Con qué sílaba empieza?', pic: w[2],
-        speak: () => say([w[0] + '. ¿Con qué sílaba empieza ' + w[0] + '?']),
-        good: () => say([w[1].split('-').join(', ') + '. ' + w[0] + ' empieza con ' + ans], { queue: true }),
-        bad: v => say([`${w[0]} no empieza con ${v}.`, `Escucha: ${w[1].split('-').join(', ')}`]) };
+        speak: () => say([w[0], '¿Con qué sílaba empieza', w[0]]),
+        good: () => say([w[0], 'empieza con', ans], { queue: true }),
+        bad: v => say([w[0], 'no empieza con', v, 'Escucha', w[0]]) };
     }
     const pool = lv < 2 ? EASY_WORDS : WORDS;
     const w = pick(pool);
@@ -262,9 +262,9 @@ details.credits a { color: var(--ink); }
     const opts = shuffle([w, ...shuffle(others).slice(0, 2)]);
     return { ans: w[0], cls: 'word', opts: opts.map(x => ({ label: x[0], value: x[0] })),
       prompt: '¿Qué palabra es?', pic: w[2],
-      speak: () => say('Mira el dibujo. ¿Qué palabra es?'),
-      good: () => say([w[1].split('-').join(', ') + '. ¡' + w[0] + '!'], { queue: true }),
-      bad: v => say(['Esa dice', v + '.', 'Busca la que dice ' + w[0]]) };
+      speak: () => say(['Mira el dibujo.', '¿Qué palabra es?']),
+      good: () => say([w[0]], { queue: true }),
+      bad: v => say(['Esa dice', v, 'Busca la que dice', w[0]]) };
   }
 
   // ---------- pantalla ----------
@@ -320,7 +320,7 @@ details.credits a { color: var(--ink); }
       document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i < streak));
       const praise = PRAISE();
       $('#cheer').textContent = praise;
-      setTimeout(() => { q.good(); setTimeout(() => J.praiseVoice(praise), 1800); }, 700);
+      setTimeout(() => { q.good(); J.say(praise, { queue: true }); }, 900);
       setTimeout(() => streak >= ROUND ? levelUp() : J.nextTurn(next), 4200);
     } else {
       btn.classList.add('wrong');
@@ -330,7 +330,7 @@ details.credits a { color: var(--ink); }
       q.bad(btn.dataset.v);
       // ayuda: después de 2 errores, la respuesta correcta brilla
       if (misses >= 2) document.querySelectorAll('.block').forEach(b => { if (b.dataset.v === q.ans) b.classList.add('pulse'), b.style.animation = 'pulse 1s ease-in-out infinite'; });
-      setTimeout(() => q.speak(), 2200);
+      J.say([], { queue: true, onend: () => setTimeout(() => !locked && q.speak(), 400) });
     }
   }
   function levelUp() {

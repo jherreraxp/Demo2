@@ -46,11 +46,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); }
+.boton { display: inline-block; margin-top: 6px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 700; padding: 10px 16px; border-radius: 12px; }
 .aviso { background: #fff7e0; border-radius: 12px; padding: 10px 12px; color: #6b5200; }
 #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 #toast.ver { opacity: 1; }
 @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
 </style>
+<script>window.SIN_MUSICA = true;</script>
 <script src="js/comun.js"></script>
 </head>
 <body>
@@ -75,15 +77,9 @@ th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); 
   </section>
 
   <section class="card">
-    <h2>Grabar los sonidos con tu voz</h2>
-    <p>Graba cada <b>sonido</b> (no el nombre de la letra): para la m di "mmmm", para la s "ssss", para la p di "pa". Si un sonido no está grabado, el juego usa la voz del dispositivo.</p>
-    <p>Las grabaciones se guardan <b>en este navegador</b>. Para que suenen en todos los dispositivos, toca <b>Exportar grabaciones</b> y envía el archivo; se publica en el juego (carpeta <code>assets/voz/</code>).</p>
-    <div class="aviso" id="mic-aviso" hidden>No se pudo usar el micrófono. Revisa el permiso del navegador para este sitio.</div>
-    <div class="recs" id="recs"></div>
-    <div class="actions">
-      <button class="primary" id="exportar">⬇ Exportar grabaciones</button>
-      <label class="switch" style="font-weight:400"><button id="importar-btn">⬆ Importar grabaciones</button><input type="file" id="importar" accept="application/json,.json" hidden></label>
-    </div>
+    <h2>🎙️ Voz de la familia</h2>
+    <p>Graba con tu voz los sonidos de las letras, las palabras y las frases del juego, y publícalas en la web para que suenen en todos los dispositivos. También puedes subir una canción de fondo.</p>
+    <a class="boton" href="voces.html">Abrir el Estudio de voz →</a>
   </section>
 
   <section class="card">
@@ -108,65 +104,10 @@ th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); 
   $('#ses').value = String(P.sessionMin ?? 15); $('#ses').onchange = e => { P.sessionMin = +e.target.value; J.save(); toast('Guardado'); };
   $('#vel').value = String(P.rate ?? .8); if (!$('#vel').value) $('#vel').value = '0.8';
   $('#vel').onchange = e => { P.rate = +e.target.value; J.save(); toast('Guardado'); };
-  $('#probar').onclick = () => J.say(`Hola ${P.players[0].name}. La eme suena así:`, { onend: () => J.sound('m') });
-
-  // grabaciones
-  const HINT = k => k === 'bravo' ? 'Una felicitación: "¡Muy bien, ' + P.players[0].name + '!"' : k === 'nombre' ? 'Di su nombre con cariño' : ['a', 'e', 'i', 'o', 'u'].includes(k) ? `Di "${k}" (como en ${J.SOUND_WORD[k]})` : `Di "${J.SOUNDS[k]}" (como en ${J.SOUND_WORD[k]})`;
-  const LABEL = k => k === 'bravo' ? '👏' : k === 'nombre' ? '💖' : k;
-  async function renderRecs() {
-    $('#recs').innerHTML = J.RECORDABLE.map(k => {
-      const st = J.voices.has(k) ? ['local', 'Grabado aquí'] : J.voices.hasPublic(k) ? ['pub', 'Grabación publicada'] : ['none', 'Voz del dispositivo'];
-      return `<div class="rec" data-k="${k}">
-        <span class="k">${LABEL(k)}</span><span class="hint">${HINT(k)}</span><span class="st ${st[0]}">${st[1]}</span>
-        <div class="btns"><button data-a="rec">⏺ Grabar</button><button data-a="play">▶</button>${J.voices.has(k) ? '<button data-a="del" aria-label="Borrar">🗑</button>' : ''}</div>
-      </div>`;
-    }).join('');
-  }
-  let rec = null;
-  async function startRec(k, box) {
-    if (rec) { rec.stop(); return; }
-    let stream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { $('#mic-aviso').hidden = false; return; }
-    const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-    const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
-    const chunks = [];
-    mr.ondataavailable = e => e.data.size && chunks.push(e.data);
-    mr.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      rec = null; box.classList.remove('grabando');
-      const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
-      await J.voices.set(k, blob); await J.voices.refresh(k);
-      toast('¡Grabado!'); await renderRecs(); J.playRec(k);
-    };
-    rec = mr; mr.start(); box.classList.add('grabando');
-    box.querySelector('[data-a=rec]').textContent = '⏹ Parar';
-    setTimeout(() => { if (rec === mr) mr.stop(); }, 3500);
-  }
-  $('#recs').addEventListener('click', async e => {
-    const b = e.target.closest('button'); if (!b) return;
-    const box = b.closest('.rec'), k = box.dataset.k;
-    if (b.dataset.a === 'rec') startRec(k, box);
-    if (b.dataset.a === 'play') { if (!J.playRec(k)) { if (k === 'bravo') J.say('¡Muy bien!'); else if (k === 'nombre') J.say(P.players[0].name); else J.sound(k); } }
-    if (b.dataset.a === 'del') { await J.voices.del(k); await J.voices.refresh(k); renderRecs(); toast('Borrado'); }
-  });
-  $('#exportar').onclick = async () => {
-    const data = await J.voices.export();
-    if (!Object.keys(data).length) { toast('Todavía no hay grabaciones'); return; }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    a.download = 'voces-' + (P.players[0].name || 'avelu').toLowerCase() + '.json';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('Archivo descargado');
-  };
-  $('#importar-btn').onclick = () => $('#importar').click();
-  $('#importar').onchange = async e => {
-    const f = e.target.files[0]; if (!f) return;
-    try { await J.voices.import(JSON.parse(await f.text())); toast('Grabaciones cargadas'); renderRecs(); }
-    catch (err) { toast('Ese archivo no tiene grabaciones válidas'); }
-  };
+  $('#probar').onclick = () => J.say(['¡Hola!', P.players[0].name, '¿A qué jugamos hoy?']);
 
   // progreso
-  const NAMES = { carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', letras: 'Sonidos de las letras', junta: 'Junta los sonidos', silabas: 'Sílabas', empieza: '¿Con qué sílaba empieza?', palabras: 'Palabras' };
+  const NAMES = { carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', gusanos: 'Aplasta Gusanos', letras: 'Sonidos de las letras', junta: 'Junta los sonidos', silabas: 'Sílabas', empieza: '¿Con qué sílaba empieza?', palabras: 'Palabras' };
   function renderProg() {
     $('#prog').innerHTML = '<tr><th>Actividad</th><th>Niveles superados</th></tr>' +
       Object.entries(NAMES).map(([k, n]) => `<tr><td>${n}</td><td>${P.level[k] || 0}</td></tr>`).join('') +
@@ -178,8 +119,7 @@ th, td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); 
     P.level = {}; P.players.forEach(p => { p.stars = 0; }); J.save(); renderProg(); toast('Progreso reiniciado'); armed = false; e.target.textContent = 'Reiniciar progreso';
   };
 
-  renderRecs(); renderProg();
-  setTimeout(renderRecs, 800); // por si las grabaciones públicas cargan después
+  renderProg();
 })();
 </script>
 </body>

@@ -1,9 +1,9 @@
-// Carrera de Palabras — tu personaje corre por un camino de tres carriles y atrapa
-// la burbuja con la palabra que escucha. Empieza lento y cada nivel es un poquito más difícil.
+// Carrera de Palabras — tu personaje corre por un camino de tres carriles. Vienen animalitos y cosas
+// en 3D con un letrero encima; hay que atrapar el que dice la palabra y guardarlo en la mochila.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { chispitas, tarjeta, esperaFuente } from './mundo3d.js';
-import { crearPersonaje } from './personajes.js';
+import { crearPersonaje, crearObjeto, tieneObjeto } from './personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -11,20 +11,22 @@ const TEST = location.hash === '#prueba';
 
 // ---------- niveles ----------
 const NIVELES = [
-  { speed: 4.5, opts: 2, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 2 palabras' },
-  { speed: 5.2, opts: 3, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 3 palabras' },
-  { speed: 5.8, opts: 3, dibujo: false, tipo: 'palabra',   nombre: '¡Solo la palabra!' },
-  { speed: 6.4, opts: 3, dibujo: false, tipo: 'parecidas', nombre: 'Palabras parecidas' },
-  { speed: 7.0, opts: 3, dibujo: false, tipo: 'silaba',    nombre: 'Sílabas' },
-  { speed: 7.6, opts: 3, dibujo: false, tipo: 'frase',     nombre: 'Frases cortas' },
+  { speed: 6.0, opts: 2, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 2 caminos' },
+  { speed: 6.8, opts: 3, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 3 caminos' },
+  { speed: 7.6, opts: 3, dibujo: false, tipo: 'palabra',   nombre: '¡Solo la palabra!' },
+  { speed: 8.4, opts: 3, dibujo: false, tipo: 'parecidas', nombre: 'Palabras parecidas' },
+  { speed: 9.2, opts: 3, dibujo: false, tipo: 'silaba',    nombre: '¿Con qué empieza?' },
+  { speed: 10,  opts: 3, dibujo: false, tipo: 'frase',     nombre: 'Frases cortas' },
 ];
-const WIN_PER_LEVEL = 6;
-const FRASES = [['el sol', '☀️'], ['la luna', '🌙'], ['mi gato', '🐱'], ['un pato', '🦆'], ['la casa', '🏠'], ['el oso', '🐻'], ['mi mamá', '👩'], ['una palta', '🥑'], ['el choclo', '🌽'], ['la llama', '🦙'], ['mi papá', '👨'], ['la nube', '☁️']];
-const EASY = J.WORDS.filter(w => w[0].length <= 5);
-const SYLS = ['ma', 'me', 'mi', 'mo', 'mu', 'pa', 'pe', 'pi', 'po', 'pu', 'la', 'le', 'li', 'lo', 'lu', 'sa', 'se', 'si', 'so', 'su', 'ta', 'te', 'to', 'na', 'no', 'da', 'do'];
+const WIN_PER_LEVEL = 8;
+// frase y el objeto 3D que la acompaña
+const FRASES = [['el sol', 'sol'], ['la luna', 'luna'], ['mi gato', 'gato'], ['un pato', 'pato'], ['la casa', 'casa'], ['el oso', 'oso'], ['una palta', 'palta'], ['el choclo', 'choclo'], ['la llama', 'llama'], ['la nube', 'nube'], ['el perro', 'perro'], ['la vaca', 'vaca']];
+const EASY = J.WORDS.filter(w => tieneObjeto(w[0]));
+const syl0 = w => J.strip(w[1].split('-')[0]);
 
 const LANE_W = 2.2, ROAD_W = LANE_W * 3, LOOP = 150;
-const ROW_START = TEST ? -18 : -60;
+const ROW_START = TEST ? -22 : -55;
+const GAP_SECONDS = 2.6;   // tiempo entre filas
 
 // ---------- escena ----------
 const canvas = $('#mundo');
@@ -157,127 +159,130 @@ function swapActor() {
   $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`;
 }
 
-// ---------- burbujas de palabras ----------
+// ---------- animalitos con letrero ----------
 const BORDERS = ['#ef5b5b', '#3f8ee8', '#4cb87a', '#9a6ee0', '#f39a3b'];
-const bubbleGeo = new THREE.SphereGeometry(1.05, 28, 20);
-function makeBubble(item, i, showPic) {
+function makeItem(item, i) {
   const g = new THREE.Group();
-  const tex = tarjeta(item.text, { emoji: showPic ? item.emoji : '', color: BORDERS[i % 5] });
-  const card = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 1.45), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
-  const bub = new THREE.Mesh(bubbleGeo, new THREE.MeshStandardMaterial({ color: 0xbfe9ff, transparent: true, opacity: .28, roughness: .1, metalness: .2, emissive: 0x6fc8ff, emissiveIntensity: .25 }));
-  g.add(card, bub);
-  g.userData = { item, card, bub, tex };
+  const o = crearObjeto(item.obj);
+  o.group.scale.setScalar(1.5); o.group.rotation.y = 0;
+  o.group.traverse(m => { if (m.isMesh) m.castShadow = true; });
+  g.add(o.group);
+  // letrero chiquito en un palito, encima del animalito
+  const tex = tarjeta(item.text, { color: BORDERS[i % 5] });
+  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+  sign.scale.set(1.15, 1.15, 1); sign.position.y = 2.25;
+  g.add(sign);
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .5, 6), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  stick.position.y = 1.55; g.add(stick);
+  g.userData = { item, o, sign, tex };
   return g;
 }
 
 // ---------- preguntas según el nivel ----------
-function makeRow(cfg, target) {
-  // devuelve { target, items[] } donde cada item = { text, emoji, said, key }
-  const asItem = w => ({ text: w[0], emoji: w[2], said: w[1].split('-').join(', ') + '. ¡' + w[0] + '!', key: w[0] });
-  let t, others;
-  if (cfg.tipo === 'silaba') {
-    t = target || J.pick(SYLS);
-    const near = SYLS.filter(s => s !== t && (s[0] === t[0] || s[1] === t[1]));
-    others = J.shuffle(near).slice(0, cfg.opts - 1);
-    const it = s => ({ text: s, emoji: '', said: s, key: s });
-    return { target: it(t), items: J.shuffle([it(t), ...others.map(it)]), voice: s => ['Atrapa:', s] };
-  }
+function makeQuestion(cfg, keepKey) {
+  const asItem = w => ({ text: w[0], emoji: w[2], obj: w[0], key: w[0] });
   if (cfg.tipo === 'frase') {
-    const f = target ? FRASES.find(x => x[0] === target) : J.pick(FRASES);
-    others = J.shuffle(FRASES.filter(x => x !== f)).slice(0, cfg.opts - 1);
-    const it = x => ({ text: x[0], emoji: x[1], said: x[0], key: x[0] });
-    return { target: it(f), items: J.shuffle([it(f), ...others.map(it)]), voice: s => ['Atrapa:', s] };
+    const f = keepKey ? FRASES.find(x => x[0] === keepKey) : J.pick(FRASES);
+    const it = x => ({ text: x[0], obj: x[1], key: x[0], emoji: '' });
+    return { target: it(f), pool: () => J.shuffle(FRASES.filter(x => x !== f)).slice(0, cfg.opts - 1).map(it), say: ['Atrapa', f[0]] };
   }
-  const w = target ? J.WORDS.find(x => x[0] === target) : J.pick(EASY);
-  let pool = EASY.filter(x => x[0] !== w[0]);
-  if (cfg.tipo === 'parecidas') {
-    const s0 = J.strip(w[1].split('-')[0]).slice(0, 1), end = w[0].slice(-2);
-    const near = pool.filter(x => J.strip(x[0])[0] === s0 || x[0].endsWith(end));
-    if (near.length >= cfg.opts - 1) pool = near;
-  } else pool = pool.filter(x => J.strip(x[0])[0] !== J.strip(w[0])[0]);
-  others = J.shuffle(pool).slice(0, cfg.opts - 1);
-  return { target: asItem(w), items: J.shuffle([asItem(w), ...others.map(asItem)]), voice: s => ['Atrapa:', s] };
+  if (cfg.tipo === 'silaba') {
+    // "Atrapa algo que empieza con pa": los letreros muestran palabras
+    const w = keepKey ? EASY.find(x => x[0] === keepKey) : J.pick(EASY.filter(x => /^[^aeiou]?[aeiou]$/.test(syl0(x))));
+    const t = asItem(w); t.syl = syl0(w);
+    return { target: t, show: t.syl, pool: () => J.shuffle(EASY.filter(x => syl0(x) !== t.syl)).slice(0, cfg.opts - 1).map(asItem), say: ['Algo que empieza con', t.syl] };
+  }
+  const w = keepKey ? EASY.find(x => x[0] === keepKey) : J.pick(EASY);
+  const t = asItem(w);
+  return {
+    target: t, say: ['Atrapa', w[0]],
+    pool: () => {
+      let pool = EASY.filter(x => x[0] !== w[0]);
+      if (cfg.tipo === 'parecidas') { const near = pool.filter(x => J.strip(x[0])[0] === J.strip(w[0])[0] || x[0].slice(-2) === w[0].slice(-2)); if (near.length >= cfg.opts - 1) pool = near; }
+      else pool = pool.filter(x => J.strip(x[0])[0] !== J.strip(w[0])[0]);
+      return J.shuffle(pool).slice(0, cfg.opts - 1).map(asItem);
+    },
+  };
 }
 
 // ---------- estado ----------
-const state = {
-  running: false, lane: 0, x: 0, hopT: 1, scroll: 0, nivel: 0, wins: 0,
-  row: null, q: null, missed: false, celebrate: 0,
-};
+const state = { running: false, lane: 0, x: 0, hopT: 1, scroll: 0, nivel: 0, wins: 0, rows: [], q: null, missed: false, celebrate: 0, nextRow: 0, mochila: [] };
 const metas = $('#metas');
 const speed = () => NIVELES[state.nivel].speed;
 
-function newQuestion(keepTarget) {
-  const cfg = NIVELES[state.nivel];
-  state.q = makeRow(cfg, keepTarget ? state.q.target.key : null);
+function newQuestion(keep) {
+  state.q = makeQuestion(NIVELES[state.nivel], keep ? state.q.target.key : null);
+  // las filas que ya venían se van; la siguiente llega pronto
+  state.rows.forEach(r => { if (!r.done) r.fade = .001; });
+  state.nextRow = .4;
   showTarget();
 }
 function spawnRow() {
-  const cfg = NIVELES[state.nivel];
-  const q = state.q;
-  // con 2 opciones, se usan 2 de los 3 carriles al azar
+  const cfg = NIVELES[state.nivel], q = state.q;
+  const items = J.shuffle([q.target, ...q.pool()]);
   const lanes = cfg.opts === 2 ? J.shuffle([-1, 0, 1]).slice(0, 2).sort() : [-1, 0, 1];
-  const row = { z: ROW_START, bubbles: [], done: false };
-  q.items.forEach((it, i) => {
-    const b = makeBubble(it, i + Math.floor(Math.random() * 5), cfg.dibujo);
-    b.position.set(lanes[i] * LANE_W, 1.35, ROW_START);
-    b.userData.lane = lanes[i];
-    b.userData.hint = state.missed && it.key === q.target.key;
-    scene.add(b); row.bubbles.push(b);
+  const row = { z: ROW_START, items: [], done: false, key: q.target.key };
+  items.forEach((it, i) => {
+    const g = makeItem(it, i + Math.floor(Math.random() * 5));
+    g.position.set(lanes[i] * LANE_W, 0, ROW_START);
+    g.userData.lane = lanes[i];
+    g.userData.hint = state.missed && it.key === q.target.key;
+    scene.add(g); row.items.push(g);
   });
-  state.row = row;
+  state.rows.push(row);
 }
 function showTarget() {
   const q = state.q, cfg = NIVELES[state.nivel];
-  const box = $('#mision');
+  $('#m-etq').textContent = q.target.syl ? 'Empieza con' : 'Atrapa';
   $('#m-pic').textContent = cfg.dibujo ? q.target.emoji : '🔊';
-  $('#m-word').textContent = q.target.text;
-  box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
-  sayTarget();
+  $('#m-word').textContent = q.show || q.target.text;
+  const box = $('#mision'); box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
+  J.say(q.say);
 }
-function sayTarget() { const q = state.q; if (q) J.say(q.voice(q.target.text)); }
-$('#m-say').onclick = sayTarget;
-
-function message(text, secs = 1.6) {
+$('#m-say').onclick = () => state.q && J.say(state.q.say);
+function message(text, secs = 1.4) {
   const el = $('#mensaje'); el.textContent = text;
   el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
   clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
 }
 function renderMetas() { metas.innerHTML = Array.from({ length: WIN_PER_LEVEL }, (_, i) => `<span class="meta ${i < state.wins ? 'on' : ''}">⭐</span>`).join(''); }
 function renderNivel() { $('#nivel-num').textContent = state.nivel + 1; }
+function renderMochila() { $('#mochila').innerHTML = '🎒 ' + state.mochila.slice(-8).map(e => `<span>${e}</span>`).join(''); }
 
 function judge(row) {
   const lane = Math.round(state.x / LANE_W);
-  const got = row.bubbles.find(b => b.userData.lane === lane);
+  const got = row.items.find(g => g.userData.lane === lane);
   const q = state.q;
   if (got && got.userData.item.key === q.target.key) {
-    got.userData.pop = .001;
-    fx.burst(got.position.clone(), 50);
+    got.userData.fly = .001;
+    fx.burst(got.position.clone().add(new THREE.Vector3(0, 1, 0)), 50);
     J.cheer();
-    message(J.pick(['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Súper!']));
+    message(J.pick(['¡A la mochila!', '¡Muy bien!', '¡Bravo!']));
     J.addStar(); swapActor();
-    state.wins++; state.missed = false; state.celebrate = 1.1;
+    state.mochila.push(got.userData.item.emoji || J.WORDS.find(w => w[0] === got.userData.item.obj)?.[2] || '⭐'); renderMochila();
+    state.wins++; state.missed = false; state.celebrate = 1;
     renderMetas();
-    setTimeout(() => J.say([q.target.said], { queue: true }), 600);
-    if (state.wins >= WIN_PER_LEVEL) { setTimeout(levelUp, 1600); return 'stop'; }
-    if (P.two) { state.running = false; setTimeout(() => J.nextTurn(() => { swapActor(); state.running = true; newQuestion(); }, { onShow: swapActor }), 1700); return 'stop'; }
-    newQuestion();
-  } else {
+    J.say([got.userData.item.text], { queue: true });
+    if (state.wins >= WIN_PER_LEVEL) { state.running = false; setTimeout(levelUp, 1400); return; }
+    if (P.two) { state.running = false; setTimeout(() => J.nextTurn(() => { swapActor(); state.running = true; newQuestion(); }, { onShow: swapActor }), 1500); return; }
+    setTimeout(() => newQuestion(), 900);
+  } else if (got) {
+    got.userData.bump = .001;
     J.boing(); state.missed = true;
-    if (got) { message('¡Casi!'); J.say([`Esa dice ${got.userData.item.text}.`, ...q.voice(q.target.text)]); }
-    else { message('¡Uy!'); J.say(['¡Atrapa una burbuja!', ...q.voice(q.target.text)]); }
-    newQuestion(true);
+    message('¡Casi!');
+    J.say(['Ese es', got.userData.item.text, ...q.say]);
+  } else {
+    // pasó sin atrapar nada: solo recordar qué buscar
+    state.missed = true;
+    J.say(q.say);
   }
 }
-
 function levelUp() {
-  state.running = false;
   P.level.carrera = Math.max(P.level.carrera || 0, state.nivel + 1); J.save();
   J.gift(() => {
     state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1);
     state.wins = 0; renderMetas(); renderNivel();
-    message('Nivel ' + (state.nivel + 1) + ': ' + NIVELES[state.nivel].nombre, 2.6);
-    J.say('Nivel ' + (state.nivel + 1) + '. ' + NIVELES[state.nivel].nombre);
+    message('Nivel ' + (state.nivel + 1), 2.2);
     state.running = true; newQuestion();
   });
 }
@@ -331,24 +336,29 @@ function frame() {
     pa.needsUpdate = true;
   }
 
-  const row = state.row;
-  if (row) {
+  // filas de animalitos
+  if (state.running && state.q) { state.nextRow -= dt; if (state.nextRow <= 0) { spawnRow(); state.nextRow = GAP_SECONDS; } }
+  for (const row of state.rows) {
     row.z += dz;
-    for (const b of row.bubbles) {
-      const ud = b.userData;
-      b.position.z = row.z;
-      b.position.y = 1.35 + Math.sin(t * 2 + ud.lane) * .08 + (ud.hint ? Math.abs(Math.sin(t * 5)) * .3 : 0);
-      ud.card.rotation.y = Math.sin(t * 1.5 + ud.lane) * .25;
-      if (ud.hint) ud.bub.material.emissiveIntensity = .4 + Math.abs(Math.sin(t * 5)) * .6;
-      if (ud.pop) { ud.pop += dt; b.scale.setScalar(1 + ud.pop * 2); ud.bub.material.opacity = Math.max(0, .28 - ud.pop); ud.card.material.opacity = Math.max(0, 1 - ud.pop * 2); }
+    for (const g of row.items) {
+      const ud = g.userData;
+      g.position.z = row.z;
+      ud.o.update(dt, ud.fly > 0);
+      ud.sign.position.y = 2.25 + Math.sin(t * 3 + ud.lane) * .05 + (ud.hint ? Math.abs(Math.sin(t * 6)) * .25 : 0);
+      if (ud.fly) { // a la mochila
+        ud.fly += dt; g.position.y += dt * 5; g.position.x += (state.x - g.position.x) * dt * 3; g.scale.multiplyScalar(.94);
+      } else if (ud.bump) { ud.bump += dt; g.position.x += Math.sign(g.position.x - state.x || 1) * dt * 8; g.rotation.z += dt * 6; }
+      if (row.fade) g.scale.multiplyScalar(.9);
     }
-    if (!row.done && row.z >= 0) { row.done = true; judge(row); }
-    if (row.z > 9 || (row.done && !state.running && row.bubbles.some(b => b.userData.pop > .6))) {
-      row.bubbles.forEach(b => { scene.remove(b); b.userData.tex.dispose(); b.userData.card.material.dispose(); b.userData.bub.material.dispose(); b.userData.card.geometry.dispose(); });
-      state.row = null;
+    if (row.fade) row.fade += dt;
+    if (!row.done && !row.fade && row.z >= -.2) { row.done = true; judge(row); }
+  }
+  for (const row of state.rows.slice()) {
+    if (row.z > 10 || (row.fade && row.fade > .5) || (row.done && row.items.every(g => g.scale.x < .05))) {
+      row.items.forEach(g => { scene.remove(g); g.userData.tex.dispose(); g.userData.sign.material.dispose(); });
+      state.rows.splice(state.rows.indexOf(row), 1);
     }
   }
-  if (!state.row && state.running && state.q) spawnRow();
   fx.update(dt);
 
   camera.position.set(state.x * .45, 4.4, 7.2);
@@ -361,7 +371,7 @@ function frame() {
 function start(nivel) {
   $('#portada').hidden = true;
   J.audio(); J.startMusic();
-  state.nivel = nivel; state.wins = 0; renderMetas(); renderNivel();
+  state.nivel = nivel; state.wins = 0; state.mochila = []; renderMetas(); renderNivel(); renderMochila();
   const go = () => { state.running = true; newQuestion(); };
   if (P.two) J.showTurn(go, { onShow: swapActor }); else go();
 }
@@ -381,5 +391,5 @@ function start(nivel) {
   const go = $('#empezar');
   go.disabled = false; go.textContent = '▶ ¡A correr!';
   go.onclick = () => start(sel);
-  if (TEST) start(0);
+  if (TEST) { window.__c = state; start(0); }
 })();
