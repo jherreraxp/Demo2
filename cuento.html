@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lola y la Luna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Layout: an open picture book — illustrated scene on top, big tappable words underneath, page arrows at the bottom. */
+:root {
+  --cover: #2b4c8c;
+  --page: #fffdf7;
+  --ink: #23324a;
+  --hi: #ffe27a;
+  --shadow: rgba(35, 50, 74, .28);
+  --go: #3f8ee8;
+  --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --font-letters: "Andika", "Century Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: radial-gradient(circle at 50% 0%, #3c64b0, var(--cover) 70%); color: var(--ink); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; }
+.page { min-height: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 14px); }
+button, a.btn { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+
+.bar { display: flex; align-items: center; gap: 10px; }
+.bar h1 { margin: 0 auto 0 4px; color: #fff; font-size: clamp(24px, 6.5vw, 34px); line-height: 1; font-weight: 800; }
+.round-btn { flex: none; width: 50px; height: 50px; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,.25); font-size: 24px; display: grid; place-items: center; }
+.round-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+
+.libro { background: var(--page); border-radius: 28px; box-shadow: 0 10px 0 rgba(0,0,0,.25); overflow: hidden; display: flex; flex-direction: column; flex: 1; }
+.escena { position: relative; flex: 1; min-height: 220px; max-width: 100%; overflow: hidden; transition: background 1s; }
+.escena .e { position: absolute; transform: translate(-50%, -50%); line-height: 1; }
+.texto { padding: 18px 20px 20px; font-family: var(--font-letters); font-weight: 700; font-size: clamp(28px, 7vw, 42px); line-height: 1.45; text-wrap: pretty; min-height: 3em; }
+.texto .w { border-radius: 10px; padding: 0 3px; cursor: pointer; transition: background .15s; }
+.texto .w.hi { background: var(--hi); box-shadow: 0 0 0 3px var(--hi); }
+
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.flecha { width: 76px; height: 64px; border-radius: 22px; background: #fff; font-size: 34px; box-shadow: 0 5px 0 rgba(0,0,0,.25); display: grid; place-items: center; }
+.flecha:disabled { opacity: .35; cursor: default; }
+.flecha:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.leer { background: var(--hi); border-radius: 999px; padding: 10px 22px; font-size: 22px; font-weight: 800; box-shadow: 0 5px 0 #c9a82e; }
+.leer:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9a82e; }
+.puntos { display: flex; justify-content: center; gap: 8px; }
+.punto { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.35); }
+.punto.on { background: #fff; }
+
+/* animaciones de la escena */
+.flota { animation: flota 3s ease-in-out infinite; }
+.salta { animation: salta .9s ease-in-out infinite; }
+.brilla { animation: brilla 2s ease-in-out infinite; }
+.vuela { animation: vuela 4s ease-in-out infinite; }
+.gira { animation: gira 6s linear infinite; }
+@keyframes flota { 0%,100% { transform: translate(-50%, -50%) } 50% { transform: translate(-50%, -58%) } }
+@keyframes salta { 0%,100% { transform: translate(-50%, -50%) } 45% { transform: translate(-50%, -95%) } }
+@keyframes brilla { 0%,100% { filter: drop-shadow(0 0 6px #fff6b0); transform: translate(-50%,-50%) scale(1) } 50% { filter: drop-shadow(0 0 22px #fff6b0); transform: translate(-50%,-50%) scale(1.08) } }
+@keyframes vuela { 0%,100% { transform: translate(-50%, -50%) rotate(-6deg) } 50% { transform: translate(-30%, -70%) rotate(6deg) } }
+@keyframes gira { to { transform: translate(-50%, -50%) rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="bar">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <h1>Lola y la Luna</h1>
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+  </div>
+
+  <article class="libro">
+    <div class="escena" id="escena" aria-hidden="true"></div>
+    <p class="texto" id="texto"></p>
+  </article>
+
+  <div class="nav">
+    <button class="flecha" id="atras" aria-label="Página anterior">⬅️</button>
+    <button class="leer" id="leer">🔊 Leer</button>
+    <button class="flecha" id="adelante" aria-label="Página siguiente">➡️</button>
+  </div>
+  <div class="puntos" id="puntos"></div>
+</div>
+
+<script>
+(() => {
+  const J = window.Juego;
+  const $ = s => document.querySelector(s);
+
+  const DIA = 'linear-gradient(#8fd6f8, #c9efff 60%, #8fd46a 60%)';
+  const NOCHE = 'linear-gradient(#1d2b5c, #3a4d8f 62%, #2f6b4a 62%)';
+  const CIELO = 'linear-gradient(#ffd6e8, #c7e6ff)';
+  const CIELO_NOCHE = 'linear-gradient(#141e45, #34407a)';
+  const CASA = 'linear-gradient(#ffcf9e, #ffe9cf 62%, #8fd46a 62%)';
+  const CUARTO = 'linear-gradient(#2a2f62, #4a4f8f)';
+
+  // [emoji, x%, y%, tamaño en % del ancho, animación]
+  const PAGES = [
+    { bg: DIA, text: 'Esta es Lola. Lola es una zorrita.',
+      s: [['🌳', 14, 46, 22], ['🦊', 50, 66, 20, 'salta'], ['🌳', 86, 44, 24], ['🌼', 30, 82, 7], ['🌼', 70, 84, 6], ['☀️', 82, 14, 12, 'gira']] },
+    { bg: NOCHE, text: 'Lola mira la luna. ¡Qué linda es la luna!',
+      s: [['🌙', 72, 24, 18, 'brilla'], ['✨', 40, 16, 6, 'brilla'], ['⭐', 18, 22, 5, 'brilla'], ['⭐', 88, 50, 4, 'brilla'], ['🦊', 32, 70, 18], ['🌲', 82, 66, 16]] },
+    { bg: NOCHE, text: 'Lola salta y salta. ¡Quiere tocar la luna!',
+      s: [['🌙', 78, 20, 14, 'brilla'], ['🦊', 42, 66, 18, 'salta'], ['⭐', 20, 18, 5, 'brilla'], ['✨', 60, 30, 5, 'brilla']] },
+    { bg: CIELO, text: 'Una nube baja. Lola sube a la nube.',
+      s: [['☁️', 48, 62, 44, 'flota'], ['🦊', 48, 44, 15, 'flota'], ['☁️', 14, 22, 14, 'flota'], ['☁️', 86, 18, 12, 'flota']] },
+    { bg: CIELO, text: 'En el cielo hay un pato. —Hola, pato —dice Lola.',
+      s: [['☁️', 34, 66, 40, 'flota'], ['🦊', 34, 48, 14, 'flota'], ['🦆', 74, 36, 17, 'vuela'], ['💬', 56, 22, 10]] },
+    { bg: CIELO_NOCHE, text: 'El pato y Lola van a la luna.',
+      s: [['🌙', 80, 30, 26, 'brilla'], ['🦆', 30, 52, 15, 'vuela'], ['🦊', 44, 60, 13, 'vuela'], ['⭐', 12, 18, 5, 'brilla'], ['⭐', 56, 14, 4, 'brilla'], ['⭐', 20, 84, 4, 'brilla']] },
+    { bg: CIELO_NOCHE, text: 'La luna sonríe: —Hola, Lola. Toma una estrella.',
+      s: [['🌝', 64, 42, 34, 'brilla'], ['🦊', 22, 62, 15], ['⭐', 40, 50, 9, 'gira'], ['✨', 86, 16, 6, 'brilla']] },
+    { bg: CASA, text: 'Lola vuelve a su casa. Mamá le da un beso.',
+      s: [['🏠', 26, 50, 32], ['🦊', 64, 66, 22], ['🦊', 80, 70, 14, 'salta'], ['💖', 72, 36, 9, 'flota'], ['⭐', 80, 54, 6, 'brilla']] },
+    { bg: CUARTO, text: 'Lola duerme y sueña con la luna. ¡Fin!',
+      s: [['🛏️', 46, 66, 34], ['🦊', 40, 54, 12], ['💤', 58, 34, 9, 'flota'], ['🌙', 84, 18, 13, 'brilla'], ['⭐', 14, 16, 5, 'brilla'], ['⭐', 26, 30, 4, 'brilla']] },
+  ];
+
+  let page = 0, words = [], started = false;
+
+  $('#puntos').innerHTML = PAGES.map(() => '<span class="punto"></span>').join('');
+
+  function render() {
+    const pg = PAGES[page];
+    const esc = $('#escena');
+    esc.style.background = pg.bg;
+    esc.innerHTML = pg.s.map(([e, x, y, size, anim]) =>
+      `<span class="e ${anim || ''}" style="left:${x}%;top:${y}%;font-size:min(${size}vw, ${size * 7.2}px)">${e}</span>`).join('');
+    // cada palabra se puede tocar para escucharla
+    let idx = 0;
+    words = [];
+    $('#texto').innerHTML = pg.text.split(' ').map(tok => {
+      const start = pg.text.indexOf(tok, idx); idx = start + tok.length;
+      words.push({ start, end: idx, tok });
+      return `<span class="w" data-i="${words.length - 1}">${tok}</span>`;
+    }).join(' ');
+    $('#atras').disabled = page === 0;
+    $('#adelante').textContent = page === PAGES.length - 1 ? '🔁' : '➡️';
+    $('#adelante').setAttribute('aria-label', page === PAGES.length - 1 ? 'Leer otra vez desde el principio' : 'Página siguiente');
+    document.querySelectorAll('.punto').forEach((p, i) => p.classList.toggle('on', i === page));
+  }
+
+  function highlight(i) { document.querySelectorAll('.texto .w').forEach((w, j) => w.classList.toggle('hi', j === i)); }
+
+  function read() {
+    const text = PAGES[page].text;
+    let gotBoundary = false;
+    J.say(text, {
+      rate: 0.75,
+      onboundary: e => {
+        if (e.name && e.name !== 'word') return;
+        gotBoundary = true;
+        const i = words.findIndex(w => e.charIndex >= w.start && e.charIndex < w.end);
+        if (i >= 0) highlight(i);
+      },
+      onend: () => {
+        highlight(-1);
+        if (page === PAGES.length - 1) { J.cheer(true); J.confetti(120); }
+      },
+    });
+    // sin eventos de palabra (algunos navegadores): resaltar al ritmo aproximado
+    let i = 0;
+    const tick = () => { if (gotBoundary || i >= words.length) return; highlight(i++); setTimeout(tick, 480 + words[i - 1].tok.length * 40); };
+    setTimeout(tick, 600);
+  }
+
+  $('#texto').addEventListener('click', e => {
+    const w = e.target.closest('.w'); if (!w) return;
+    const word = w.textContent.replace(/[¡!¿?.,:—]/g, '');
+    highlight(+w.dataset.i); J.sparkle(); J.say(word, { rate: 0.7 });
+    setTimeout(() => highlight(-1), 1200);
+  });
+  function go(d) {
+    if (page === PAGES.length - 1 && d > 0) page = 0; else page = Math.max(0, Math.min(PAGES.length - 1, page + d));
+    J.sfx('pop2', .7); J.stopVoice();
+    render(); setTimeout(read, 350);
+  }
+  $('#atras').onclick = () => go(-1);
+  $('#adelante').onclick = () => go(1);
+  $('#leer').onclick = () => { J.stopVoice(); read(); };
+
+  render();
+  J.refreshMusic();
+  setTimeout(read, 500);
+})();
+</script>
+</body>
+</html>

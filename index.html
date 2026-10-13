@@ -10,24 +10,26 @@
 <style>
 /* Layout: one-screen playroom — big picture/prompt on top, three wooden alphabet blocks below. Single bright theme by choice. */
 :root {
-  --sky: #cfeaf7;        /* playroom wall */
-  --floor: #f7e3b5;      /* wooden floor strip */
-  --ink: #23324a;        /* text */
+  --sky: #cfeaf7;
+  --floor: #f7e3b5;
+  --ink: #23324a;
   --block-red: #ef5b5b;
   --block-blue: #3f8ee8;
   --block-yellow: #f6c33b;
   --block-green: #4cb87a;
   --block-purple: #9a6ee0;
+  --block-orange: #f39a3b;
   --paper: #ffffff;
   --shadow: rgba(35, 50, 74, .28);
   --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
-  --font-letters: "Andika", "Century Gothic", system-ui, sans-serif; /* Andika: made for early readers, single-story a */
+  --font-letters: "Andika", "Century Gothic", system-ui, sans-serif; /* Andika: hecha para quienes aprenden a leer */
   color-scheme: light;
 }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  background: linear-gradient(var(--sky) 0 78%, var(--floor) 78% 100%);
+  background: linear-gradient(var(--sky) 0 78%, var(--floor) 78% 100%) fixed;
   color: var(--ink);
   font-family: var(--font-display);
   -webkit-tap-highlight-color: transparent;
@@ -45,11 +47,11 @@ body {
   flex-direction: column;
   gap: 16px;
 }
-button { font: inherit; color: inherit; cursor: pointer; border: 0; }
-button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
+button, a.mode { font: inherit; color: inherit; cursor: pointer; border: 0; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
 
-/* top bar */
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+.bar-right { display: flex; gap: 10px; align-items: center; }
 .round-btn {
   width: 56px; height: 56px; border-radius: 50%;
   background: var(--paper); box-shadow: 0 4px 0 var(--shadow);
@@ -65,25 +67,37 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
 .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--paper); box-shadow: inset 0 0 0 3px var(--shadow); }
 .dot.on { background: var(--block-yellow); box-shadow: inset 0 0 0 3px #c99a1c; }
 
-/* home */
+/* inicio */
 .home h1 {
   font-size: clamp(44px, 12vw, 76px); line-height: .95; margin: 8px 0 4px;
   text-align: center; text-wrap: balance; font-weight: 800;
 }
 .home h1 span { display: inline-block; }
+.home h1 .w { white-space: nowrap; }
 .home p { text-align: center; font-size: 22px; margin: 0; }
-.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
+.home h2 { font-size: 24px; margin: 18px 0 8px; display: flex; align-items: center; gap: 10px; }
+.home h2 small { font-size: 16px; font-weight: 600; opacity: .75; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .mode {
   border-radius: 24px; padding: 18px 12px; color: #fff;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
   box-shadow: 0 8px 0 var(--shadow); text-shadow: 0 2px 0 rgba(0,0,0,.18);
 }
 .mode:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--shadow); }
-.mode .big { font-family: var(--font-letters); font-weight: 700; font-size: 48px; line-height: 1.1; }
-.mode .name { font-size: 22px; font-weight: 800; }
-.mode .step { font-size: 15px; opacity: .92; }
+.mode .big { font-family: var(--font-letters); font-weight: 700; font-size: 44px; line-height: 1.15; }
+.mode .name { font-size: 21px; font-weight: 800; line-height: 1.15; }
+.mode .step { font-size: 15px; opacity: .95; }
+.mode.hero {
+  grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 16px; padding: 20px 16px;
+  background: linear-gradient(160deg, #6fc7f0 0%, #3f8ee8 55%, #2f6fc4 100%);
+}
+.mode.hero .big { font-size: 64px; font-family: var(--font-display); }
+.mode.hero .txt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.mode.hero .name { font-size: 28px; }
+.badge { background: var(--block-yellow); color: var(--ink); text-shadow: none; border-radius: 999px; padding: 2px 12px; font-size: 15px; font-weight: 800; }
+.rainbow { background: linear-gradient(135deg, var(--block-red), var(--block-orange), var(--block-yellow), var(--block-green), var(--block-blue), var(--block-purple)); }
 
-/* game */
+/* juego */
 .stage {
   background: var(--paper); border-radius: 32px; box-shadow: 0 8px 0 var(--shadow);
   padding: 18px 16px 22px; display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -91,7 +105,6 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
 }
 .prompt { font-size: clamp(22px, 5.5vw, 30px); font-weight: 800; margin: 0; text-wrap: balance; }
 .picture { font-size: clamp(96px, 28vw, 150px); line-height: 1.1; }
-.target { font-family: var(--font-letters); font-weight: 700; font-size: clamp(72px, 22vw, 120px); line-height: 1; }
 .listen {
   background: var(--block-purple); color: #fff; border-radius: 999px;
   padding: 10px 24px; font-size: 24px; font-weight: 800; box-shadow: 0 5px 0 #6b47a8;
@@ -105,13 +118,13 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
   aspect-ratio: 1 / 1; max-width: 100%;
   border-radius: 20px; color: #fff;
   font-family: var(--font-letters); font-weight: 700;
-  font-size: clamp(40px, 13vw, 80px); line-height: 1;
+  font-size: clamp(48px, 15vw, 92px); line-height: 1;
   display: grid; place-items: center;
   box-shadow: inset 0 0 0 6px rgba(255,255,255,.35), 0 10px 0 var(--shadow);
   text-shadow: 0 3px 0 rgba(0,0,0,.18);
   transition: transform .12s;
-  position: relative;
 }
+.block.syl { font-size: clamp(40px, 12vw, 76px); }
 .block.word { font-size: clamp(26px, 8vw, 46px); aspect-ratio: auto; min-height: 110px; padding: 6px; }
 .block:active { transform: translateY(6px); }
 .block.wrong { animation: wobble .5s; opacity: .45; }
@@ -121,13 +134,14 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
 .c2 { background: var(--block-green); }
 .c3 { background: var(--block-yellow); color: var(--ink); text-shadow: none; }
 .c4 { background: var(--block-purple); }
+.c5 { background: var(--block-orange); }
 
-.cheer {
-  text-align: center; font-size: 30px; font-weight: 800; min-height: 44px; margin: 0;
-}
-.parent-note { font-size: 16px; text-align: center; margin: 4px 0 0; opacity: .8; font-family: system-ui, sans-serif; }
-
-#confetti { position: fixed; inset: 0; pointer-events: none; width: 100%; height: 100%; }
+.cheer { text-align: center; font-size: 30px; font-weight: 800; min-height: 44px; margin: 0; }
+.parent-note { font-size: 16px; text-align: center; margin: 4px 0 0; opacity: .85; font-family: system-ui, sans-serif; text-wrap: pretty; }
+details.credits { font-family: system-ui, sans-serif; font-size: 14px; opacity: .8; }
+details.credits summary { cursor: pointer; text-align: center; }
+details.credits p { text-align: left; font-size: 14px; }
+details.credits a { color: var(--ink); }
 
 @keyframes wobble { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px) rotate(-4deg)} 40%{transform:translateX(10px) rotate(4deg)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
 @keyframes hop { 0%{transform:translateY(0)} 40%{transform:translateY(-22px) scale(1.06)} 100%{transform:translateY(0)} }
@@ -138,217 +152,184 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
+<script src="js/comun.js"></script>
 </head>
 <body>
 <div id="app"></div>
-<canvas id="confetti"></canvas>
 <script>
 (() => {
-  // ---------- contenido ----------
+  const J = window.Juego;
+  const { WORDS, pick, shuffle, strip, say } = J;
+
   const VOWELS = ['a', 'e', 'i', 'o', 'u'];
   const CONSONANTS = ['m', 'p', 'l', 's', 't', 'n', 'd'];
   const LETTER_NAMES = { a:'a', e:'e', i:'i', o:'o', u:'u', m:'eme', p:'pe', l:'ele', s:'ese', t:'te', n:'ene', d:'de', g:'ge', c:'ce', b:'be', v:'uve', r:'erre', f:'efe' };
 
-  // palabra, sílabas, dibujo
-  const WORDS = [
-    ['oso','o-so','🐻'], ['uva','u-va','🍇'], ['ojo','o-jo','👁️'], ['isla','is-la','🏝️'],
-    ['abeja','a-be-ja','🐝'], ['elefante','e-le-fan-te','🐘'], ['árbol','ár-bol','🌳'],
-    ['mano','ma-no','✋'], ['mono','mo-no','🐒'], ['mapa','ma-pa','🗺️'], ['mesa','me-sa','🪑'],
-    ['pato','pa-to','🦆'], ['pera','pe-ra','🍐'], ['papa','pa-pa','🥔'], ['piña','pi-ña','🍍'], ['pino','pi-no','🌲'],
-    ['luna','lu-na','🌙'], ['lupa','lu-pa','🔍'], ['lobo','lo-bo','🐺'], ['loro','lo-ro','🦜'],
-    ['sol','sol','☀️'], ['sopa','so-pa','🍲'], ['sapo','sa-po','🐸'],
-    ['taza','ta-za','☕'], ['tomate','to-ma-te','🍅'], ['tortuga','tor-tu-ga','🐢'],
-    ['nube','nu-be','☁️'], ['nariz','na-riz','👃'],
-    ['dado','da-do','🎲'], ['dedo','de-do','☝️'], ['dona','do-na','🍩'],
-    ['gato','ga-to','🐱'], ['casa','ca-sa','🏠'], ['vaca','va-ca','🐮'], ['bota','bo-ta','👢'], ['cama','ca-ma','🛏️'],
-  ];
-  // Las de 4 letras o menos van primero (más fáciles de leer)
+  // Palabras que empiezan con una sílaba abierta (consonante + vocal, o solo vocal): pa-to, o-so
+  const firstSyl = w => strip(w[1].split('-')[0]).toLowerCase();
+  const SYL_WORDS = WORDS.filter(w => /^[^aeiou]?[aeiou]$/.test(firstSyl(w)));
   const EASY_WORDS = WORDS.filter(w => w[0].length <= 4 && !/[áéíóú]/.test(w[0]));
 
   const MODES = {
-    letras:   { name:'Letras',          big:'a e i', step:'Escucha y toca', color:'c0' },
-    silabas:  { name:'Sílabas',         big:'ma pa', step:'Junta sonidos',  color:'c1' },
-    empieza:  { name:'¿Con qué empieza?', big:'🐱 g', step:'Mira el dibujo', color:'c2' },
-    palabras: { name:'Palabras',        big:'gato',  step:'¡Ya leo!',       color:'c4' },
+    letras:   { name:'Letras',                     big:'a e i', step:'Escucha y toca',  color:'c0' },
+    silabas:  { name:'Sílabas',                    big:'ma pa', step:'Junta sonidos',   color:'c5' },
+    empieza:  { name:'¿Con qué sílaba empieza?',   big:'🐺 lo', step:'Mira el dibujo',  color:'c2' },
+    palabras: { name:'Palabras',                   big:'gato',  step:'¡Ya leo!',        color:'c4' },
   };
 
   const PRAISE = ['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Lo lograste!', '¡Excelente!', '¡Qué lista eres!', '¡Súper!'];
   const RETRY = ['¡Casi! Prueba otra vez', 'Mmm… intenta otra', '¡Tú puedes! Otra vez'];
 
-  // ---------- estado ----------
   const ROUND = 5;
-  let state = { screen:'home', mode:null, stars:0, streak:0, level:{ letras:0, silabas:0, empieza:0, palabras:0 } };
-  try { const s = JSON.parse(localStorage.getItem('bloques-letras') || 'null'); if (s) { state.stars = s.stars || 0; Object.assign(state.level, s.level || {}); } } catch (e) {}
-  const save = () => { try { localStorage.setItem('bloques-letras', JSON.stringify({ stars: state.stars, level: state.level })); } catch (e) {} };
-  let q = null;      // pregunta actual
-  let locked = false;
+  const level = J.progress.level;
+  ['letras','silabas','empieza','palabras'].forEach(k => { level[k] = level[k] || 0; });
+  let mode = null, streak = 0, q = null, locked = false;
 
-  // ---------- utilidades ----------
   const $ = s => document.querySelector(s);
-  const pick = a => a[Math.floor(Math.random() * a.length)];
-  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const distinct = (pool, answer, n, key = x => x) => shuffle(pool.filter(x => key(x) !== key(answer))).slice(0, n);
-  const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const firstLetter = w => strip(w)[0];
-
-  // ---------- voz ----------
-  let voice = null;
-  const loadVoice = () => {
-    if (!('speechSynthesis' in window)) return;
-    const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
-    voice = vs.find(v => /es-(MX|US|419|CO)/i.test(v.lang)) || vs.find(v => /es-ES/i.test(v.lang)) || vs[0] || null;
-  };
-  if ('speechSynthesis' in window) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
-  function say(parts) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    (Array.isArray(parts) ? parts : [parts]).forEach(t => {
-      const u = new SpeechSynthesisUtterance(t);
-      u.lang = voice ? voice.lang : 'es-MX';
-      if (voice) u.voice = voice;
-      u.rate = 0.8; u.pitch = 1.15;
-      speechSynthesis.speak(u);
-    });
-  }
-
-  // ---------- sonidos ----------
-  let actx = null;
-  function tone(freqs, dur = .12, type = 'sine') {
-    try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      freqs.forEach((f, i) => {
-        const o = actx.createOscillator(), g = actx.createGain();
-        o.type = type; o.frequency.value = f;
-        const t = actx.currentTime + i * dur;
-        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.25, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur * 1.6);
-        o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur * 1.8);
-      });
-    } catch (e) {}
-  }
-  const ding = () => tone([660, 880, 1175], .11, 'triangle');
-  const boop = () => tone([300, 240], .14, 'sine');
-  const fanfare = () => tone([523, 659, 784, 1047, 784, 1047], .13, 'triangle');
-
-  // ---------- confeti ----------
-  const cv = $('#confetti'), cx = cv.getContext('2d');
-  let bits = [], raf = null;
-  function confetti(n = 60) {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    cv.width = innerWidth; cv.height = innerHeight;
-    const cols = ['#ef5b5b', '#3f8ee8', '#f6c33b', '#4cb87a', '#9a6ee0'];
-    for (let i = 0; i < n; i++) bits.push({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4, r: Math.random() * 6 + 5, c: pick(cols), a: Math.random() * 6, life: 90 });
-    if (!raf) loop();
-  }
-  function loop() {
-    cx.clearRect(0, 0, cv.width, cv.height);
-    bits.forEach(b => { b.x += b.vx; b.y += b.vy; b.vy += .45; b.a += .2; b.life--; cx.save(); cx.translate(b.x, b.y); cx.rotate(b.a); cx.fillStyle = b.c; cx.fillRect(-b.r / 2, -b.r / 2, b.r, b.r * 1.6); cx.restore(); });
-    bits = bits.filter(b => b.life > 0 && b.y < cv.height + 20);
-    raf = bits.length ? requestAnimationFrame(loop) : (cx.clearRect(0, 0, cv.width, cv.height), null);
-  }
+  const distinct = (pool, answer, n) => shuffle(pool.filter(x => x !== answer)).slice(0, n);
 
   // ---------- preguntas ----------
   function makeQuestion(mode) {
-    const lv = state.level[mode];
+    const lv = level[mode];
     if (mode === 'letras') {
-      // nivel 0-1: vocales; después se suman consonantes
       const pool = lv < 2 ? VOWELS : VOWELS.concat(CONSONANTS.slice(0, Math.min(CONSONANTS.length, (lv - 1) * 2)));
       const ans = pick(pool);
+      // Una sola forma por pregunta: todas chiquitas (minúsculas) o todas grandes (mayúsculas), nunca juntas
+      const big = Math.random() < .5;
+      const size = big ? 'grande' : 'chiquita';
+      const show = l => big ? l.toUpperCase() : l;
       const opts = shuffle([ans, ...distinct(pool, ans, 2)]);
-      return { mode, ans, opts: opts.map(l => ({ label: l.toUpperCase() + l, value: l })),
-        prompt: '¿Dónde está la…', show: { text: '🔊' },
-        speak: () => ['¿Dónde está la ' + LETTER_NAMES[ans] + '?'],
-        good: () => ['¡Sí! Es la ' + LETTER_NAMES[ans]] };
+      return { ans, opts: opts.map(l => ({ label: show(l), value: l })), cls: '',
+        prompt: `Busca la letra ${size}`, pic: null,
+        speak: () => [`¿Dónde está la ${LETTER_NAMES[ans]} ${size}?`],
+        good: () => [`¡Sí! Es la ${LETTER_NAMES[ans]} ${size}`] };
     }
     if (mode === 'silabas') {
       const cons = CONSONANTS.slice(0, Math.min(CONSONANTS.length, 2 + lv));
       const all = cons.flatMap(c => VOWELS.map(v => c + v));
       const c = pick(cons), ans = c + pick(VOWELS);
-      // al principio, opciones con la misma consonante (cambia solo la vocal)
       const pool = lv < 2 ? VOWELS.map(v => c + v) : all;
       const opts = shuffle([ans, ...distinct(pool, ans, 2)]);
-      return { mode, ans, opts: opts.map(s => ({ label: s, value: s })),
-        prompt: '¿Cuál dice…', show: { text: '🔊' },
+      return { ans, opts: opts.map(s => ({ label: s, value: s })), cls: 'syl',
+        prompt: '¿Cuál dice…?', pic: null,
         speak: () => ['¿Cuál dice', ans + '?'],
-        good: () => [LETTER_NAMES[c[0]] + ' con ' + ans[1] + ', ' + ans] };
+        good: () => [LETTER_NAMES[c] + ' con ' + ans[1] + ', ' + ans] };
     }
     if (mode === 'empieza') {
-      const pool = lv < 2 ? EASY_WORDS : WORDS;
-      const w = pick(pool), ans = firstLetter(w[0]);
-      const letters = [...new Set(WORDS.map(x => firstLetter(x[0])))];
-      const opts = shuffle([ans, ...distinct(letters, ans, 2)]);
-      return { mode, ans, opts: opts.map(l => ({ label: l, value: l })),
-        prompt: '¿Con qué letra empieza?', show: { pic: w[2] },
-        speak: () => [w[0] + '. ¿Con qué letra empieza ' + w[0] + '?'],
-        good: () => [w[0] + ' empieza con la ' + LETTER_NAMES[ans]] };
+      // ¿Con qué sílaba empieza? lobo → lo
+      const pool = lv < 2 ? SYL_WORDS.filter(w => EASY_WORDS.includes(w)) : SYL_WORDS;
+      const w = pick(pool), ans = firstSyl(w);
+      const allSyl = [...new Set(SYL_WORDS.map(firstSyl))];
+      let near;
+      if (ans.length === 1) near = VOWELS.filter(v => v !== ans);                       // o-so: otras vocales
+      else if (lv < 2) near = VOWELS.map(v => ans[0] + v).filter(s => s !== ans);       // lo → la, le, li, lu
+      else near = allSyl.filter(s => s !== ans && s.slice(-1) === ans.slice(-1));       // lo → mo, po, to
+      if (near.length < 2) near = allSyl.filter(s => s !== ans);
+      const opts = shuffle([ans, ...shuffle(near).slice(0, 2)]);
+      return { ans, opts: opts.map(s => ({ label: s, value: s })), cls: 'syl',
+        prompt: '¿Con qué sílaba empieza?', pic: w[2],
+        speak: () => [w[0] + '. ¿Con qué sílaba empieza ' + w[0] + '?'],
+        good: () => [w[1].split('-').join(', ') + '. ' + w[0] + ' empieza con ' + ans] };
     }
-    // palabras
     const pool = lv < 2 ? EASY_WORDS : WORDS;
     const w = pick(pool);
-    // distractores: al principio, palabras que empiezan diferente; luego, parecidas
     let others = pool.filter(x => x[0] !== w[0]);
-    if (lv >= 3) { const near = others.filter(x => firstLetter(x[0]) === firstLetter(w[0])); if (near.length >= 2) others = near; }
-    else others = others.filter(x => firstLetter(x[0]) !== firstLetter(w[0]));
+    if (lv >= 3) { const near = others.filter(x => strip(x[0])[0] === strip(w[0])[0]); if (near.length >= 2) others = near; }
+    else others = others.filter(x => strip(x[0])[0] !== strip(w[0])[0]);
     const opts = shuffle([w, ...shuffle(others).slice(0, 2)]);
-    return { mode, ans: w[0], opts: opts.map(x => ({ label: x[0], value: x[0], word: true })),
-      prompt: '¿Qué palabra es?', show: { pic: w[2] },
+    return { ans: w[0], opts: opts.map(x => ({ label: x[0], value: x[0] })), cls: 'word',
+      prompt: '¿Qué palabra es?', pic: w[2],
       speak: () => ['Mira el dibujo. ¿Qué palabra es?'],
       good: () => [w[1].split('-').join(', ') + '. ¡' + w[0] + '!'] };
   }
 
   // ---------- pantallas ----------
+  const bar = left => `
+    <div class="bar">
+      ${left}
+      <div class="bar-right">
+        <button class="round-btn" data-musica aria-label="Música">🎵</button>
+        <div class="stars" aria-label="Estrellas">⭐ <span id="starcount">${J.progress.stars}</span></div>
+      </div>
+    </div>`;
+
   function renderHome() {
-    state.screen = 'home'; q = null;
-    const title = 'Bloques de Letras'.split('').map((ch, i) => ch === ' ' ? ' ' : `<span style="color:var(--block-${['red','blue','green','purple'][i % 4]})">${ch}</span>`).join('');
+    mode = null; q = null;
+    let n = 0;
+    const title = 'Bloques de Letras'.split(' ').map(word => `<span class="w">${word.split('').map(ch => `<span style="color:var(--block-${['red','blue','green','purple','orange'][n++ % 5]})">${ch}</span>`).join('')}</span>`).join(' ');
     $('#app').innerHTML = `
-      <div class="bar"><span></span><div class="stars" aria-label="Estrellas">⭐ <span id="starcount">${state.stars}</span></div></div>
+      ${bar('<span></span>')}
       <section class="home">
         <h1>${title}</h1>
         <p>¡Vamos a leer jugando!</p>
+
+        <h2>1 · Calentamiento <small>conoce las palabras</small></h2>
+        <div class="modes">
+          <a class="mode hero" href="carrera.html" id="go-carrera">
+            <span class="big">🦊</span>
+            <span class="txt">
+              <span class="badge">3D · ¡Empieza aquí!</span>
+              <span class="name">Carrera de Palabras</span>
+              <span class="step">Corre por el camino de la palabra que escuchas</span>
+            </span>
+          </a>
+        </div>
+
+        <h2>2 · A leer <small>en orden</small></h2>
         <div class="modes">
           ${Object.entries(MODES).map(([k, m]) => `
             <button class="mode ${m.color}" data-mode="${k}" id="mode-${k}">
               <span class="big">${m.big}</span>
               <span class="name">${m.name}</span>
-              <span class="step">${m.step}</span>
+              <span class="step">${m.step} · nivel ${level[k] + 1}</span>
             </button>`).join('')}
         </div>
-        <p class="parent-note">Para mamá y papá: empiecen por <b>Letras</b> y avancen en orden. Cada 5 aciertos sube el nivel. Sube el volumen: el juego habla.</p>
+
+        <h2>🎁 Regalos</h2>
+        <div class="modes">
+          <a class="mode c1" href="cuento.html" id="go-cuento"><span class="big">📖</span><span class="name">Cuento</span><span class="step">Lola y la luna</span></a>
+          <a class="mode rainbow" href="pintar.html" id="go-pintar"><span class="big">🌈</span><span class="name">Pintar</span><span class="step">Colores del arcoíris</span></a>
+        </div>
+
+        <p class="parent-note">Para mamá y papá: empiecen con la <b>Carrera de Palabras</b> y luego sigan las actividades en orden. Cada 5 aciertos seguidos sube el nivel y hay un regalo. Suban el volumen: el juego habla.</p>
+        <details class="credits">
+          <summary>Créditos</summary>
+          <p>Zorro 3D: modelo de PixelMannen (CC0), animación de tomkranis (CC-BY 4.0), conversión a glTF de @AsoboStudio y @scurest (CC-BY 4.0), vía <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Fox" target="_blank" rel="noopener">Khronos glTF Sample Assets</a>.<br>
+          Árboles, casas, nubes, monedas, banderas y efectos de sonido: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0).<br>
+          Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Letras: Andika y Baloo 2 (SIL Open Font License).<br>
+          Música: composición original del juego.</p>
+        </details>
       </section>`;
-    document.querySelectorAll('.mode').forEach(b => b.onclick = () => { startMode(b.dataset.mode); });
+    document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => startMode(b.dataset.mode));
+    document.querySelectorAll('a.mode').forEach(a => a.addEventListener('click', () => J.sfx('pop')));
+    J.refreshMusic();
   }
 
-  function startMode(mode) {
-    state.mode = mode; state.screen = 'game'; state.streak = 0;
-    next();
-  }
+  function startMode(m) { J.sfx('pop'); mode = m; streak = 0; next(); }
 
   function next() {
     locked = false;
-    q = makeQuestion(state.mode);
+    q = makeQuestion(mode);
     renderGame();
     setTimeout(() => say(q.speak()), 250);
   }
 
   function renderGame() {
-    const dots = Array.from({ length: ROUND }, (_, i) => `<span class="dot ${i < state.streak ? 'on' : ''}"></span>`).join('');
-    const isWord = q.opts[0].word;
-    const center = q.show.pic ? `<div class="picture pop" aria-hidden="true">${q.show.pic}</div>` : '';
+    const dots = Array.from({ length: ROUND }, (_, i) => `<span class="dot ${i < streak ? 'on' : ''}"></span>`).join('');
+    const colors = shuffle([0, 1, 2, 3, 4, 5]);
     $('#app').innerHTML = `
-      <div class="bar">
-        <button class="round-btn" id="home" aria-label="Volver al inicio">🏠</button>
-        <div class="dots" aria-label="Progreso">${dots}</div>
-        <div class="stars">⭐ <span id="starcount">${state.stars}</span></div>
-      </div>
+      ${bar(`<button class="round-btn" id="home" aria-label="Volver al inicio">🏠</button><div class="dots" aria-label="Progreso">${dots}</div>`)}
       <section class="stage">
         <p class="prompt">${q.prompt}</p>
-        ${center}
-        <button class="listen ${q.show.pic ? '' : 'pulse'}" id="listen">🔊 Escuchar</button>
+        ${q.pic ? `<div class="picture pop" aria-hidden="true">${q.pic}</div>` : ''}
+        <button class="listen ${q.pic ? '' : 'pulse'}" id="listen">🔊 Escuchar</button>
       </section>
       <p class="cheer" id="cheer" aria-live="polite"></p>
       <div class="choices">
-        ${q.opts.map((o, i) => `<button class="block ${isWord ? 'word' : ''} c${(i + Math.floor(Math.random() * 5)) % 5}" data-v="${o.value}" id="opt-${i}">${o.label}</button>`).join('')}
+        ${q.opts.map((o, i) => `<button class="block ${q.cls} c${colors[i]}" data-v="${o.value}" id="opt-${i}">${o.label}</button>`).join('')}
       </div>`;
-    $('#home').onclick = () => { window.speechSynthesis && speechSynthesis.cancel(); renderHome(); };
+    J.refreshMusic();
+    $('#home').onclick = () => { J.stopVoice(); J.sfx('pop'); renderHome(); };
     $('#listen').onclick = () => say(q.speak());
     document.querySelectorAll('.block').forEach(b => b.onclick = () => answer(b));
   }
@@ -359,19 +340,17 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
       locked = true;
       btn.classList.add('right');
       document.querySelectorAll('.block').forEach(b => { if (b !== btn) b.style.opacity = .35; });
-      ding(); confetti(40);
-      state.stars++; state.streak++;
-      $('#starcount').textContent = state.stars;
-      document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i < state.streak));
+      J.cheer(); J.confetti(50);
+      streak++;
+      $('#starcount').textContent = J.addStar();
+      document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i < streak));
       const praise = pick(PRAISE);
       $('#cheer').textContent = praise;
-      say([...q.good(), praise]);
-      save();
-      if (state.streak >= ROUND) setTimeout(levelUp, 2600);
-      else setTimeout(next, 2600);
+      setTimeout(() => say([...q.good(), praise], { queue: true }), 600);
+      setTimeout(streak >= ROUND ? levelUp : next, 3600);
     } else {
       btn.classList.add('wrong');
-      boop();
+      J.boing();
       const msg = pick(RETRY);
       $('#cheer').textContent = msg;
       say([msg, ...q.speak()]);
@@ -379,24 +358,23 @@ button:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
   }
 
   function levelUp() {
-    state.level[state.mode]++; state.streak = 0; save();
-    fanfare(); confetti(160);
-    $('#app').innerHTML = `
-      <div class="bar"><button class="round-btn" id="home" aria-label="Volver al inicio">🏠</button><span></span><div class="stars">⭐ ${state.stars}</div></div>
-      <section class="stage pop">
-        <div class="picture">🏆</div>
-        <p class="prompt">¡Cinco seguidas! Subiste al nivel ${state.level[state.mode] + 1}</p>
-        <button class="listen" id="again">▶️ Seguir jugando</button>
-      </section>`;
-    say('¡Increíble! ¡Cinco seguidas! Subiste de nivel.');
-    $('#home').onclick = renderHome;
-    $('#again').onclick = next;
+    level[mode]++; streak = 0; J.save();
+    J.gift(() => {
+      $('#app').innerHTML = `
+        ${bar('<button class="round-btn" id="home" aria-label="Volver al inicio">🏠</button>')}
+        <section class="stage pop">
+          <div class="picture">🏆</div>
+          <p class="prompt">¡Cinco seguidas! Subiste al nivel ${level[mode] + 1}</p>
+          <button class="listen" id="again">▶️ Seguir jugando</button>
+        </section>`;
+      J.refreshMusic();
+      say('¡Subiste de nivel!');
+      $('#home').onclick = renderHome;
+      $('#again').onclick = next;
+    });
   }
 
-  // mantener estrellas si la página se actualiza mientras se juega
-  window.claude?.hot?.snapshot?.(() => ({ stars: state.stars, level: state.level }));
-  const start = (d) => { if (d && d.stars) { state.stars = Math.max(state.stars, d.stars); Object.assign(state.level, d.level || {}); } renderHome(); };
-  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  renderHome();
 })();
 </script>
 </body>
