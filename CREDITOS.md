@@ -13,4 +13,6 @@ Bloques de Letras usa estos recursos libres:
 
 Los personajes (Princesa Nieve, Princesa Ana, Estrella Pop, Zoe, Mira, Llamita Lula, Monstruito Rojo, Ratoncito Pipo, Lobito y Torito), los animalitos y cosas para buscar, el castillo, el jardín de gusanos y el laberinto son diseños originales del juego, hechos con formas 3D en código.
 
+Canciones: arreglos propios del juego, sintetizados en el navegador, de obras de dominio público (El lago de los cisnes y Danza del Hada de Azúcar de Chaikovski; Para Elisa e Himno de la alegría de Beethoven; Estrellita, canción tradicional) y dos composiciones originales (El Reino y Estrella Pop).
+
 La música alegre, los aplausos y la corneta de fiesta se generan en el navegador con Web Audio (composición original del juego). Las voces usan la voz en español del dispositivo.

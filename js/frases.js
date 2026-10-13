@@ -20,7 +20,7 @@
     { id: 'animo', nombre: 'Ánimo', ayuda: 'Con cariño, cuando se equivoca.',
       items: ['¡Casi!', 'Prueba otra vez', '¡Tú puedes!', 'Intenta otra', 'Sigue buscando.', '¡Uy!', 'Escucha'].map(t => ({ texto: t })) },
     { id: 'instrucciones', nombre: 'Instrucciones', ayuda: 'Frases cortas que se combinan con palabras: "Busca" + "gato".',
-      items: ['¡Hola!', '¿A qué jugamos hoy?', '¡Turno de', '¡Elige tu personaje!', 'es', 'Toca la caja para abrirla.', '¿Quieres un cuento, pintar, o seguir jugando?', 'Es hora de descansar.',
+      items: ['¡Hola!', '¿A qué jugamos hoy?', '¡Turno de', '¡Elige tu personaje!', 'es', 'Toca la caja para abrirla.', '¿Quieres un cuento, pintar, bailar, o seguir jugando?', '¡A bailar!', 'Es hora de descansar.',
         'Busca', 'Atrapa', 'Revienta', 'Revienta la', 'Aplasta', 'Abre la cajita', 'Aplasta al gusano que dice', 'Revienta la letra que suena', '¿Dónde está la', 'grande', 'chiquita', '¡Sí! Es la',
         '¿Cuál letra suena así?', 'Esa es la', 'Esa suena', 'Ese suena', 'como en', '¿Qué dicen juntas?', '¿Cuál dice', 'Esa dice', 'Ese dice', 'Ese es', 'Aquí hay',
         '¿Con qué sílaba empieza', 'empieza con', 'no empieza con', 'Mira el dibujo.', '¿Qué palabra es?', 'Busca la que dice',

@@ -197,6 +197,12 @@ function chica(id) {
     if (mode === 'correr') { const ph = t * 11 * speed; bob = Math.abs(Math.sin(ph)) * .07; swing = Math.sin(ph); }
     else if (mode === 'festejar') { bob = Math.abs(Math.sin(t * 7)) * .35; armUp = 1; spin = t * 5; }
     else if (mode === 'bailar') { bob = Math.abs(Math.sin(t * 5)) * .08; armUp = .5 + Math.sin(t * 5) * .5; spin = Math.sin(t * 2.5) * .6; }
+    else if (mode === 'ballet') {
+      // pirueta cada 4 tiempos, luego brazos en corona y balanceo suave
+      const beat = speed, ph = beat % 4;
+      if (ph < 1.5) { spin = ph / 1.5 * Math.PI * 2; armUp = 1; bob = .1; }
+      else { spin = Math.sin(beat * Math.PI / 2) * .35; armUp = .55 + Math.sin(beat * Math.PI) * .25; bob = Math.abs(Math.sin(beat * Math.PI)) * .06; }
+    }
     else bob = Math.sin(t * 2) * .015;
     body.position.y = bob; body.rotation.y = spin;
     body.rotation.z = mode === 'bailar' ? Math.sin(t * 5) * .1 : 0;
@@ -211,7 +217,7 @@ function chica(id) {
     }
     head.rotation.y = mode === 'quieto' ? Math.sin(t * .7) * .15 : 0;
   }
-  return { group: root, update, parts };
+  return { group: root, update, parts, ballet: true };
 }
 
 // ---------- monstruito rojo y ratoncito (de pie) ----------

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Escenario de Ballet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+/* Layout: a theatre stage fills the screen; song cards sit in a row at the bottom like tickets. */
+body { background: #1d1440; }
+.titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); text-align: center; z-index: 5; pointer-events: none; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
+.titulo h1 { margin: 0; font-size: clamp(26px, 6.5vw, 42px); line-height: 1.05; }
+.titulo p { margin: 0; font-size: 17px; opacity: .9; }
+.canciones { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.cancion { flex: none; width: 128px; border-radius: 18px; background: rgba(255,255,255,.92); padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 0; box-shadow: 0 5px 0 rgba(0,0,0,.3); text-align: center; }
+.cancion span { font-size: 34px; line-height: 1.1; }
+.cancion b { font-size: 15px; line-height: 1.1; }
+.cancion small { font-size: 12px; opacity: .7; }
+.cancion.on { background: #ffe27a; transform: translateY(-4px); }
+.aplauso { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); z-index: 6; background: #fff; border-radius: 999px; padding: 10px 16px; font-size: 22px; font-weight: 800; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
+.aplauso:active { transform: translateY(4px); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Escenario de ballet en 3D"></canvas>
+<div class="hud">
+  <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
+  <div class="hud-side"><a class="round-btn btn" href="personajes.html?volver=ballet.html" aria-label="Cambiar personaje">👗</a></div>
+</div>
+<div class="titulo"><h1 id="t-cancion">Escenario de Ballet</h1><p id="t-autor">Elige una canción y toca a tu bailarina</p></div>
+<button class="aplauso" id="aplauso">👏 ¡Bravo!</button>
+<div class="canciones" id="canciones" aria-label="Canciones"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { crearMundo, chispitas } from './js/mundo3d.js';
+import { crearPersonaje } from './js/personajes.js';
+
+const J = window.Juego, P = J.progress;
+const $ = s => document.querySelector(s);
+const W = crearMundo($('#mundo'), { fog: null });
+const { scene, camera } = W;
+W.fovFor = a => a < .8 ? 62 : 45;
+const narrow = () => innerWidth / innerHeight < .8;
+function cam() { camera.position.set(0, narrow() ? 3.4 : 2.6, narrow() ? 11 : 9); camera.lookAt(0, 1.4, 0); }
+addEventListener('resize', cam); cam();
+const fx = chispitas(scene);
+
+// ---------- teatro ----------
+const woodTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#c98b55' : '#b97a46'; g.fillRect(0, i * 8, 256, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 6); return t; })();
+const floor = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.2, .5, 48, 1, false, Math.PI / 2, Math.PI), new THREE.MeshStandardMaterial({ map: woodTex, roughness: .5 }));
+floor.position.set(0, -.25, -1); floor.receiveShadow = true; scene.add(floor);
+const back = new THREE.Mesh(new THREE.BoxGeometry(14, .5, 6), new THREE.MeshStandardMaterial({ map: woodTex, roughness: .5 })); back.position.set(0, -.25, -4); back.receiveShadow = true; scene.add(back);
+// telón rojo a los lados y arriba
+const red = new THREE.MeshStandardMaterial({ color: 0xb3123a, roughness: .7 });
+const folds = [];
+[-1, 1].forEach(sx => { for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, 9, 12), red); f.position.set(sx * (5.2 + i * .45), 4.2, -2 + i * .1); scene.add(f); folds.push(f); } });
+const valance = new THREE.Mesh(new THREE.BoxGeometry(16, 1.4, .6), red); valance.position.set(0, 7.6, -2); scene.add(valance);
+for (let i = -7; i <= 7; i++) { const tassel = new THREE.Mesh(new THREE.SphereGeometry(.18, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: .4, roughness: .3 })); tassel.position.set(i, 6.8, -1.7); scene.add(tassel); }
+// fondo: cielo pintado (cambia con la canción)
+const skyCanvas = document.createElement('canvas'); skyCanvas.width = 512; skyCanvas.height = 256;
+const skyTex = new THREE.CanvasTexture(skyCanvas); skyTex.colorSpace = THREE.SRGBColorSpace;
+const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(16, 9), new THREE.MeshBasicMaterial({ map: skyTex }));
+backdrop.position.set(0, 4, -6.9); scene.add(backdrop);
+function paintSky(a, b, stars) {
+  const g = skyCanvas.getContext('2d'), grd = g.createLinearGradient(0, 0, 0, 256);
+  grd.addColorStop(0, a); grd.addColorStop(1, b); g.fillStyle = grd; g.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < stars; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .8 + .2})`; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 180, Math.random() * 1.6 + .4, 0, 7); g.fill(); }
+  skyTex.needsUpdate = true;
+}
+// reflectores de colores
+const spot = new THREE.SpotLight(0xffffff, 60, 30, .35, .5, 1.2); spot.position.set(0, 9, 4); spot.castShadow = true; scene.add(spot, spot.target);
+const beams = [0xff7eb6, 0x8fd3f4, 0xffd23f].map((c, i) => { const m = new THREE.Mesh(new THREE.ConeGeometry(1.6, 9, 24, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .12, side: THREE.DoubleSide, depthWrite: false })); m.position.set((i - 1) * 4, 4, -1); scene.add(m); return m; });
+
+// ---------- decorado según la canción ----------
+const deco = new THREE.Group(); scene.add(deco);
+const swans = [];
+function cisne() {
+  const g = new THREE.Group();
+  const w = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.4, 16, 12), w); body.scale.set(.8, .6, 1.3); body.position.y = .25; g.add(body);
+  const neck = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0, .35, .35), new THREE.Vector3(0, .8, .45), new THREE.Vector3(0, 1.05, .25), new THREE.Vector3(0, 1.05, .45)]), 20, .07, 8), w); g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.11, 12, 8), w); head.position.set(0, 1.05, .45); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(.04, .15, 8), new THREE.MeshStandardMaterial({ color: 0xff8c2b })); beak.rotation.x = Math.PI / 2; beak.position.set(0, 1.03, .6); g.add(beak);
+  [-1, 1].forEach(sx => { const wing = new THREE.Mesh(new THREE.SphereGeometry(.3, 12, 8), w); wing.scale.set(.25, .5, 1); wing.position.set(sx * .3, .4, -.05); wing.rotation.z = sx * .4; g.add(wing); });
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+function caramelo() {
+  const g = new THREE.Group();
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .9, 8), new THREE.MeshStandardMaterial({ color: 0xffffff })); stick.position.y = -.45; g.add(stick);
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  for (let i = 0; i < 12; i++) { x.fillStyle = i % 2 ? '#ff7eb6' : '#ffffff'; x.beginPath(); x.moveTo(64, 64); x.arc(64, 64, 64, i * Math.PI / 6, (i + 1) * Math.PI / 6); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const pop = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, .12, 24), [new THREE.MeshStandardMaterial({ color: 0xff7eb6 }), new THREE.MeshStandardMaterial({ map: t }), new THREE.MeshStandardMaterial({ map: t })]);
+  pop.rotation.x = Math.PI / 2; g.add(pop);
+  return g;
+}
+function setDeco(id) {
+  deco.clear(); swans.length = 0;
+  if (id === 'cisnes') {
+    paintSky('#1b2a6b', '#6f86d6', 80);
+    const lake = new THREE.Mesh(new THREE.PlaneGeometry(14, 3), new THREE.MeshStandardMaterial({ color: 0x5c8fd6, roughness: .15, metalness: .3 }));
+    lake.rotation.x = -Math.PI / 2; lake.position.set(0, .02, -5.2); deco.add(lake);
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(.9, 24, 16), new THREE.MeshBasicMaterial({ color: 0xfff6c8 })); moon.position.set(4.5, 6, -6.5); deco.add(moon);
+    for (let i = 0; i < 3; i++) { const s = cisne(); s.position.set(-4 + i * 3, 0, -5.2); s.rotation.y = Math.PI / 2; deco.add(s); swans.push(s); }
+  } else if (id === 'hada') {
+    paintSky('#ff9ccf', '#ffe1f0', 30);
+    for (let i = 0; i < 9; i++) { const c = caramelo(); c.position.set(-6 + i * 1.5, 2.5 + Math.random() * 3, -5 - Math.random()); c.userData.ph = Math.random() * 6; deco.add(c); }
+  } else if (id === 'estrellapop' || id === 'alegria') {
+    paintSky('#2a1060', '#9a3fd6', 120);
+  } else if (id === 'elisa') {
+    paintSky('#3b2a1a', '#c9925a', 20);
+  } else {
+    paintSky('#152a5c', '#3f8ee8', 100);
+  }
+}
+
+// ---------- bailarinas ----------
+const dancers = [];
+async function makeDancers() {
+  dancers.forEach(d => scene.remove(d.group)); dancers.length = 0;
+  const ids = P.two ? [P.players[0].char, P.players[1].char] : [P.players[0].char];
+  for (const [i, id] of ids.entries()) {
+    const d = await crearPersonaje(id);
+    d.group.scale.setScalar(1.5);
+    d.group.position.set(ids.length > 1 ? (i ? 1.6 : -1.6) : 0, 0, 0);
+    scene.add(d.group); dancers.push(d);
+  }
+}
+let leap = 0;
+const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+$('#mundo').addEventListener('pointerdown', e => {
+  v2.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(v2, camera);
+  for (const d of dancers) if (ray.intersectObject(d.group, true).length) { leap = 1; d.leap = 1; J.sparkle(); fx.burst(d.group.position.clone().setY(2.5), 40); }
+});
+$('#aplauso').onclick = () => { J.applause(2.4); J.say(J.pick(J.SHOUTS)); fx.burst(new THREE.Vector3(0, 3, 0), 80, 2); J.confetti(80); };
+
+// ---------- canciones ----------
+const SONG_IDS = ['cisnes', 'hada', 'elisa', 'alegria', 'estrellapop', 'estrellita', 'reino'];
+function renderSongs() {
+  const list = J.songList().filter(s => SONG_IDS.includes(s.id) || s.id === 'mia' || s.id === 'local');
+  const cur = J.currentSong();
+  $('#canciones').innerHTML = list.map(s => `<button class="cancion ${s.id === cur && J.isMusicOn() ? 'on' : ''}" data-id="${s.id}"><span>${s.emoji}</span><b>${J.esc(s.nombre)}</b><small>${J.esc(s.autor)}</small></button>`).join('');
+  const s = list.find(x => x.id === cur) || list[0];
+  $('#t-cancion').textContent = s.emoji + ' ' + s.nombre;
+  $('#t-autor').textContent = s.autor === 'original' ? 'Toca a tu bailarina para que salte' : s.autor + ' · toca a tu bailarina para que salte';
+}
+$('#canciones').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  J.audio(); J.setSong(b.dataset.id); setDeco(b.dataset.id); renderSongs();
+  J.sfx('pop');
+});
+
+W.onFrame((dt, t) => {
+  const beat = J.musicBeat();
+  dancers.forEach((d, i) => {
+    if (d.leap > 0) { d.leap -= dt * 1.4; d.group.position.y = Math.sin((1 - Math.max(0, d.leap)) * Math.PI) * 1.2; }
+    else d.group.position.y = 0;
+    if (d.ballet) d.update(dt, d.leap > 0 ? 'festejar' : 'ballet', beat + i * 2);
+    else d.update(dt, d.leap > 0 ? 'festejar' : 'bailar');
+  });
+  beams.forEach((b, i) => { b.rotation.z = Math.sin(t * .6 + i * 2) * .35; });
+  swans.forEach((s, i) => { s.position.x = ((t * .5 + i * 3) % 12) - 6; s.position.y = Math.sin(t * 2 + i) * .03; });
+  deco.children.forEach(c => { if (c.userData.ph !== undefined) { c.position.y += Math.sin(t * 1.5 + c.userData.ph) * .004; c.rotation.z = Math.sin(t + c.userData.ph) * .3; } });
+  folds.forEach((f, i) => { f.rotation.z = Math.sin(t * .8 + i) * .02; });
+  if (Math.random() < .08) fx.burst(new THREE.Vector3((Math.random() - .5) * 8, 7, (Math.random() - .5) * 2), 1, .2);
+  fx.update(dt);
+});
+
+await makeDancers();
+const start = SONG_IDS.includes(J.currentSong()) && J.currentSong() !== 'reino' ? J.currentSong() : 'cisnes';
+setDeco(start);
+if (J.currentSong() !== start || !J.isMusicOn()) J.setSong(start);
+renderSongs();
+W.start(); J.refreshMusic();
+setTimeout(() => J.say('¡A bailar!'), 500);
+</script>
+</body>
+</html>

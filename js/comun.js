@@ -257,62 +257,147 @@
   }
 
   // ---------- música ----------
-  // Si se publicó una canción (assets/voz/lista.json → "musica"), se usa; si no, una melodía original sintetizada.
-  const NO_MUSIC = !!window.SIN_MUSICA;
-  let musicOn = progress.music !== false && !NO_MUSIC, timer = null, songEl = null, step = 0, nextTime = 0, hatNoise = null, speakingDuck = false;
-  const MELODY = [
-    72,0,76,79,84,0,79,76, 74,0,77,81,86,0,81,77, 76,0,79,83,88,0,83,79, 77,79,81,79,77,76,74,0,
-    72,72,76,76,79,79,81,79, 77,77,74,74,71,74,79,0, 81,79,77,76,74,76,77,79, 84,0,79,0,72,0,0,0,
-  ];
-  const CHORDS = [[48, [60, 64, 67]], [50, [62, 65, 69]], [52, [64, 67, 71]], [53, [65, 69, 72]], [48, [60, 64, 67]], [50, [62, 65, 69]], [55, [62, 67, 71]], [48, [60, 64, 67]]];
+  // Arreglos propios, sintetizados en el navegador. Las melodías clásicas son de dominio público
+  // (Chaikovski, Beethoven, canción tradicional); "El Reino" y "Estrella Pop" son composiciones originales.
+  // Formato de melodía: "E5:2 A4:.5 R:1" = nota:duración en tiempos (R = silencio).
+  const SONGS = {
+    reino: { nombre: 'El Reino', emoji: '🏰', bpm: 132, bar: 4, beat: 'pop', inst: 'synth',
+      chords: 'C Dm Em F C Dm G C',
+      mel: 'C5:.5 R:.5 E5:.5 G5:.5 C6:.5 R:.5 G5:.5 E5:.5 D5:.5 R:.5 F5:.5 A5:.5 D6:.5 R:.5 A5:.5 F5:.5 E5:.5 R:.5 G5:.5 B5:.5 E6:.5 R:.5 B5:.5 G5:.5 F5:.5 G5:.5 A5:.5 G5:.5 F5:.5 E5:.5 D5:1 C5:.5 C5:.5 E5:.5 E5:.5 G5:.5 G5:.5 A5:.5 G5:.5 F5:.5 F5:.5 D5:.5 D5:.5 B4:.5 D5:.5 G5:1 A5:.5 G5:.5 F5:.5 E5:.5 D5:.5 E5:.5 F5:.5 G5:.5 C6:1 G5:1 C5:2' },
+    cisnes: { nombre: 'El lago de los cisnes', autor: 'Chaikovski', emoji: '🦢', bpm: 92, bar: 4, beat: 'ballet', inst: 'cuerdas',
+      chords: 'Am Am F Am Am Am Dm E Am Am F Am',
+      mel: 'E5:2 A4:.5 B4:.5 C5:.5 D5:.5 E5:1.5 C5:.5 E5:1.5 C5:.5 E5:1.5 A4:.5 C5:.5 A4:.5 F4:.5 C5:.5 A4:4 ' +
+           'E5:2 A4:.5 B4:.5 C5:.5 D5:.5 E5:1.5 C5:.5 E5:1.5 C5:.5 E5:1.5 A4:.5 D5:.5 A4:.5 F4:.5 D5:.5 B4:2 G#4:1 E4:1 ' +
+           'E5:2 A4:.5 B4:.5 C5:.5 D5:.5 E5:1.5 C5:.5 E5:1.5 C5:.5 E5:1.5 A4:.5 C5:.5 A4:.5 F4:.5 C5:.5 A4:4' },
+    hada: { nombre: 'Danza del Hada de Azúcar', autor: 'Chaikovski', emoji: '🍬', bpm: 104, bar: 4, beat: 'pop', inst: 'celesta',
+      chords: 'Em D C B Em D C Em',
+      mel: 'B4:.5 G4:.5 B4:.5 A#4:.5 R:2 A4:.5 F#4:.5 A4:.5 G#4:.5 R:2 G4:.5 E4:.5 G4:.5 F#4:.5 R:2 F#4:.5 D#4:.5 F#4:.5 E4:.5 E4:2 ' +
+           'B5:.5 G5:.5 B5:.5 A#5:.5 R:2 A5:.5 F#5:.5 A5:.5 G#5:.5 R:2 G5:.5 E5:.5 G5:.5 F#5:.5 E5:.5 D#5:.5 E5:.5 B4:.5 E5:4' },
+    elisa: { nombre: 'Para Elisa', autor: 'Beethoven', emoji: '🎹', bpm: 132, bar: 3, beat: 'vals', inst: 'piano',
+      chords: 'Am E Am E Am E Am E Am',
+      mel: 'R:2 E5:.5 D#5:.5 E5:.5 D#5:.5 E5:.5 B4:.5 D5:.5 C5:.5 A4:1.5 C4:.5 E4:.5 A4:.5 B4:1.5 E4:.5 G#4:.5 B4:.5 C5:1.5 E4:.5 E5:.5 D#5:.5 ' +
+           'E5:.5 D#5:.5 E5:.5 B4:.5 D5:.5 C5:.5 A4:1.5 C4:.5 E4:.5 A4:.5 B4:1.5 E4:.5 C5:.5 B4:.5 A4:3' },
+    alegria: { nombre: 'Himno de la alegría', autor: 'Beethoven', emoji: '🎉', bpm: 120, bar: 4, beat: 'baile', inst: 'synth',
+      chords: 'C G C G C G C GC',
+      mel: 'E5:1 E5:1 F5:1 G5:1 G5:1 F5:1 E5:1 D5:1 C5:1 C5:1 D5:1 E5:1 E5:1.5 D5:.5 D5:2 E5:1 E5:1 F5:1 G5:1 G5:1 F5:1 E5:1 D5:1 C5:1 C5:1 D5:1 E5:1 D5:1.5 C5:.5 C5:2' },
+    estrellapop: { nombre: 'Estrella Pop', autor: 'canción original', emoji: '🎤', bpm: 120, bar: 4, beat: 'baile', inst: 'synth',
+      chords: 'Am F C G Am F C G',
+      mel: 'E5:.5 E5:.5 D5:.5 E5:1 C5:.5 A4:1 A4:.5 C5:.5 D5:.5 E5:1 F5:.5 E5:1 G5:1 E5:.5 C5:.5 D5:1 E5:1 D5:.5 C5:.5 B4:.5 C5:.5 D5:2 ' +
+           'E5:.5 E5:.5 D5:.5 E5:1 C5:.5 A4:1 A4:.5 C5:.5 F5:1 E5:.5 D5:.5 C5:1 E5:.5 G5:.5 A5:1 G5:.5 E5:.5 D5:1 C5:3 R:1' },
+    estrellita: { nombre: 'Estrellita', autor: 'canción tradicional', emoji: '⭐', bpm: 96, bar: 4, beat: 'suave', inst: 'celesta',
+      chords: 'C FC FC GC CF CG CF CG C FC FC GC',
+      mel: 'C5:1 C5:1 G5:1 G5:1 A5:1 A5:1 G5:2 F5:1 F5:1 E5:1 E5:1 D5:1 D5:1 C5:2 G5:1 G5:1 F5:1 F5:1 E5:1 E5:1 D5:2 G5:1 G5:1 F5:1 F5:1 E5:1 E5:1 D5:2 C5:1 C5:1 G5:1 G5:1 A5:1 A5:1 G5:2 F5:1 F5:1 E5:1 E5:1 D5:1 D5:1 C5:2' },
+  };
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const noteMidi = s => { const m = /^([A-G])(#|b)?(\d)$/.exec(s); return m ? 12 * (+m[3] + 1) + NOTE[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) : 0; };
+  // un compás puede tener dos acordes pegados ("GC" = medio compás G y medio C)
+  const chordNotes = name => { const m = /^([A-G])(#|b)?(m|7)?$/.exec(name) || ['', 'C']; const root = 48 + NOTE[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); return { root, tri: (m[3] === 'm' ? [0, 3, 7] : m[3] === '7' ? [0, 4, 7, 10] : [0, 4, 7]).map(x => root + 12 + x) }; };
+  Object.values(SONGS).forEach(s => {
+    s.notes = s.mel.trim().split(/\s+/).map(tok => { const [n, d] = tok.split(':'); return [n === 'R' ? 0 : noteMidi(n), +d]; });
+    s.len = s.notes.reduce((a, [, d]) => a + d, 0);
+    s.bars = s.chords.split(' ').map(c => c.match(/[A-G](#|b)?(m|7)?/g).map(chordNotes));
+  });
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-  const STEP = 60 / 132 / 2;
-  function note(freq, t, dur, type, vol) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(musicGain); o.start(t); o.stop(t + dur + 0.02);
+
+  let musicOn = progress.music !== false && !NO_MUSIC_PAGE(), timer = null, songEl = null, noise = null, speakingDuck = false;
+  function NO_MUSIC_PAGE() { return !!window.SIN_MUSICA; }
+  let songId = progress.song || 'reino', tick = 0, nextTime = 0, melIdx = 0, melNext = 0;
+  const TICK = .25;
+
+  function env(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function osc(type, f, t, dur, peak, a = .01, dest = musicGain, detune = 0) {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune;
+    env(g, t, a, peak, dur); o.connect(g).connect(dest); o.start(t); o.stop(t + a + dur + .05); return o;
   }
-  function schedule() {
-    while (nextTime < ctx.currentTime + 0.15) {
-      const t = nextTime, bar = Math.floor(step / 8) % 8, beat = step % 8;
-      const [root, chord] = CHORDS[bar];
-      const m = MELODY[step % MELODY.length];
-      if (m) { note(midi(m), t, STEP * 0.85, 'square', 0.04); note(midi(m + 12), t, STEP * 0.5, 'triangle', 0.03); }
-      note(midi(beat % 2 ? root + 7 : root - 12), t, STEP * 0.9, 'triangle', 0.2);
-      if (beat % 2) chord.forEach(n => note(midi(n), t, STEP * 0.6, 'square', 0.015));
-      if (beat % 4 === 0) {
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-        g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-        o.connect(g).connect(musicGain); o.start(t); o.stop(t + 0.16);
-      }
-      if (beat % 4 === 2) { // palmas
-        const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-        s.buffer = hatNoise; f.type = 'bandpass'; f.frequency.value = 1500; g.gain.value = .25;
-        s.connect(f).connect(g).connect(musicGain); s.start(t);
-      }
-      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-      s.buffer = hatNoise; f.type = 'highpass'; f.frequency.value = 7000; g.gain.value = beat % 2 ? .07 : .03;
-      s.connect(f).connect(g).connect(musicGain); s.start(t);
-      step++; nextTime += STEP;
+  function lowpass(freq) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq; f.connect(musicGain); return f; }
+  function instrument(inst, n, t, d) {
+    const f = midi(n);
+    if (inst === 'celesta') { osc('sine', f, t, Math.min(1.6, d + .6), .1); osc('sine', f * 2, t, .5, .045); osc('sine', f * 4, t, .2, .02); }
+    else if (inst === 'piano') { osc('triangle', f, t, d + .4, .12, .005); osc('sine', f * 2, t, .35, .035, .005); }
+    else if (inst === 'cuerdas') {
+      const lp = lowpass(2400);
+      [-6, 6].forEach(c => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = c;
+        const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.2; lg.gain.value = 6; lfo.connect(lg).connect(o.detune);
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(.035, t + .08); g.gain.setValueAtTime(.035, t + Math.max(.09, d - .05)); g.gain.exponentialRampToValueAtTime(0.0001, t + d + .35);
+        o.connect(g).connect(lp); o.start(t); lfo.start(t); o.stop(t + d + .4); lfo.stop(t + d + .4); });
+      osc('sine', f / 2, t, d + .2, .03, .08);
+    } else { // synth pop
+      const lp = lowpass(3200);
+      osc('square', f, t, Math.max(.12, d * .9), .035, .01, lp); osc('sawtooth', f, t, Math.max(.12, d * .9), .025, .01, lp, 9); osc('triangle', f * 2, t, .12, .02);
     }
   }
+  function drum(kind, t, vol = 1) {
+    if (kind === 'kick') { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .14); g.gain.setValueAtTime(.42 * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .18); o.connect(g).connect(musicGain); o.start(t); o.stop(t + .2); return; }
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noise;
+    if (kind === 'clap') { f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = .8; [0, .012, .024].forEach(dt => { const s2 = ctx.createBufferSource(), g2 = ctx.createGain(); s2.buffer = noise; g2.gain.setValueAtTime(.22 * vol, t + dt); g2.gain.exponentialRampToValueAtTime(0.0001, t + dt + .09); s2.connect(f); f.connect(g2).connect(musicGain); s2.start(t + dt); }); return; }
+    f.type = 'highpass'; f.frequency.value = kind === 'shaker' ? 5000 : 7500;
+    g.gain.setValueAtTime((kind === 'ohat' ? .07 : .05) * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'ohat' ? .18 : .05));
+    s.connect(f).connect(g).connect(musicGain); s.start(t);
+  }
+  function backing(style, chord, inBar, t, spb, bar) {
+    const on = x => Math.abs(inBar - x) < 1e-6;
+    const half = inBar >= bar / 2 && chord.length > 1 ? chord[1] : chord[0];
+    const ch = half;
+    if (style === 'pop') {
+      if (on(0) || on(2) || on(2.5)) drum('kick', t);
+      if (on(1) || on(3)) drum('clap', t);
+      if ((inBar * 2) % 1 === 0) drum('hat', t, inBar % 1 ? 1 : .6);
+      if ((inBar * 2) % 1 === 0) osc('triangle', midi(ch.root - 12 + ((inBar * 2) % 2 ? 12 : 0)), t, spb * .45, .2);
+      if (inBar % 1 === .5) ch.tri.forEach(n => osc('square', midi(n), t, spb * .25, .012));
+    } else if (style === 'baile') {
+      if (inBar % 1 === 0) drum('kick', t);
+      if (on(1) || on(3)) drum('clap', t);
+      if (inBar % 1 === .5) { drum('ohat', t); osc('sawtooth', midi(ch.root - 12), t, spb * .4, .06); osc('triangle', midi(ch.root - 12), t, spb * .4, .18); }
+      if (on(0) || on(bar / 2) && chord.length > 1) ch.tri.forEach(n => osc('sawtooth', midi(n), t, spb * (chord.length > 1 ? bar / 2 : bar) * .9, .01, .05));
+    } else if (style === 'vals') {
+      if (on(0)) { drum('kick', t, .7); osc('triangle', midi(ch.root - 12), t, spb * .9, .22); }
+      if (on(1) || on(2)) { drum('hat', t, .7); ch.tri.forEach(n => osc('triangle', midi(n), t, spb * .5, .03)); }
+    } else if (style === 'ballet') {
+      if (on(0)) { drum('kick', t, .8); ch.tri.forEach(n => instrumentPad(n, t, spb * bar)); }
+      if (on(2)) drum('kick', t, .5);
+      if (on(1) || on(3)) drum('clap', t, .45);
+      drum('shaker', t, inBar % 1 ? .5 : .9);
+      if (inBar % 1 === 0 || inBar % 1 === .5) osc('triangle', midi(ch.root - 12), t, spb * .4, .14);
+    } else { // suave
+      if (on(0)) { ch.tri.forEach(n => instrumentPad(n, t, spb * bar)); osc('sine', midi(ch.root - 12), t, spb * bar, .12, .1); }
+      if (inBar % 1 === 0) drum('shaker', t, .6);
+    }
+  }
+  function instrumentPad(n, t, d) {
+    const lp = lowpass(1300);
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.value = midi(n);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(.014, t + .3); g.gain.setValueAtTime(.014, t + d * .8); g.gain.linearRampToValueAtTime(0.0001, t + d + .3);
+    o.connect(g).connect(lp); o.start(t); o.stop(t + d + .35);
+  }
+  function schedule() {
+    const s = SONGS[songId] || SONGS.reino, spb = 60 / s.bpm;
+    while (nextTime < ctx.currentTime + 0.15) {
+      let b = tick * TICK;
+      if (b >= s.len - 1e-6) { tick = 0; melIdx = 0; melNext = 0; b = 0; }
+      const t = nextTime;
+      while (melIdx < s.notes.length && melNext <= b + 1e-6) { const [n, d] = s.notes[melIdx]; if (n) instrument(s.inst, n, t + (melNext - b) * spb, d * spb); melNext += d; melIdx++; }
+      const barIdx = Math.floor(b / s.bar + 1e-6), inBar = +(b - barIdx * s.bar).toFixed(3);
+      backing(s.beat, s.bars[barIdx % s.bars.length], inBar, t, spb, s.bar);
+      tick++; nextTime += TICK * spb;
+    }
+  }
+  function currentSongUrl() { return songId === 'mia' ? pub.musica : songId === 'local' ? local['musica local'] : null; }
   function startMusic() {
-    if (!musicOn || NO_MUSIC) return;
+    if (!musicOn || NO_MUSIC_PAGE()) return;
     const c = audio(); if (!c) return;
-    if (pub.musica) {
-      if (!songEl) { songEl = new Audio(pub.musica); songEl.loop = true; songEl.volume = .35; }
-      songEl.volume = speakingDuck ? .1 : .35;
+    const url = currentSongUrl();
+    if (url) {
+      if (timer) { clearInterval(timer); timer = null; musicGain.gain.setTargetAtTime(0, c.currentTime, .05); }
+      if (!songEl || songEl.dataset.src !== url) { if (songEl) songEl.pause(); songEl = new Audio(url); songEl.dataset.src = url; songEl.loop = true; }
+      songEl.volume = speakingDuck ? .12 : .4;
       songEl.play().catch(() => {});
       return;
     }
+    if (songEl) songEl.pause();
     if (timer) return;
-    if (!hatNoise) {
-      hatNoise = c.createBuffer(1, Math.floor(c.sampleRate * 0.05), c.sampleRate);
-      const d = hatNoise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-    }
-    nextTime = c.currentTime + 0.05;
+    if (!noise) { noise = c.createBuffer(1, Math.floor(c.sampleRate * .2), c.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); }
+    tick = 0; melIdx = 0; melNext = 0;
+    nextTime = c.currentTime + 0.08;
     musicGain.gain.cancelScheduledValues(c.currentTime);
     musicGain.gain.setTargetAtTime(speakingDuck ? 0.12 : 0.42, c.currentTime, 0.3);
     timer = setInterval(schedule, 25);
@@ -325,17 +410,55 @@
   }
   function duck(on) {
     speakingDuck = on;
-    if (songEl) songEl.volume = on ? .1 : .35;
+    if (songEl) songEl.volume = on ? .12 : .4;
     if (ctx && timer) musicGain.gain.setTargetAtTime(on ? 0.12 : 0.42, ctx.currentTime, 0.15);
   }
-  function setMusic(on) { musicOn = on && !NO_MUSIC; progress.music = on; save(progress); musicOn ? startMusic() : stopMusic(); updateMusicButtons(); }
+  function setMusic(on) { musicOn = on && !NO_MUSIC_PAGE(); progress.music = on; save(progress); musicOn ? startMusic() : stopMusic(); updateMusicButtons(); }
+  function setSong(id) { songId = id; progress.song = id; save(progress); stopMusic(); musicOn = !NO_MUSIC_PAGE(); progress.music = true; save(progress); startMusic(); updateMusicButtons(); }
+  function songList() {
+    const l = Object.entries(SONGS).map(([id, s]) => ({ id, nombre: s.nombre, emoji: s.emoji, autor: s.autor || 'original' }));
+    if (pub.musica) l.push({ id: 'mia', nombre: 'Canción de la familia', emoji: '📀', autor: 'publicada' });
+    if (local['musica local']) l.push({ id: 'local', nombre: 'Mi canción (solo aquí)', emoji: '💾', autor: 'de este dispositivo' });
+    return l;
+  }
+  // tiempo musical actual (en tiempos), para que el ballet baile al ritmo
+  function musicBeat() { const s = SONGS[songId]; if (!ctx || !timer || !s) return performance.now() / 1000 * 2; return (ctx.currentTime - (nextTime - tick * TICK * 60 / s.bpm)) * s.bpm / 60; }
   function updateMusicButtons() {
-    document.querySelectorAll('[data-musica]').forEach(b => { b.textContent = musicOn ? '🎵' : '🔇'; b.setAttribute('aria-label', musicOn ? 'Apagar música' : 'Prender música'); });
+    document.querySelectorAll('[data-musica]').forEach(b => { b.textContent = musicOn ? '🎵' : '🔇'; b.setAttribute('aria-label', 'Elegir música'); });
+  }
+  // menú de canciones al tocar el botón 🎵
+  function musicMenu(anchor) {
+    document.querySelector('.menu-musica')?.remove();
+    const m = document.createElement('div');
+    m.className = 'menu-musica';
+    m.innerHTML = `<p>🎵 Elige la música</p>${songList().map(s => `<button data-song="${s.id}" class="${musicOn && s.id === songId ? 'on' : ''}"><span>${s.emoji}</span><b>${esc(s.nombre)}</b><small>${esc(s.autor)}</small></button>`).join('')}
+      <button data-song="__add"><span>➕</span><b>Agregar canción de este dispositivo</b><small>no se publica</small></button>
+      <button data-song="__off" class="${musicOn ? '' : 'on'}"><span>🔇</span><b>Sin música</b></button><input type="file" accept="audio/*" hidden>`;
+    document.body.appendChild(m);
+    const r = anchor.getBoundingClientRect();
+    const w = m.offsetWidth;
+    m.style.top = Math.min(innerHeight - 40, r.bottom + 8) + 'px';
+    m.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+    const file = m.querySelector('input');
+    m.addEventListener('click', e => {
+      const b = e.target.closest('[data-song]'); if (!b) return;
+      e.stopPropagation();
+      const id = b.dataset.song;
+      if (id === '__add') { file.click(); return; }
+      if (id === '__off') setMusic(false); else setSong(id);
+      m.remove();
+    });
+    file.onchange = async () => {
+      const f = file.files[0]; if (!f) return;
+      await voices.set('musica local', f); await voices.refresh('musica local');
+      setSong('local'); m.remove();
+    };
+    setTimeout(() => document.addEventListener('click', function close(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', close); } }), 0);
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else if (musicOn && ctx) startMusic(); });
   function unlock() { audio(); loadSfx(); ready.then(startMusic); }
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, unlock, { once: true, passive: true }));
-  document.addEventListener('click', e => { const b = e.target.closest('[data-musica]'); if (b) setMusic(!musicOn); });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-musica]'); if (b) { audio(); musicMenu(b); } });
   document.addEventListener('DOMContentLoaded', updateMusicButtons);
 
   // ---------- turnos (modo 2 jugadores) ----------
@@ -358,7 +481,7 @@
   // ---------- descanso ----------
   const T0 = (() => { try { const v = +sessionStorage.getItem('bl-inicio'); if (v) return v; const n = Date.now(); sessionStorage.setItem('bl-inicio', n); return n; } catch (e) { return Date.now(); } })();
   let restShown = false;
-  if (!NO_MUSIC) setInterval(() => {
+  if (!window.SIN_MUSICA) setInterval(() => {
     if (restShown || !progress.sessionMin || Date.now() - T0 < progress.sessionMin * 60000) return;
     restShown = true;
     const w = document.createElement('div');
@@ -407,6 +530,7 @@
         <div class="regalo-opciones" hidden>
           <a class="regalo-op op-cuento" href="${ROOT}cuento.html"><span>📖</span>Un cuento</a>
           <a class="regalo-op op-pintar" href="${ROOT}princesa.html"><span>🎨</span>Pintar</a>
+          <a class="regalo-op op-ballet" href="${ROOT}ballet.html"><span>🩰</span>Ballet</a>
           <button class="regalo-op op-seguir"><span>▶️</span>Seguir jugando</button>
         </div>
       </div>`;
@@ -419,7 +543,7 @@
       sparkle(); confetti(80);
       wrap.querySelector('.regalo-sub').hidden = true;
       wrap.querySelector('.regalo-opciones').hidden = false;
-      say('¿Quieres un cuento, pintar, o seguir jugando?');
+      say('¿Quieres un cuento, pintar, bailar, o seguir jugando?');
     };
     wrap.querySelector('.op-seguir').onclick = () => { wrap.remove(); stopVoice(); onContinue && onContinue(); };
   }
@@ -435,12 +559,19 @@
   .regalo-opciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:12px}
   .regalo-op{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px;border-radius:20px;border:0;font:inherit;font-size:20px;font-weight:800;color:#fff;text-decoration:none;cursor:pointer;box-shadow:0 6px 0 rgba(35,50,74,.3)}
   .regalo-op span{font-size:44px;line-height:1.1}
-  .op-cuento{background:#3f8ee8}.op-pintar{background:linear-gradient(135deg,#ef5b5b,#f6c33b,#4cb87a,#3f8ee8,#9a6ee0)}.op-seguir{background:#4cb87a}
+  .op-cuento{background:#3f8ee8}.op-pintar{background:linear-gradient(135deg,#ef5b5b,#f6c33b,#4cb87a,#3f8ee8,#9a6ee0)}.op-seguir{background:#4cb87a}.op-ballet{background:#ff7eb6}
   .turno{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#fff6c8,#ffc2dd);animation:regalo-in .3s ease-out;font-family:"Baloo 2",system-ui,sans-serif;color:#23324a;text-align:center;transition:opacity .3s}
   .turno.fuera{opacity:0}
   .turno-cara{font-size:120px;line-height:1;animation:regalo-bote 1s ease-in-out infinite}
   .turno p{margin:0;font-size:34px;font-weight:800}
   .turno .turno-nombre{font-size:56px;line-height:1.1}
+  .menu-musica{position:fixed;z-index:60;background:#fff;color:#23324a;border-radius:20px;padding:10px;box-shadow:0 10px 30px rgba(35,50,74,.3);display:flex;flex-direction:column;gap:6px;width:min(320px,calc(100vw - 32px));max-height:70vh;overflow-y:auto;font-family:"Baloo 2",system-ui,sans-serif}
+  .menu-musica p{margin:0 6px;font-weight:800;font-size:18px}
+  .menu-musica button{display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;border:0;background:#f3f6fb;border-radius:14px;padding:6px 10px;font:inherit;color:inherit;cursor:pointer;column-gap:8px}
+  .menu-musica button span{grid-row:1/3;font-size:26px}
+  .menu-musica button b{font-size:16px;line-height:1.1}
+  .menu-musica button small{font-size:13px;opacity:.7;line-height:1.1}
+  .menu-musica button.on{background:#ffe27a}
   @keyframes regalo-bote{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-12px) rotate(4deg)}}
   @keyframes regalo-in{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion: reduce){.regalo-abrir,.regalo-caja,.turno-cara{animation:none}}`;
@@ -450,7 +581,7 @@
     WORDS, CHARS, pick, shuffle, strip, esc, norm, progress, save: () => save(progress), player, childName, addStar,
     say, stopVoice, sound, SOUNDS, SOUND_WORD, PRAISES, SHOUTS, voices, recUrl, ROOT,
     sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift,
-    startMusic, stopMusic, setMusic, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, audio,
+    startMusic, stopMusic, setMusic, setSong, songList, musicBeat, SONGS, currentSong: () => songId, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, audio,
     nextTurn, showTurn,
   };
 })();
