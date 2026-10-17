@@ -25,7 +25,7 @@
         '¿Cuál letra suena así?', 'Esa es la', 'Esa suena', 'Ese suena', 'como en', '¿Qué dicen juntas?', '¿Cuál dice', 'Esa dice', 'Ese dice', 'Ese es', 'Aquí hay',
         '¿Con qué sílaba empieza', 'empieza con', 'no empieza con', 'Mira el dibujo.', '¿Qué palabra es?', 'Busca la que dice',
         'Abre una cajita y lee.', '¿Qué dice la cajita?', 'Algo que empieza con', '¡Sigue al hada!', 'Nivel', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis',
-        '¡Pinta a tu princesa!', '¡Como nueva!', '¡Pinta con los colores del arcoíris!', '¡A colorear!', '¿Borrar todo? Toca otra vez.'].map(t => ({ texto: t })) },
+        '¡Pinta a tu princesa!', '¡Como nueva!', '¡Pinta con los colores del arcoíris!', '¡A colorear!', 'Lápiz', 'Lápiz mágico', 'Rociar pintura', 'círculo', 'cuadrado', 'triángulo', 'estrella', 'corazón', 'rombo', 'óvalo', 'café', '¿Borrar todo? Toca otra vez.'].map(t => ({ texto: t })) },
     { id: 'palabras', nombre: 'Palabras', ayuda: 'Clarito y despacio.',
       items: uniq([...J.WORDS.map(w => w[0]), ...Object.keys(J.JUEGOS_PALABRAS).flatMap(j => J.palabras(j).map(w => w[0])), ...Object.values(J.SOUND_WORD), 'elefante', 'jugo', 'el sol', 'la luna', 'mi gato', 'un pato', 'la casa', 'el oso', 'mi mamá', 'una palta', 'el choclo', 'la llama', 'mi papá', 'la nube']).map(t => ({ texto: t })) },
     { id: 'silabas', nombre: 'Sílabas', ayuda: 'Cada sílaba clarita: "ma", "pe", "lo".',

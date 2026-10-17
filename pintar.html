@@ -33,7 +33,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
 
 .hoja { flex: 1; min-height: 0; position: relative; background: var(--paper); border-radius: 22px; box-shadow: 0 6px 0 var(--shadow); overflow: hidden; touch-action: none; }
 .hoja canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-#contorno { pointer-events: none; }
+#contorno, #vista { pointer-events: none; }
 
 .caja { display: flex; flex-direction: column; gap: 8px; }
 .fila { display: flex; gap: 8px; overflow-x: auto; padding-block: 4px 8px; scrollbar-width: thin; }
@@ -42,6 +42,8 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
 .t.color { border-radius: 50%; box-shadow: inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 0 var(--shadow); }
 .t.on { outline: 4px solid var(--sel); outline-offset: 2px; transform: translateY(-3px); }
 .t .dot { width: var(--d); height: var(--d); background: var(--ink); border-radius: 50%; display: block; }
+.t svg { width: 34px; height: 34px; fill: none; stroke: var(--ink); stroke-width: 3.2; stroke-linejoin: round; }
+.t small { position: absolute; bottom: -2px; right: 2px; font-size: 15px; }
 .arco { background: conic-gradient(#ef5b5b, #f39a3b, #f6c33b, #4cb87a, #3f8ee8, #9a6ee0, #ff7eb6, #ef5b5b); }
 @media (max-width: 420px) {
   .round-btn { width: 42px; height: 42px; font-size: 20px; }
@@ -66,11 +68,13 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
   <div class="hoja" id="hoja">
     <canvas id="pintura"></canvas>
     <canvas id="contorno"></canvas>
+    <canvas id="vista"></canvas>
   </div>
 
   <div class="caja">
     <div class="fila" id="colores" aria-label="Colores"></div>
-    <div class="fila" id="herramientas" aria-label="Pinceles, sellos y dibujos"></div>
+    <div class="fila" id="herramientas" aria-label="Lápices y tamaños"></div>
+    <div class="fila" id="extras" aria-label="Formas, sellos y dibujos"></div>
   </div>
 </div>
 
@@ -78,35 +82,53 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
 (() => {
   const J = window.Juego;
   const $ = s => document.querySelector(s);
-  const hoja = $('#hoja'), pc = $('#pintura'), oc = $('#contorno');
-  const p = pc.getContext('2d'), o = oc.getContext('2d');
+  const hoja = $('#hoja'), pc = $('#pintura'), oc = $('#contorno'), vc = $('#vista');
+  const p = pc.getContext('2d'), o = oc.getContext('2d'), v = vc.getContext('2d');
 
   const COLORS = [
     ['arcoiris', null, 'arcoíris'], ['#ef5b5b', '#ef5b5b', 'rojo'], ['#f39a3b', '#f39a3b', 'naranja'], ['#f6c33b', '#f6c33b', 'amarillo'],
     ['#4cb87a', '#4cb87a', 'verde'], ['#3f8ee8', '#3f8ee8', 'azul'], ['#9a6ee0', '#9a6ee0', 'morado'], ['#ff7eb6', '#ff7eb6', 'rosado'],
     ['#9a6a43', '#9a6a43', 'café'], ['#23324a', '#23324a', 'negro'], ['#ffffff', '#ffffff', 'blanco'],
   ];
-  const STAMPS = ['⭐', '💖', '🌸', '🦋', '🌈', '🐱', '🦊', '🌙'];
+  // lápices: normal, mágico (no se sale de la forma) y rociar (llena la forma de color)
+  const TOOLS = [['lapiz', '✏️', 'Lápiz'], ['magico', '🪄', 'Lápiz mágico'], ['rociar', '🪣', 'Rociar pintura']];
+  const SIZES = [[8, 'chiquito'], [18, 'mediano'], [34, 'grande'], [60, 'gigante']];
+  const SHAPES = [
+    ['circulo', 'círculo', '<circle cx="20" cy="20" r="14"/>'],
+    ['cuadrado', 'cuadrado', '<rect x="6" y="6" width="28" height="28" rx="2"/>'],
+    ['triangulo', 'triángulo', '<path d="M20 5 L35 34 L5 34 Z"/>'],
+    ['estrella', 'estrella', '<path d="M20 4 L24.5 15 L36 15.5 L27 23 L30 34.5 L20 28 L10 34.5 L13 23 L4 15.5 L15.5 15 Z"/>'],
+    ['corazon', 'corazón', '<path d="M20 34 C6 24 3 16 8 10 C12 5 18 7 20 12 C22 7 28 5 32 10 C37 16 34 24 20 34 Z"/>'],
+    ['rombo', 'rombo', '<path d="M20 4 L35 20 L20 36 L5 20 Z"/>'],
+    ['ovalo', 'óvalo', '<ellipse cx="20" cy="20" rx="16" ry="10"/>'],
+  ];
+  const STAMPS = ['😀', '😢', '😮', '😍', '👍', '👏', '🎉', '⭐', '🌈', '❤️', '🌸', '🦋'];
   const DRAWINGS = [['sol', '☀️'], ['casa', '🏠'], ['flor', '🌻'], ['pez', '🐟'], ['arcoiris', '🌈']];
 
-  let color = 'arcoiris', size = 22, stamp = null, hue = 0, drawing = null;
-  let last = null, undo = [], dpr = 1;
+  let color = 'arcoiris', size = 18, tool = 'lapiz', stamp = null, shape = null, hue = 0, drawing = null;
+  let last = null, start = null, mask = null, undo = [], dpr = 1;
 
-  // ---------- barra de colores y herramientas ----------
+  // ---------- barras ----------
   $('#colores').innerHTML = COLORS.map(([id, c, name]) =>
     `<button class="t color ${id === 'arcoiris' ? 'arco on' : ''}" data-color="${id}" aria-label="${name}" style="${c ? `background:${c}` : ''}"></button>`).join('');
   $('#herramientas').innerHTML =
-    [[10, 'chico'], [22, 'mediano'], [44, 'grande']].map(([s, n]) => `<button class="t ${s === 22 ? 'on' : ''}" data-size="${s}" aria-label="Pincel ${n}"><span class="dot" style="--d:${Math.max(8, s * .7)}px"></span></button>`).join('') +
+    TOOLS.map(([id, e, n]) => `<button class="t ${id === tool ? 'on' : ''}" data-tool="${id}" aria-label="${n}">${e}</button>`).join('') +
     '<span class="sep"></span>' +
-    STAMPS.map(s => `<button class="t" data-stamp="${s}" aria-label="Sello ${s}">${s}</button>`).join('') +
+    SIZES.map(([s, n]) => `<button class="t ${s === size ? 'on' : ''}" data-size="${s}" aria-label="Lápiz ${n}"><span class="dot" style="--d:${Math.min(40, Math.max(6, s * .65))}px"></span></button>`).join('');
+  $('#extras').innerHTML =
+    SHAPES.map(([id, n, svg]) => `<button class="t" data-shape="${id}" aria-label="Forma: ${n}"><svg viewBox="0 0 40 40">${svg}</svg></button>`).join('') +
     '<span class="sep"></span>' +
-    DRAWINGS.map(([id, e]) => `<button class="t" data-dibujo="${id}" aria-label="Dibujo para colorear: ${id}">${e}</button>`).join('') +
+    STAMPS.map(s => `<button class="t" data-stamp="${s}" aria-label="Sellito ${s}">${s}</button>`).join('') +
+    '<span class="sep"></span>' +
+    DRAWINGS.map(([id, e]) => `<button class="t" data-dibujo="${id}" aria-label="Dibujo para colorear: ${id}">${e}<small>✏️</small></button>`).join('') +
     '<button class="t" data-dibujo="" aria-label="Hoja en blanco">📄</button>';
 
   const select = (attr, btn) => { document.querySelectorAll(`[${attr}]`).forEach(b => b.classList.toggle('on', b === btn)); };
+  const setTool = id => { tool = id; stamp = null; shape = null; select('data-stamp', null); select('data-shape', null); select('data-tool', document.querySelector(`[data-tool="${id}"]`)); };
   $('#colores').addEventListener('click', e => {
     const b = e.target.closest('[data-color]'); if (!b) return;
-    color = b.dataset.color; stamp = null; select('data-stamp', null);
+    color = b.dataset.color;
+    if (stamp || shape) setTool(tool);
     select('data-color', b);
     J.sfx('pop', .6);
     J.say(COLORS.find(c => c[0] === color)[2]);
@@ -114,62 +136,206 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
   $('#herramientas').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     J.sfx('pop2', .6);
-    if (b.dataset.size) { size = +b.dataset.size; stamp = null; select('data-size', b); select('data-stamp', null); }
-    else if (b.dataset.stamp) { stamp = stamp === b.dataset.stamp ? null : b.dataset.stamp; select('data-stamp', stamp ? b : null); }
-    else if ('dibujo' in b.dataset) { drawing = b.dataset.dibujo || null; drawOutline(); if (drawing) J.say('¡A colorear!'); }
+    if (b.dataset.tool) { setTool(b.dataset.tool); J.say(TOOLS.find(t => t[0] === tool)[2]); }
+    else if (b.dataset.size) { size = +b.dataset.size; select('data-size', b); if (shape) setTool(tool); }
+  });
+  $('#extras').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    J.sfx('pop2', .6);
+    if (b.dataset.shape) {
+      shape = shape === b.dataset.shape ? null : b.dataset.shape; stamp = null;
+      select('data-shape', shape ? b : null); select('data-stamp', null); select('data-tool', shape ? null : document.querySelector(`[data-tool="${tool}"]`));
+      if (shape) J.say(SHAPES.find(s => s[0] === shape)[1]);
+    } else if (b.dataset.stamp) {
+      stamp = stamp === b.dataset.stamp ? null : b.dataset.stamp; shape = null;
+      select('data-stamp', stamp ? b : null); select('data-shape', null); select('data-tool', stamp ? null : document.querySelector(`[data-tool="${tool}"]`));
+    } else if ('dibujo' in b.dataset) { snapshot(); drawing = b.dataset.dibujo || null; drawOutline(); if (drawing) J.say('¡A colorear!'); }
   });
 
-  // ---------- tamaño del lienzo (conserva lo pintado) ----------
+  // ---------- tamaño del lienzo (conserva lo pintado y las formas) ----------
   function resize() {
     const r = hoja.getBoundingClientRect();
     dpr = Math.min(devicePixelRatio || 1, 2);
-    const keep = document.createElement('canvas'); keep.width = pc.width; keep.height = pc.height;
-    if (pc.width) keep.getContext('2d').drawImage(pc, 0, 0);
-    [pc, oc].forEach(c => { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); });
+    const copy = c => { const k = document.createElement('canvas'); k.width = c.width; k.height = c.height; if (c.width) k.getContext('2d').drawImage(c, 0, 0); return k; };
+    const kp = copy(pc), ko = copy(oc);
+    [pc, oc, vc].forEach(c => { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); });
     p.fillStyle = '#fff'; p.fillRect(0, 0, pc.width, pc.height);
-    if (keep.width) p.drawImage(keep, 0, 0);
-    drawOutline();
+    if (kp.width) p.drawImage(kp, 0, 0);
+    if (ko.width) o.drawImage(ko, 0, 0);
+    undo = [];
   }
   addEventListener('resize', resize);
 
-  // ---------- pintar ----------
+  // ---------- utilidades ----------
   function strokeColor() {
     if (color !== 'arcoiris') return color;
     hue = (hue + 4) % 360;
     return `hsl(${hue} 90% 58%)`;
   }
   function pos(e) { const r = pc.getBoundingClientRect(); return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr }; }
-  function snapshot() { try { undo.push(p.getImageData(0, 0, pc.width, pc.height)); if (undo.length > 12) undo.shift(); } catch (e) {} }
+  function snapshot() {
+    try { undo.push([p.getImageData(0, 0, pc.width, pc.height), o.getImageData(0, 0, oc.width, oc.height)]); if (undo.length > 12) undo.shift(); } catch (e) {}
+  }
+  const scratch = document.createElement('canvas'), sx = scratch.getContext('2d');
 
+  // zona cerrada donde se tocó: se rellena desde el punto hasta chocar con una línea del contorno
+  function regionMask(pt) {
+    const W = oc.width, H = oc.height;
+    const od = o.getImageData(0, 0, W, H).data;
+    const wall = new Uint8Array(W * H);
+    for (let i = 0, j = 3; i < wall.length; i++, j += 4) wall[i] = od[j] > 90 ? 1 : 0;
+    const x0 = Math.max(0, Math.min(W - 1, Math.round(pt.x))), y0 = Math.max(0, Math.min(H - 1, Math.round(pt.y)));
+    const inside = new Uint8Array(W * H);
+    if (wall[y0 * W + x0]) return null; // tocó justo la línea
+    let minX = x0, maxX = x0, minY = y0, maxY = y0;
+    const stack = [x0, y0];
+    while (stack.length) {
+      const y = stack.pop(); let x = stack.pop();
+      let i = y * W + x;
+      while (x > 0 && !wall[i - 1] && !inside[i - 1]) { x--; i--; }
+      let up = false, down = false;
+      for (; x < W && !wall[i] && !inside[i]; x++, i++) {
+        inside[i] = 1;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y > 0) { const k = i - W; if (!wall[k] && !inside[k]) { if (!up) { stack.push(x, y - 1); up = true; } } else up = false; }
+        if (y < H - 1) { const k = i + W; if (!wall[k] && !inside[k]) { if (!down) { stack.push(x, y + 1); down = true; } } else down = false; }
+      }
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    const m = document.createElement('canvas'); m.width = W; m.height = H;
+    const mg = m.getContext('2d'), img = mg.createImageData(W, H), d = img.data;
+    for (let i = 0, j = 3; i < inside.length; i++, j += 4) if (inside[i]) d[j] = 255;
+    mg.putImageData(img, 0, 0);
+    // engordar un poquito la zona para que el color llegue debajo de la línea (sin bordes blancos)
+    const g = Math.max(2, Math.round(3 * dpr));
+    const k = document.createElement('canvas'); k.width = W; k.height = H; const kg = k.getContext('2d');
+    for (const [dx, dy] of [[g, 0], [-g, 0], [0, g], [0, -g], [0, 0]]) kg.drawImage(m, dx, dy);
+    return { canvas: k, box: [Math.max(0, minX - g), Math.max(0, minY - g), Math.min(W, maxX + g + 1), Math.min(H, maxY + g + 1)] };
+  }
+  // pinta un trazo en una hoja aparte y solo deja pasar lo que cae dentro de la zona
+  function clippedSegment(a, b) {
+    const w = size * dpr, x = Math.floor(Math.min(a.x, b.x) - w), y = Math.floor(Math.min(a.y, b.y) - w);
+    const W = Math.ceil(Math.abs(a.x - b.x) + w * 2) + 2, H = Math.ceil(Math.abs(a.y - b.y) + w * 2) + 2;
+    if (scratch.width < W || scratch.height < H) { scratch.width = Math.max(scratch.width, W); scratch.height = Math.max(scratch.height, H); }
+    sx.globalCompositeOperation = 'source-over'; sx.clearRect(0, 0, W, H);
+    sx.strokeStyle = sx.fillStyle = strokeColor(); sx.lineWidth = w; sx.lineCap = 'round'; sx.lineJoin = 'round';
+    sx.beginPath(); sx.moveTo(a.x - x, a.y - y); sx.lineTo(b.x - x + .01, b.y - y); sx.stroke();
+    sx.globalCompositeOperation = 'destination-in'; sx.drawImage(mask.canvas, x, y, W, H, 0, 0, W, H);
+    sx.globalCompositeOperation = 'source-over';
+    p.drawImage(scratch, 0, 0, W, H, x, y, W, H);
+  }
+
+  // ---------- rociar: llena la zona con una nube de color que crece ----------
+  function sprayFill(pt) {
+    const m = regionMask(pt);
+    if (!m) { J.sfx('tick'); return; }
+    const [x0, y0, x1, y1] = m.box, W = x1 - x0, H = y1 - y0;
+    const f = document.createElement('canvas'); f.width = W; f.height = H; const fg = f.getContext('2d');
+    if (color === 'arcoiris') {
+      const gr = fg.createLinearGradient(0, 0, W, H);
+      ['#ef5b5b', '#f39a3b', '#f6c33b', '#4cb87a', '#3f8ee8', '#9a6ee0', '#ff7eb6'].forEach((c, i, a) => gr.addColorStop(i / (a.length - 1), c));
+      fg.fillStyle = gr;
+    } else fg.fillStyle = color;
+    fg.fillRect(0, 0, W, H);
+    fg.globalCompositeOperation = 'destination-in'; fg.drawImage(m.canvas, x0, y0, W, H, 0, 0, W, H);
+    const R = Math.hypot(Math.max(pt.x - x0, x1 - pt.x), Math.max(pt.y - y0, y1 - pt.y)) + 4;
+    const t0 = performance.now(), dur = 550;
+    sprayNoise(dur / 1000);
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur), r = R * (1 - Math.pow(1 - k, 2));
+      p.save(); p.beginPath(); p.arc(pt.x, pt.y, Math.max(1, r), 0, Math.PI * 2); p.clip(); p.drawImage(f, x0, y0); p.restore();
+      if (k < 1) requestAnimationFrame(step); else J.sparkle();
+    };
+    requestAnimationFrame(step);
+  }
+  function sprayNoise(sec) {
+    const c = J.audio && J.audio(); if (!c) return;
+    const t = c.currentTime, len = Math.ceil(c.sampleRate * (sec + .1));
+    const b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'highpass'; f.frequency.value = 2500;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.18, t + .05); g.gain.setValueAtTime(.18, t + sec * .7); g.gain.linearRampToValueAtTime(0, t + sec + .1);
+    s.connect(f).connect(g).connect(c.destination); s.start(t); s.stop(t + sec + .15);
+  }
+
+  // ---------- formas ----------
+  function shapePath(g, id, x0, y0, x1, y1) {
+    const x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0), h = Math.abs(y1 - y0), cx = x + w / 2, cy = y + h / 2;
+    const P = pts => { g.beginPath(); pts.forEach(([a, b], i) => i ? g.lineTo(x + a * w, y + b * h) : g.moveTo(x + a * w, y + b * h)); g.closePath(); };
+    if (id === 'circulo') { const r = Math.min(w, h) / 2; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); }
+    else if (id === 'ovalo') { g.beginPath(); g.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2); }
+    else if (id === 'cuadrado') { const s = Math.min(w, h); g.beginPath(); g.rect(cx - s / 2, cy - s / 2, s, s); }
+    else if (id === 'triangulo') P([[.5, 0], [1, 1], [0, 1]]);
+    else if (id === 'rombo') P([[.5, 0], [1, .5], [.5, 1], [0, .5]]);
+    else if (id === 'estrella') { const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .21 : .5; pts.push([.5 + Math.cos(a) * r, .53 + Math.sin(a) * r]); } P(pts); }
+    else if (id === 'corazon') {
+      g.beginPath(); g.moveTo(cx, y + h);
+      g.bezierCurveTo(x - w * .15, y + h * .62, x - w * .05, y + h * .02, x + w * .27, y + h * .03);
+      g.bezierCurveTo(x + w * .42, y + h * .04, cx, y + h * .2, cx, y + h * .27);
+      g.bezierCurveTo(cx, y + h * .2, x + w * .58, y + h * .04, x + w * .73, y + h * .03);
+      g.bezierCurveTo(x + w * 1.05, y + h * .02, x + w * 1.15, y + h * .62, cx, y + h);
+      g.closePath();
+    }
+  }
+  function shapeBox(a, b) {
+    // un toque sin arrastrar hace una forma mediana
+    if (Math.hypot(b.x - a.x, b.y - a.y) < 18 * dpr) { const s = 70 * dpr; return [a.x - s, a.y - s, a.x + s, a.y + s]; }
+    return [a.x, a.y, b.x, b.y];
+  }
+  function strokeShape(g, id, box) {
+    g.strokeStyle = '#23324a'; g.lineWidth = Math.max(5, 6 * dpr); g.lineCap = 'round'; g.lineJoin = 'round';
+    shapePath(g, id, ...box); g.stroke();
+  }
+
+  // ---------- tocar la hoja ----------
   hoja.addEventListener('pointerdown', e => {
     e.preventDefault();
     hoja.setPointerCapture(e.pointerId);
-    snapshot();
     const pt = pos(e);
+    snapshot();
     if (stamp) {
-      const s = size * 3.2 * dpr;
+      const s = Math.max(40, size * 3.2) * dpr;
       p.font = `${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       p.textAlign = 'center'; p.textBaseline = 'middle';
       p.fillText(stamp, pt.x, pt.y);
       J.sfx('pop', .7, 1 + Math.random() * .3);
       return;
     }
+    if (shape) { start = pt; return; }
+    if (tool === 'rociar') { sprayFill(pt); return; }
+    if (tool === 'magico') { mask = regionMask(pt); if (!mask) { undo.pop(); return; } }
     last = pt;
     J.sparkle();
-    dot(pt);
+    if (mask) clippedSegment(pt, pt); else dot(pt);
   });
   hoja.addEventListener('pointermove', e => {
+    if (start) {
+      v.clearRect(0, 0, vc.width, vc.height);
+      v.setLineDash([12 * dpr, 10 * dpr]); strokeShape(v, shape, shapeBox(start, pos(e))); v.setLineDash([]);
+      return;
+    }
     if (!last) return;
     const pts = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for (const ev of pts) {
       const pt = pos(ev);
-      p.strokeStyle = strokeColor();
-      p.lineWidth = size * dpr; p.lineCap = 'round'; p.lineJoin = 'round';
-      p.beginPath(); p.moveTo(last.x, last.y); p.lineTo(pt.x, pt.y); p.stroke();
+      if (mask) clippedSegment(last, pt);
+      else {
+        p.strokeStyle = strokeColor();
+        p.lineWidth = size * dpr; p.lineCap = 'round'; p.lineJoin = 'round';
+        p.beginPath(); p.moveTo(last.x, last.y); p.lineTo(pt.x, pt.y); p.stroke();
+      }
       last = pt;
     }
   });
-  const end = () => { last = null; };
+  const end = e => {
+    if (start) {
+      v.clearRect(0, 0, vc.width, vc.height);
+      strokeShape(o, shape, shapeBox(start, pos(e)));
+      J.sfx('pop2', .7); start = null;
+    }
+    last = null; mask = null;
+  };
   hoja.addEventListener('pointerup', end);
   hoja.addEventListener('pointercancel', end);
   function dot(pt) { p.fillStyle = strokeColor(); p.beginPath(); p.arc(pt.x, pt.y, size * dpr / 2, 0, Math.PI * 2); p.fill(); }
@@ -216,7 +382,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
   }
 
   // ---------- botones ----------
-  $('#deshacer').onclick = () => { const s = undo.pop(); if (s) { p.putImageData(s, 0, 0); J.sfx('tick'); } };
+  $('#deshacer').onclick = () => { const s = undo.pop(); if (s) { p.putImageData(s[0], 0, 0); o.putImageData(s[1], 0, 0); J.sfx('tick'); } };
   let armed = null;
   $('#borrar').onclick = e => {
     const b = e.currentTarget;
@@ -226,7 +392,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
       return;
     }
     clearTimeout(armed); armed = null; b.classList.remove('warn'); b.textContent = '🗑️';
-    snapshot(); p.fillStyle = '#fff'; p.fillRect(0, 0, pc.width, pc.height); J.sfx('pop2');
+    snapshot(); p.fillStyle = '#fff'; p.fillRect(0, 0, pc.width, pc.height); drawOutline(); J.sfx('pop2');
   };
   $('#guardar').onclick = () => {
     const c = document.createElement('canvas'); c.width = pc.width; c.height = pc.height;
@@ -240,6 +406,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
   resize();
   J.refreshMusic();
   setTimeout(() => J.say('¡Pinta con los colores del arcoíris!'), 400);
+  if (location.hash === '#prueba') window.__l = { p, o, pc, oc, regionMask, get dpr() { return dpr; } };
 })();
 </script>
 </body>
