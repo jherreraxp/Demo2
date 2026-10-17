@@ -230,6 +230,8 @@ function animarMinifig(f) {
   }
   return {
     group: f.root, parts: f.parts, update, ballet: true,
+    // puntos donde se pueden poner adornos (cuidar.html)
+    anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: .36, cuello: 1.13, frente: .2 },
     setPose(name) { target = POSES[name] || POSES.primera; },
     setTutu(on) { if (f.tutu) f.tutu.visible = on; if (f.vestido) { f.vestido.visible = !on; f.legs.forEach(l => { l.visible = on; }); } },
   };
@@ -288,7 +290,7 @@ function animal(id) {
     neck.rotation.x = run ? -.1 : Math.sin(t * 1.5) * .05;
     head.rotation.z = mode === 'bailar' || mode === 'ballet' ? Math.sin(t * 5) * .2 : 0;
   }
-  return { group: root, parts, update, setPose() {}, setTutu() {} };
+  return { group: root, parts, update, setPose() {}, setTutu() {}, anclas: { cabeza: head, cuerpo: body, mano: null, alto: .18, cuello: L + .3, frente: .18, animal: true } };
 }
 
 export async function crearPersonaje(id, base = '', { colores = true } = {}) {

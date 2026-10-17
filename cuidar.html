@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Cuida a tu Personaje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: #bfe6ff; }
+#mundo { touch-action: none; }
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 5; pointer-events: none; }
+.abajo > * { pointer-events: auto; }
+.modos { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.modos button { background: rgba(255,255,255,.85); border-radius: 22px; padding: 6px 14px; font-size: 20px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); min-width: 92px; line-height: 1.1; }
+.modos button span { display: block; font-size: 32px; }
+.modos button.on { background: var(--gold); }
+.herr { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 760px; }
+.herr button { background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 20px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); }
+.herr button.on { background: #ffe3f1; outline: 3px solid #ff7eb6; }
+.herr .ayuda { background: rgba(35,50,74,.72); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 18px; font-weight: 700; }
+.girar { position: fixed; top: 50%; transform: translateY(-50%); z-index: 5; }
+.girar.izq { left: 12px; } .girar.der { right: 12px; }
+.barra { width: min(70vw, 320px); height: 14px; border-radius: 999px; background: rgba(35,50,74,.45); overflow: hidden; }
+.barra i { display: block; height: 100%; width: 0; background: #4cb87a; transition: width .2s; }
+@media (max-width: 560px) { .modos button { min-width: 70px; font-size: 16px; padding: 5px 8px; } .modos button span { font-size: 26px; } .herr button { font-size: 17px; padding: 5px 10px; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<canvas class="parque" id="parque" aria-hidden="true"></canvas>
+<canvas class="mundo" id="mundo" aria-label="Tu personaje en el parque"></canvas>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <a class="round-btn btn" href="personajes.html" aria-label="Elegir otro personaje">👥</a>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<button class="round-btn girar izq" id="girar-izq" aria-label="Girar">↺</button>
+<button class="round-btn girar der" id="girar-der" aria-label="Girar">↻</button>
+<div id="mensaje" aria-live="polite"></div>
+<div class="abajo">
+  <div class="herr" id="herr"></div>
+  <div class="modos" id="modos">
+    <button data-m="decorar"><span>👑</span>Decorar</button>
+    <button data-m="limpiar"><span>🧽</span>Limpiar</button>
+    <button data-m="banar"><span>🛁</span>Bañar</button>
+    <button data-m="jugar"><span>⚽</span>Jugar</button>
+  </div>
+</div>
+<script type="module" src="js/cuidar.js"></script>
+</body>
+</html>

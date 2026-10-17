@@ -133,6 +133,8 @@
         let j = i + 1; while (j < low.length && !isV(low[j])) j++;
         if (j >= low.length) { cur += w.slice(i + 1); out.push(cur); cur = ''; break; }
         const cons = low.slice(i + 1, j);
+        // dos vocales juntas: diptongo (pia-no, hue-vo) se queda junto; hiato (Zo-e, le-ón) se separa
+        if (!cons.length) { if ('iuü'.includes(low[i]) || 'iuü'.includes(low[j])) { i++; continue; } out.push(cur); cur = ''; i++; continue; }
         let take = 0;
         if (cons.length === 1) take = 0;
         else if (cons.length === 2) take = insep.includes(cons) ? 0 : 1;

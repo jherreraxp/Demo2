@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
 <link rel="stylesheet" href="css/juego3d.css">
 <style>
-body { background: radial-gradient(circle at 50% 30%, #ffe3f1, #c9b8ff 70%); }
+body { background: #bfe6ff; }
+.acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.acciones .btn { font-size: 20px; padding: 8px 18px; border-radius: 999px; background: #fff; box-shadow: 0 4px 0 var(--shadow); font-weight: 800; text-decoration: none; color: inherit; }
 .titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); text-align: center; z-index: 5; pointer-events: none; }
 .titulo h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); line-height: 1.05; }
 .tabs { display: inline-flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
@@ -27,6 +29,7 @@ body { background: radial-gradient(circle at 50% 30%, #ffe3f1, #c9b8ff 70%); }
 <script src="js/comun.js"></script>
 </head>
 <body>
+<canvas class="parque" id="parque" aria-hidden="true"></canvas>
 <canvas class="mundo" id="mundo" aria-label="Personajes en un escenario"></canvas>
 <div class="hud">
   <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
@@ -38,13 +41,19 @@ body { background: radial-gradient(circle at 50% 30%, #ffe3f1, #c9b8ff 70%); }
 </div>
 <div class="abajo">
   <div class="nombres" id="nombres"></div>
-  <a class="go btn" href="index.html" id="listo">✔ ¡Listo!</a>
+  <div class="acciones">
+    <a class="btn" id="a-pintar" href="princesa.html">🎨 Pintar</a>
+    <a class="btn" id="a-cuidar" href="cuidar.html">🛁 Cuidar y jugar</a>
+    <a class="go btn" href="index.html" id="listo">✔ ¡Listo!</a>
+  </div>
 </div>
 
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
 import { crearPersonaje, PERSONAJES } from './js/personajes.js';
+import { pintarParque } from './js/parque.js';
+pintarParque(document.querySelector('#parque'));
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -58,7 +67,7 @@ camera.position.set(0, 2.2, 7.5); camera.lookAt(0, 1.1, 0);
 const fx = chispitas(scene);
 
 // escenario: piso redondo y focos
-const stage = new THREE.Mesh(new THREE.CylinderGeometry(9, 9.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }));
+const stage = new THREE.Mesh(new THREE.CylinderGeometry(9, 9.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0x8fd46a, roughness: .8 }));
 stage.position.y = -.2; stage.receiveShadow = true; scene.add(stage);
 const cols = [0x8fd3f4, 0xffd23f, 0xb07de8, 0x4cb87a, 0xff4fa3, 0xffe3a8, 0xef5b5b, 0x9aa3ad, 0xff9a5a, 0xc9d1dc, 0xd8b48f];
 const chars = [];
@@ -92,6 +101,9 @@ function render() {
   const two = P.two;
   $('#tabs').hidden = !two;
   $('#tabs').innerHTML = P.players.map((p, i) => `<button class="${i === editing ? 'on' : ''}" data-p="${i}">${J.esc(p.name)}</button>`).join('');
+  const id = P.players[editing].char;
+  $('#a-pintar').href = 'princesa.html?p=' + id;
+  $('#a-cuidar').href = 'cuidar.html?p=' + id;
   $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${J.CHARS[id].emoji}</span>${J.CHARS[id].name}</button>`).join('');
 }
 function pick(id) {

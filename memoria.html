@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Juego de Memoria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b6ff); min-height: 100vh; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.tablero { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: 12px; display: grid; place-content: center; gap: var(--gap, 12px); grid-template-columns: repeat(var(--cols, 4), var(--w, 120px)); grid-auto-rows: var(--h, 150px); padding: 0 12px; }
+.carta { position: relative; perspective: 900px; cursor: pointer; border: 0; padding: 0; background: none; touch-action: manipulation; }
+.carta .dentro { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.3, 1.4, .5, 1); transform-style: preserve-3d; }
+.carta.vuelta .dentro, .carta.par .dentro { transform: rotateY(180deg); }
+.carta .cara { position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; box-shadow: 0 6px 0 rgba(90, 60, 140, .35); }
+.carta .atras { background: repeating-linear-gradient(45deg, #9a6ee0 0 14px, #b18cf0 14px 28px); border: 5px solid #fff; font-size: calc(var(--w) * .38); }
+.carta .frente { background: #fff; transform: rotateY(180deg); border: 5px solid #ffd23f; flex-direction: column; text-align: center; }
+.carta .frente .emo { font-size: calc(var(--w) * .52); line-height: 1; }
+.carta .frente .txt { font-family: var(--font-letters, Andika, sans-serif); font-weight: 700; color: #23324a; line-height: 1; }
+.carta.par .frente { border-color: #4cb87a; animation: brinca .6s ease-out; }
+.carta.mal .frente { border-color: #ef5b5b; animation: tiembla .4s; }
+.carta:focus-visible { outline: 4px solid #3f8ee8; outline-offset: 4px; border-radius: 20px; }
+@keyframes brinca { 0% { transform: rotateY(180deg) scale(1); } 40% { transform: rotateY(180deg) scale(1.12); } 100% { transform: rotateY(180deg) scale(1); } }
+@keyframes tiembla { 0%, 100% { translate: 0; } 25% { translate: -6px; } 75% { translate: 6px; } }
+@media (max-width: 520px) { .tablero { top: calc(env(safe-area-inset-top, 0px) + 124px); } }
+@media (prefers-reduced-motion: reduce) { .carta .dentro { transition: none; } .carta.par .frente, .carta.mal .frente { animation: none; } }
+</style>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+    <div class="pill" aria-label="Parejas">🃏 <span id="pares">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="tablero" id="tablero" aria-label="Cartas de memoria"></div>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:64px;line-height:1">🃏🐶🃏</div>
+    <h1>Memoria</h1>
+    <p>Voltea dos cartas y <b>encuentra las parejas</b>. ¡Escucha lo que dice cada una!</p>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const J = window.Juego, P = J.progress;
+  const $ = s => document.querySelector(s);
+  // Niveles: figuras → figura con su palabra → vocales y sílabas → palabras conocidas.
+  // Las palabras se cambian en el modo admin ("memoria" y "memoria_silabas").
+  const NIVELES = [
+    { pares: 4, tipo: 'figuras', nombre: 'Figuras iguales' },
+    { pares: 6, tipo: 'figura-texto', nombre: 'El dibujo y su palabra' },
+    { pares: 6, tipo: 'silabas', nombre: 'Vocales y sílabas' },
+    { pares: 8, tipo: 'palabras', nombre: 'Palabras que ya conoces' },
+  ];
+  const state = { nivel: 0, cartas: [], abiertas: [], pares: 0, total: 0, bloqueado: false, jugando: false };
+
+  function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; }
+  function message(text, secs = 1.4) {
+    const el = $('#mensaje'); el.textContent = text;
+    el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
+    clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
+  }
+
+  // cada pareja: { id, a: {emoji, texto}, b: {emoji, texto}, dice }
+  function parejas(cfg) {
+    if (cfg.tipo === 'silabas') {
+      const s = J.shuffle(J.palabras('memoria_silabas').map(w => w[0])).slice(0, cfg.pares);
+      return s.map(t => ({ id: t, a: { texto: t }, b: { texto: t }, dice: t }));
+    }
+    let lista = J.palabras('memoria');
+    if (cfg.tipo !== 'palabras') lista = lista.filter(w => w[2]);
+    lista = J.shuffle(lista).slice(0, cfg.pares);
+    return lista.map(w => {
+      const fig = { emoji: w[2] }, txt = { texto: w[0] };
+      if (cfg.tipo === 'figuras') return { id: w[0], a: fig, b: fig, dice: w[0] };
+      if (cfg.tipo === 'figura-texto') return { id: w[0], a: fig, b: txt, dice: w[0] };
+      return { id: w[0], a: txt, b: txt, dice: w[0] };
+    });
+  }
+
+  function layout() {
+    const n = state.cartas.length; if (!n) return;
+    const tb = $('#tablero'), W = innerWidth - 24, H = tb.clientHeight || innerHeight - 90;
+    let best = { w: 0 };
+    for (let cols = 2; cols <= Math.min(8, n); cols++) {
+      const rows = Math.ceil(n / cols), gap = 12;
+      const w = Math.min((W - gap * (cols - 1)) / cols, ((H - gap * (rows - 1)) / rows) / 1.25, 170);
+      if (w > best.w) best = { w, cols, gap };
+    }
+    tb.style.setProperty('--cols', best.cols); tb.style.setProperty('--w', best.w + 'px'); tb.style.setProperty('--h', best.w * 1.25 + 'px'); tb.style.setProperty('--gap', best.gap + 'px');
+    tb.querySelectorAll('.txt').forEach(el => { const L = el.textContent.length; el.style.fontSize = best.w * (L <= 2 ? .5 : L <= 4 ? .34 : L <= 6 ? .26 : .2) + 'px'; });
+  }
+  addEventListener('resize', layout);
+
+  function repartir() {
+    const cfg = NIVELES[state.nivel];
+    const ps = parejas(cfg);
+    const cartas = J.shuffle(ps.flatMap(p => [{ p, lado: p.a }, { p, lado: p.b }]));
+    const tb = $('#tablero'); tb.innerHTML = '';
+    state.cartas = cartas.map((c, i) => {
+      const el = document.createElement('button');
+      el.className = 'carta';
+      el.setAttribute('aria-label', 'Carta ' + (i + 1));
+      el.innerHTML = `<div class="dentro"><div class="cara atras">⭐</div><div class="cara frente">${c.lado.emoji ? `<span class="emo">${c.lado.emoji}</span>` : ''}${c.lado.texto ? `<span class="txt">${J.esc(c.lado.texto)}</span>` : ''}</div></div>`;
+      el.onclick = () => voltear(i);
+      tb.appendChild(el);
+      return { ...c, el, abierta: false, hecha: false };
+    });
+    state.abiertas = []; state.pares = 0; state.total = ps.length; state.bloqueado = false;
+    $('#pares').textContent = `0 / ${state.total}`;
+    $('#nivel-num').textContent = state.nivel + 1;
+    layout();
+  }
+
+  function voltear(i) {
+    const c = state.cartas[i];
+    if (!state.jugando || state.bloqueado || c.abierta || c.hecha) return;
+    J.sfx('pop', .7, 1 + state.abiertas.length * .15);
+    c.abierta = true; c.el.classList.add('vuelta'); c.el.setAttribute('aria-label', c.lado.texto || c.p.dice);
+    J.say(c.p.dice);
+    state.abiertas.push(c);
+    if (state.abiertas.length < 2) return;
+    const [a, b] = state.abiertas;
+    state.bloqueado = true;
+    if (a.p === b.p) {
+      setTimeout(() => {
+        [a, b].forEach(x => { x.hecha = true; x.el.classList.add('par'); });
+        state.abiertas = []; state.bloqueado = false; state.pares++;
+        $('#pares').textContent = `${state.pares} / ${state.total}`;
+        J.efecto('acierto'); J.addStar(); updatePlayer();
+        message(J.pick(['¡Pareja!', '¡Muy bien!', '¡Bravo!']));
+        J.say([a.p.dice, J.pick(J.PRAISES)]);
+        if (state.pares >= state.total) setTimeout(nivelListo, 1400);
+      }, 650);
+    } else {
+      setTimeout(() => {
+        J.efecto('error');
+        [a, b].forEach(x => x.el.classList.add('mal'));
+        setTimeout(() => {
+          [a, b].forEach(x => { x.abierta = false; x.el.classList.remove('vuelta', 'mal'); x.el.setAttribute('aria-label', 'Carta'); });
+          state.abiertas = [];
+          // con dos jugadores, si no encuentra la pareja le toca al otro
+          if (P.two) { state.jugando = false; J.nextTurn(() => { state.jugando = true; state.bloqueado = false; }, { onShow: updatePlayer }); }
+          else state.bloqueado = false;
+        }, 900);
+      }, 700);
+    }
+  }
+
+  function nivelListo() {
+    state.jugando = false;
+    J.efecto('festejo'); J.confetti(90);
+    P.level.memoria = Math.max(P.level.memoria || 0, state.nivel + 1); J.save();
+    J.gift(() => { state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1); empezar(); });
+  }
+
+  function empezar() {
+    repartir();
+    updatePlayer();
+    const go = () => { state.jugando = true; J.say('¡Encuentra las parejas!'); };
+    P.two ? J.showTurn(go, { onShow: updatePlayer }) : go();
+  }
+
+  function start(i) {
+    $('#portada').hidden = true;
+    J.audio(); J.startMusic();
+    state.nivel = i;
+    empezar();
+  }
+
+  (async () => {
+    await J.ready;
+    updatePlayer(); J.refreshMusic();
+    const unlocked = Math.min(NIVELES.length, (P.level.memoria || 0) + 1);
+    let sel = unlocked - 1;
+    const box = $('#niveles');
+    box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
+    box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); $('#nivel-desc').textContent = NIVELES[sel].nombre; J.sfx('pop'); };
+    $('#nivel-desc').textContent = NIVELES[sel].nombre;
+    const go = $('#empezar'); go.disabled = false; go.textContent = '▶ ¡A jugar!';
+    go.onclick = () => start(sel);
+    if (location.hash === '#prueba') { window.__m = { state, voltear, NIVELES, start }; start(0); }
+  })();
+})();
+</script>
+</body>
+</html>

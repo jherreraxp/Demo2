@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Tren de Sílabas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); min-height: 100vh; overflow: hidden; }
+#mensaje { top: 64%; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.nubes { position: fixed; inset: 0 0 50% 0; pointer-events: none; font-size: 60px; opacity: .9; }
+.nubes span { position: absolute; animation: nube 40s linear infinite; }
+@keyframes nube { from { transform: translateX(110vw); } to { transform: translateX(-30vw); } }
+.figura { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 74px); transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: #fff; border-radius: 26px; padding: 8px 18px; box-shadow: 0 6px 0 rgba(35, 50, 74, .2); z-index: 4; }
+.figura .emo { font-size: clamp(54px, 11vh, 90px); line-height: 1; }
+.figura button { background: var(--purple); color: #fff; border-radius: 50%; width: 54px; height: 54px; font-size: 24px; box-shadow: 0 4px 0 var(--purple-dark); }
+.via { position: fixed; left: 0; right: 0; top: 52%; height: 14px; background: repeating-linear-gradient(90deg, #8a5a33 0 16px, transparent 16px 34px), linear-gradient(#777, #777) 0 10px / 100% 4px no-repeat; }
+.tren { position: fixed; top: calc(52% - 112px); left: 50%; display: flex; align-items: flex-end; gap: 6px; transform: translateX(-50%); transition: transform 2.2s cubic-bezier(.5, 0, .9, .6); z-index: 3; }
+.tren.sale { transform: translateX(-180vw); }
+.tren.llega { animation: llega 1.2s cubic-bezier(.2, .9, .3, 1); }
+@keyframes llega { from { transform: translateX(60vw); } to { transform: translateX(-50%); } }
+.loco { font-size: 104px; line-height: .9; transform: scaleX(-1); filter: drop-shadow(0 4px 0 rgba(0,0,0,.15)); }
+.vagon { position: relative; width: clamp(84px, 17vw, 122px); height: 92px; border-radius: 14px 14px 8px 8px; background: var(--c, #ef5b5b); box-shadow: inset 0 -10px 0 rgba(0,0,0,.15); display: grid; place-items: center; margin-bottom: 14px; }
+.vagon::before, .vagon::after { content: ''; position: absolute; bottom: -16px; width: 28px; height: 28px; border-radius: 50%; background: #333; border: 5px solid #bbb; box-sizing: border-box; }
+.vagon::before { left: 10px; } .vagon::after { right: 10px; }
+.vagon .hueco { width: 78%; height: 66%; border-radius: 10px; background: rgba(255,255,255,.85); border: 3px dashed rgba(35,50,74,.35); display: grid; place-items: center; font-family: var(--font-letters); font-weight: 700; font-size: clamp(32px, 6vw, 46px); color: #23324a; }
+.vagon.lleno .hueco { border-style: solid; border-color: #fff; background: #fff; animation: brinco .45s; }
+.opciones { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding: 0 12px; z-index: 4; }
+.op { min-width: 104px; height: 96px; padding: 0 16px; border-radius: 22px; background: #fff; font-family: var(--font-letters); font-weight: 700; font-size: 46px; color: #23324a; box-shadow: 0 7px 0 #c7a76b; border: 5px solid var(--c, #ffd23f); animation: entra .6s cubic-bezier(.2, 1.4, .4, 1) both; touch-action: manipulation; }
+.op:active { transform: translateY(5px); box-shadow: 0 2px 0 #c7a76b; }
+.op.usada { visibility: hidden; }
+.op.mal { animation: tiembla .4s; border-color: #ef5b5b; }
+@keyframes entra { from { transform: translateX(100vw) rotate(10deg); } to { transform: none; } }
+@keyframes tiembla { 0%, 100% { translate: 0; } 25% { translate: -8px; } 75% { translate: 8px; } }
+@media (prefers-reduced-motion: reduce) { .op, .tren.llega, .nubes span { animation: none; } .tren { transition: none; } }
+@media (max-height: 560px) { .loco { font-size: 76px; } .vagon { height: 72px; } .op { height: 74px; font-size: 36px; } }
+</style>
+<script src="js/comun.js"></script>
+</head>
+<body>
+<div class="nubes" aria-hidden="true"><span style="top:12%;animation-delay:-5s">☁️</span><span style="top:28%;animation-delay:-22s;font-size:44px">☁️</span></div>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="figura" id="figura" hidden><span class="emo" id="emo"></span><button id="decir" aria-label="Escuchar otra vez">🔊</button></div>
+<div class="via" aria-hidden="true"></div>
+<div class="tren" id="tren" aria-label="Tren"></div>
+<div class="opciones" id="opciones" aria-label="Sílabas"></div>
+<div class="metas" id="metas" style="top:auto;bottom:140px"></div>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:64px;line-height:1">🚂🚃🚃</div>
+    <h1>Tren de Sílabas</h1>
+    <p>Mira el dibujo, escucha la palabra y <b>sube las sílabas</b> al tren en orden. ¡Chu chuuu!</p>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const J = window.Juego, P = J.progress;
+  const $ = s => document.querySelector(s);
+  const NIVELES = [
+    { sil: [2], extra: 0, meta: 5, nombre: 'Palabras de 2 sílabas' },
+    { sil: [2], extra: 2, meta: 5, nombre: 'Con sílabas que despistan' },
+    { sil: [3], extra: 1, meta: 5, nombre: 'Palabras de 3 sílabas' },
+    { sil: [2, 3], extra: 3, meta: 6, nombre: 'Tren largo' },
+  ];
+  const COLS = ['#ef5b5b', '#3f8ee8', '#4cb87a', '#f39a3b', '#9a6ee0', '#ff7eb6'];
+  const state = { nivel: 0, w: null, sils: [], paso: 0, hechas: 0, jugando: false, usadas: [] };
+  let PALABRAS = [];
+  const sils = w => w[1].split('-').map(s => s.toLowerCase());
+
+  function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; }
+  function message(text, secs = 1.4) {
+    const el = $('#mensaje'); el.textContent = text;
+    el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
+    clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
+  }
+  function chuchu() { J.tones([392, 494], .22, 'sawtooth', .07); setTimeout(() => J.tones([392, 494], .3, 'sawtooth', .07), 520); }
+
+  function nuevaPalabra() {
+    const cfg = NIVELES[state.nivel];
+    let pool = PALABRAS.filter(w => cfg.sil.includes(sils(w).length) && w[2]);
+    if (!pool.length) pool = PALABRAS.filter(w => sils(w).length >= 2);
+    const fresh = pool.filter(w => !state.usadas.includes(w[0]));
+    const w = J.pick(fresh.length ? fresh : pool);
+    state.usadas.push(w[0]); state.w = w; state.sils = sils(w); state.paso = 0;
+    // tren con un vagón vacío por sílaba
+    const tren = $('#tren'); tren.className = 'tren';
+    tren.innerHTML = '<span class="loco" aria-hidden="true">🚂</span>' + state.sils.map((_, i) => `<div class="vagon" style="--c:${COLS[i % COLS.length]}"><span class="hueco"></span></div>`).join('');
+    void tren.offsetWidth; tren.classList.add('llega');
+    $('#emo').textContent = w[2] || '🔊';
+    $('#figura').hidden = false;
+    // vagoncitos con sílabas desordenadas (más las que despistan)
+    const todas = [...new Set(PALABRAS.flatMap(sils))].filter(s => !state.sils.includes(s));
+    const ops = J.shuffle([...state.sils, ...J.shuffle(todas).slice(0, cfg.extra)]);
+    $('#opciones').innerHTML = ops.map((s, i) => `<button class="op" style="--c:${COLS[(i + 2) % COLS.length]};animation-delay:${.15 * i + .4}s" data-s="${J.esc(s)}">${J.esc(s)}</button>`).join('');
+    chuchu();
+    setTimeout(decir, 700);
+  }
+  function decir() { if (state.w) J.say(['Sube las sílabas de', state.w[0]]); }
+  $('#decir').onclick = () => state.w && J.say(state.w[0]);
+
+  $('#opciones').onclick = e => {
+    const b = e.target.closest('.op'); if (!b || !state.jugando || b.classList.contains('usada')) return;
+    tocar(b);
+  };
+  function tocar(b) {
+    const s = b.dataset.s, need = state.sils[state.paso];
+    if (s === need) {
+      b.classList.add('usada');
+      const v = $('#tren').querySelectorAll('.vagon')[state.paso];
+      v.classList.add('lleno'); v.querySelector('.hueco').textContent = s;
+      J.sfx('pop', .8, 1 + state.paso * .12);
+      J.say(s);
+      state.paso++;
+      if (state.paso >= state.sils.length) completa();
+    } else {
+      b.classList.remove('mal'); void b.offsetWidth; b.classList.add('mal');
+      J.efecto('error');
+      J.say(['Escucha', state.w[0]]);
+    }
+  }
+  function completa() {
+    state.jugando = false;
+    state.hechas++;
+    $('#metas').children[state.hechas - 1]?.classList.add('on');
+    J.addStar(); updatePlayer();
+    setTimeout(() => {
+      J.efecto('acierto');
+      message('¡' + state.w[0] + '!');
+      J.say([state.w[0], J.pick(J.PRAISES)]);
+      setTimeout(() => {
+        chuchu();
+        $('#tren').classList.add('sale');
+        $('#opciones').innerHTML = '';
+        setTimeout(() => {
+          if (state.hechas >= NIVELES[state.nivel].meta) return nivelListo();
+          J.nextTurn(() => { state.jugando = true; nuevaPalabra(); }, { onShow: updatePlayer });
+        }, 2300);
+      }, 1500);
+    }, 400);
+  }
+  function nivelListo() {
+    J.efecto('festejo'); J.confetti(90);
+    P.level.tren = Math.max(P.level.tren || 0, state.nivel + 1); J.save();
+    J.gift(() => { state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1); empezar(); });
+  }
+  function empezar() {
+    const cfg = NIVELES[state.nivel];
+    state.hechas = 0; state.usadas = [];
+    $('#nivel-num').textContent = state.nivel + 1;
+    $('#metas').innerHTML = Array.from({ length: cfg.meta }, () => '<span class="meta">🚃</span>').join('');
+    updatePlayer();
+    const go = () => { state.jugando = true; nuevaPalabra(); };
+    P.two ? J.showTurn(go, { onShow: updatePlayer }) : go();
+  }
+  function start(i) {
+    $('#portada').hidden = true;
+    J.audio(); J.startMusic();
+    state.nivel = i;
+    empezar();
+  }
+
+  (async () => {
+    await J.ready;
+    PALABRAS = J.palabras('tren').filter(w => w[1] && w[1].includes('-'));
+    if (PALABRAS.length < 4) PALABRAS = J.WORDS.filter(w => w[1].includes('-'));
+    updatePlayer(); J.refreshMusic();
+    const unlocked = Math.min(NIVELES.length, (P.level.tren || 0) + 1);
+    let sel = unlocked - 1;
+    const box = $('#niveles');
+    box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
+    box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); $('#nivel-desc').textContent = NIVELES[sel].nombre; J.sfx('pop'); };
+    $('#nivel-desc').textContent = NIVELES[sel].nombre;
+    const go = $('#empezar'); go.disabled = false; go.textContent = '▶ ¡Chu chuuu!';
+    go.onclick = () => start(sel);
+    if (location.hash === '#prueba') { window.__t = { state, tocar, NIVELES, start }; start(0); }
+  })();
+})();
+</script>
+</body>
+</html>
