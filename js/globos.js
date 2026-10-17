@@ -16,7 +16,7 @@ const NIVELES = [
   { nombre: 'Palabras rápidas', tipo: 'palabra', speed: 2.1, max: 7 },
 ];
 const WIN = 6;
-const WORDS = J.WORDS.filter(w => w[0].length <= 5);
+let WORDS = J.WORDS.filter(w => w[0].length <= 5);
 
 // ---------- mundo ----------
 const W = crearMundo($('#mundo'), { fog: 0xffe1f0, near: 30, far: 90, fov: 50 });
@@ -211,6 +211,9 @@ function start(n) {
 
 (async () => {
   await esperaFuente();
+  await J.ready;
+  const conf = J.palabras('globos');
+  if (conf.length >= 4) WORDS = conf;
   const ids = P.two ? [P.players[0].char, P.players[1].char] : [P.players[0].char];
   for (const id of ids) { const a = await crearPersonaje(id); const nar = innerWidth / innerHeight < .8; a.group.position.set(nar ? -2.3 : -5.2, 0, nar ? 4.5 : 3); a.group.scale.setScalar(nar ? .9 : 1.3); scene.add(a.group); actors.push(a); }
   swapActor();

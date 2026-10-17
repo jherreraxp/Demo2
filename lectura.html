@@ -166,7 +166,8 @@ details.credits a { color: var(--ink); }
 <script>
 (() => {
   const J = window.Juego, P = J.progress;
-  const { WORDS, pick, shuffle, strip, say } = J;
+  const { pick, shuffle, strip, say } = J;
+  let WORDS = J.WORDS;
   const $ = s => document.querySelector(s);
 
   // Método fonético-silábico: primero el SONIDO de cada letra ("mmm"), luego se junta con la vocal ("ma").
@@ -176,8 +177,14 @@ details.credits a { color: var(--ink); }
   const CONT = ['m', 's', 'l', 'n', 'f'];
 
   const firstSyl = w => strip(w[1].split('-')[0]).toLowerCase();
-  const SYL_WORDS = WORDS.filter(w => /^[^aeiou]?[aeiou]$/.test(firstSyl(w)));
-  const EASY_WORDS = WORDS.filter(w => w[0].length <= 5 && !/[áéíóú]/.test(w[0]) && w[1].split('-').length === 2);
+  let SYL_WORDS, EASY_WORDS;
+  const prepararPalabras = () => {
+    SYL_WORDS = WORDS.filter(w => /^[^aeiou]?[aeiou]$/.test(firstSyl(w)));
+    EASY_WORDS = WORDS.filter(w => w[0].length <= 5 && !/[áéíóú]/.test(w[0]) && w[1].split('-').length === 2);
+  };
+  prepararPalabras();
+  // las palabras se pueden cambiar en el modo admin (juego "lectura")
+  J.ready.then(() => { const conf = J.palabras('lectura'); if (conf.length >= 6) { WORDS = conf; prepararPalabras(); } });
 
   const MODES = {
     letras:   { name: 'Sonidos de las letras', color: 'c0' },

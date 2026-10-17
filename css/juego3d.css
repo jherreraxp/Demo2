@@ -72,3 +72,6 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
   .round-btn { width: 44px; height: 44px; font-size: 21px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.reloj { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 146px); width: min(60vw, 360px); height: 12px; border-radius: 999px; background: rgba(35, 50, 74, .55); overflow: hidden; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.reloj i { display: block; height: 100%; width: 100%; background: #4cb87a; border-radius: 999px; transition: width .3s linear, background .5s; }

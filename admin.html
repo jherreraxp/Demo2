@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modo Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Andika:wght@700&display=swap">
+<style>
+/* Layout: a parents' control room — sticky section index on top, stacked cards, editable tables for words and sounds. */
+:root {
+  --bg: #f3f5fa; --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #dfe5ef;
+  --accent: #6b47a8; --accent-soft: #efe8fb; --ok: #2f8a58; --warn: #c0392b; --rec: #e5484d;
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif; --font-letters: "Andika", "Century Gothic", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; }
+main { box-sizing: border-box; max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 60px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-family: var(--font-display); font-size: 30px; margin: 0; line-height: 1.1; }
+h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 6px; }
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.top a.casa { text-decoration: none; font-size: 22px; background: var(--card); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.indice { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px; display: flex; gap: 6px; overflow-x: auto; }
+.indice a { flex: none; text-decoration: none; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 14px; font-weight: 600; }
+.card { background: var(--card); border-radius: 18px; padding: 16px; box-shadow: 0 2px 8px rgba(35,50,74,.07); scroll-margin-top: 60px; }
+.card > p { margin: 4px 0 10px; color: var(--muted); line-height: 1.5; max-width: 72ch; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 10px; align-items: center; padding-block: 7px; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+label { font-weight: 600; }
+input[type=text], input[type=password], input:not([type]), select { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; width: 100%; box-sizing: border-box; background: #fff; color: var(--ink); }
+button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 10px; padding: 7px 11px; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+button.danger { color: var(--warn); }
+button.rec.on { background: var(--rec); color: #fff; border-color: var(--rec); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.tabs button { border-radius: 999px; font-size: 14px; padding: 4px 12px; }
+.tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tabla { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 640px; }
+th, td { text-align: left; padding: 5px 4px; border-top: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 13px; color: var(--muted); font-weight: 700; }
+td input { padding: 5px 7px; }
+td.pal input { font-family: var(--font-letters); font-size: 18px; }
+td.emo input { width: 60px; text-align: center; font-size: 20px; }
+.estado { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.estado.local { color: var(--ok); } .estado.pub { color: #3f8ee8; } .estado.no { color: var(--muted); }
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.efectos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.efecto { border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.efecto b { font-size: 17px; }
+.efecto .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.links { columns: 2 260px; padding-left: 18px; margin: 6px 0; }
+.links li { margin-bottom: 6px; break-inside: avoid; }
+.links a { color: var(--accent); font-weight: 600; }
+.links span { color: var(--muted); font-size: 14px; }
+.ok { color: var(--ok); font-weight: 700; } .err { color: var(--warn); font-weight: 700; }
+code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
+#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 70; }
+#toast.ver { opacity: 1; }
+@media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+</style>
+<script>window.SIN_MUSICA = true;</script>
+<script src="js/comun.js"></script>
+<script src="js/herramientas.js"></script>
+</head>
+<body>
+<main id="main" hidden>
+  <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
+  <nav class="indice" aria-label="Secciones">
+    <a href="#jugadores">Jugadores</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+  </nav>
+
+  <section class="card" id="jugadores">
+    <h2>👧 Jugadores y personajes</h2>
+    <div class="row"><label for="n1">Nombre de la niña</label><input type="text" id="n1" maxlength="20" autocomplete="off"></div>
+    <div class="row"><label for="dos">Jugar de a 2 (turnos)</label><span><input type="checkbox" id="dos"> se turnan cada respuesta</span></div>
+    <div class="row"><label for="n2">Segundo jugador</label><input type="text" id="n2" maxlength="20" autocomplete="off"></div>
+    <h2 style="margin-top:12px">Nombres de los personajes</h2>
+    <p>Cámbialos como quieran; el juego los usa en todas partes.</p>
+    <div id="nombres"></div>
+  </section>
+
+  <section class="card" id="canciones">
+    <h2>🎵 Canciones</h2>
+    <p>Elige una canción distinta para el menú, para los juegos y para el ballet.</p>
+    <div class="row"><label for="c-menu">Menú de inicio</label><select id="c-menu"></select></div>
+    <div class="row"><label for="c-juegos">Juegos</label><select id="c-juegos"></select></div>
+    <div class="row"><label for="c-ballet">Escenario de ballet</label><select id="c-ballet"></select></div>
+    <div class="row"><label for="c-rep">Repetir la canción</label><span><input type="checkbox" id="c-rep"> si no, la música se detiene cuando la canción termina</span></div>
+  </section>
+
+  <section class="card" id="palabras">
+    <h2>📝 Palabras por juego</h2>
+    <p>Escribe las palabras que quieres que salgan en cada juego y graba cómo se dicen. Las sílabas se separan solas (puedes corregirlas). En la Carrera y el Bosque, si la palabra no tiene modelo 3D se muestra su dibujo.</p>
+    <div class="tabs" id="tabs-pal"></div>
+    <div class="tabla"><table id="tabla-pal"></table></div>
+    <div class="acciones">
+      <button class="primary" id="add-pal">➕ Agregar palabra</button>
+      <button id="semilla">↺ Volver a las palabras iniciales</button>
+    </div>
+  </section>
+
+  <section class="card" id="efectos">
+    <h2>🔊 Efectos de sonido</h2>
+    <p>Cambia cualquier efecto por uno tuyo: sube un archivo de sonido (mp3, wav, ogg) o grábalo. Puedes ponerlo para todos los juegos o solo para uno.</p>
+    <div class="row"><label for="ef-juego">Aplicar en</label><select id="ef-juego"></select></div>
+    <div class="efectos" id="lista-efectos"></div>
+    <h2 style="margin-top:14px">Sitios para descargar efectos gratis</h2>
+    <ul class="links">
+      <li><a href="https://pixabay.com/sound-effects/" target="_blank" rel="noopener">Pixabay · Efectos de sonido</a> <span>— gratis, sin registrarse</span></li>
+      <li><a href="https://mixkit.co/free-sound-effects/" target="_blank" rel="noopener">Mixkit · Free Sound Effects</a> <span>— gratis, muy buena calidad</span></li>
+      <li><a href="https://freesound.org/" target="_blank" rel="noopener">Freesound</a> <span>— enorme; busca licencia CC0</span></li>
+      <li><a href="https://www.zapsplat.com/sound-effect-categories/" target="_blank" rel="noopener">ZapSplat</a> <span>— gratis con registro</span></li>
+      <li><a href="https://opengameart.org/art-search-advanced?field_art_type_tid%5B%5D=13" target="_blank" rel="noopener">OpenGameArt · Sonidos</a> <span>— para juegos, CC0 y libres</span></li>
+      <li><a href="https://kenney.nl/assets/category:Audio" target="_blank" rel="noopener">Kenney · Audio</a> <span>— CC0, los que usa el juego</span></li>
+      <li><a href="https://sonniss.com/gameaudiogdc" target="_blank" rel="noopener">Sonniss GDC Bundle</a> <span>— gigante y libre de regalías</span></li>
+      <li><a href="https://www.myinstants.com/es/index/pe/" target="_blank" rel="noopener">MyInstants</a> <span>— botones divertidos (revisa la licencia)</span></li>
+    </ul>
+    <p>Consejo: para "Acierto" busca <i>success</i> o <i>win</i>; para "Popó" busca <i>fart</i> o <i>squish</i>; para "Aplausos" busca <i>kids cheering</i>.</p>
+  </section>
+
+  <section class="card" id="voces">
+    <h2>🎙️ Voces de todo el juego</h2>
+    <p>En el Estudio de voz grabas, una por una, todas las frases e instrucciones del juego. Lo que no esté grabado lo dice la voz del dispositivo.</p>
+    <a class="primary" href="voces.html" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:12px">Abrir el Estudio de voz →</a>
+  </section>
+
+  <section class="card" id="publicar">
+    <h2>🌐 Publicar en la web</h2>
+    <p>Publica la configuración (palabras, canciones, nombres), las voces de las palabras y tus efectos para que estén en todos los dispositivos. Necesitas la llave de GitHub (se crea una vez en <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>, con acceso solo a <code id="repo"></code> y permiso <b>Contents: Read and write</b>).</p>
+    <div class="row"><label for="token">Llave de GitHub</label><input type="password" id="token" autocomplete="off" placeholder="github_pat_…"></div>
+    <div class="acciones"><button class="primary" id="btn-publicar">🌐 Publicar todo</button></div>
+    <p id="pub-estado" role="status"></p>
+  </section>
+
+  <section class="card" id="sesion">
+    <h2>⏱️ Sesión y voz</h2>
+    <div class="row"><label for="ses">Descanso después de</label><select id="ses"><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="20">20 minutos</option><option value="30">30 minutos</option><option value="0">Sin límite</option></select></div>
+    <div class="row"><label for="vel">Velocidad de la voz del dispositivo</label><select id="vel"><option value="0.65">Muy lenta</option><option value="0.8">Lenta (recomendada)</option><option value="0.95">Normal</option></select></div>
+  </section>
+
+  <section class="card" id="progreso">
+    <h2>📈 Progreso</h2>
+    <div class="tabla"><table id="prog" style="min-width:0"></table></div>
+    <div class="acciones"><button class="danger" id="reset">Reiniciar progreso</button></div>
+  </section>
+
+  <section class="card" id="pin">
+    <h2>🔒 Cambiar PIN</h2>
+    <div class="row"><label for="pin1">PIN nuevo (4 a 6 números)</label><input type="password" id="pin1" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    <div class="acciones"><button id="guardar-pin">Guardar PIN</button></div>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+(async () => {
+  const J = window.Juego, P = J.progress, $ = s => document.querySelector(s);
+  const toast = t => { const el = $('#toast'); el.textContent = t; el.classList.add('ver'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('ver'), 2200); };
+  await new Promise(ok => J.pedirPin(ok));
+  $('#main').hidden = false;
+  await J.ready;
+  $('#salir').onclick = () => { try { sessionStorage.removeItem('bl-admin'); } catch (e) {} location.href = 'index.html'; };
+
+  // ---------- jugadores ----------
+  $('#n1').value = P.players[0].name; $('#n2').value = P.players[1].name; $('#dos').checked = !!P.two;
+  $('#n1').oninput = e => { P.players[0].name = e.target.value.trim() || 'Avelu'; J.save(); };
+  $('#n2').oninput = e => { P.players[1].name = e.target.value.trim() || 'Mamá'; J.save(); };
+  $('#dos').onchange = e => { P.two = e.target.checked; P.turn = 0; J.save(); toast(P.two ? 'Modo de 2 jugadores' : 'Modo de 1 jugador'); };
+  $('#nombres').innerHTML = Object.entries(J.CHARS).map(([id, c]) => `<div class="row"><label for="nm-${id}">${c.emoji} ${id}</label><input type="text" id="nm-${id}" data-id="${id}" value="${J.esc(J.config().nombres[id] || c.name)}" maxlength="24"></div>`).join('');
+  $('#nombres').oninput = e => { const id = e.target.dataset.id; if (!id) return; const v = e.target.value.trim(); J.setConfig('nombres', id, v || undefined); if (v) J.CHARS[id].name = v; };
+
+  // ---------- canciones ----------
+  const canc = J.config().canciones, songs = J.songList();
+  ['menu', 'juegos', 'ballet'].forEach(ctx => {
+    const sel = $('#c-' + ctx);
+    sel.innerHTML = songs.map(s => `<option value="${s.id}" ${s.id === canc[ctx] ? 'selected' : ''}>${s.emoji} ${J.esc(s.nombre)}</option>`).join('');
+    sel.onchange = () => { J.setConfig('canciones', ctx, sel.value); toast('Guardado'); };
+  });
+  $('#c-rep').checked = !!canc.repetir;
+  $('#c-rep').onchange = e => { J.setConfig('canciones', 'repetir', e.target.checked); toast('Guardado'); };
+
+  // ---------- palabras por juego ----------
+  const juegos = Object.keys(J.JUEGOS_PALABRAS);
+  let juego = juegos[0];
+  const lista = () => (J.config().palabras[juego] || J.SEMILLAS[juego]).map(J.itemDe);
+  function guardarLista(items) { J.setConfig('palabras', juego, items.map(it => ({ t: it.t, s: it.s, e: it.e, m: it.m }))); }
+  const estadoVoz = t => J.voices.has(t) ? '<span class="estado local">● grabada</span>' : J.voices.hasPublic(t) ? '<span class="estado pub">● publicada</span>' : '<span class="estado no">○ falta</span>';
+  function renderTabs() { $('#tabs-pal').innerHTML = juegos.map(j => `<button class="${j === juego ? 'on' : ''}" data-j="${j}">${J.JUEGOS_PALABRAS[j]}</button>`).join(''); }
+  function renderTabla() {
+    const items = lista();
+    const modelos = ['', ...J.MODELOS];
+    $('#tabla-pal').innerHTML = `<tr><th>Dibujo</th><th>Palabra</th><th>Sílabas</th><th>Modelo 3D</th><th>Voz</th><th></th></tr>` + items.map((it, i) => `
+      <tr data-i="${i}">
+        <td class="emo"><input value="${J.esc(it.e)}" data-f="e" aria-label="Dibujo (emoji)"></td>
+        <td class="pal"><input value="${J.esc(it.t)}" data-f="t" aria-label="Palabra"></td>
+        <td><input value="${J.esc(it.s)}" data-f="s" aria-label="Sílabas"></td>
+        <td><select data-f="m" aria-label="Modelo 3D">${modelos.map(m => `<option value="${m}" ${m === (it.m || '') ? 'selected' : ''}>${m || '(dibujo)'}</option>`).join('')}</select></td>
+        <td>${estadoVoz(it.t)}</td>
+        <td style="white-space:nowrap"><button class="rec" data-a="rec" aria-label="Grabar la palabra">🎙️</button> <button data-a="play" aria-label="Escuchar">▶</button> <button class="danger" data-a="del" aria-label="Quitar">✕</button></td>
+      </tr>`).join('');
+  }
+  $('#tabs-pal').onclick = e => { const b = e.target.closest('[data-j]'); if (!b) return; juego = b.dataset.j; renderTabs(); renderTabla(); };
+  $('#tabla-pal').addEventListener('change', e => {
+    const tr = e.target.closest('tr[data-i]'); if (!tr) return;
+    const items = lista(), it = items[+tr.dataset.i], f = e.target.dataset.f;
+    it[f] = e.target.value.trim() || (f === 'm' ? null : '');
+    if (f === 't') { const w = J.WORDS.find(x => x[0] === it.t); it.s = w ? w[1] : J.silabas(it.t); it.e = w ? w[2] : ''; it.m = J.MODELOS.includes(it.t) ? it.t : null; }
+    guardarLista(items); toast('Guardado');
+    if (f === 't') setTimeout(renderTabla, 0);
+  });
+  let recWord = null;
+  $('#tabla-pal').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-a]'); if (!b) return;
+    const tr = b.closest('tr'), items = lista(), it = items[+tr.dataset.i];
+    if (b.dataset.a === 'del') { items.splice(+tr.dataset.i, 1); guardarLista(items); renderTabla(); return; }
+    if (b.dataset.a === 'play') { J.say(it.t); return; }
+    if (b.dataset.a === 'rec') {
+      if (recWord) { const r = recWord; recWord = null; b.classList.remove('on'); b.textContent = '🎙️'; const wav = await r.stop(); const k = J.norm(it.t); await J.voices.set(k, wav); await J.voices.refresh(k); toast('¡Grabada!'); renderTabla(); new Audio(URL.createObjectURL(wav)).play().catch(() => {}); return; }
+      try { recWord = await Herr.grabar(8); b.classList.add('on'); b.textContent = '⏹'; toast('Di: ' + it.t + ' y toca ⏹'); } catch (er) { toast('No se pudo usar el micrófono'); }
+    }
+  });
+  $('#add-pal').onclick = () => { const items = lista(); items.push({ t: '', s: '', e: '', m: null }); guardarLista(items); renderTabla(); const inputs = document.querySelectorAll('#tabla-pal td.pal input'); inputs[inputs.length - 1]?.focus(); };
+  $('#semilla').onclick = () => { J.setConfig('palabras', juego, undefined); renderTabla(); toast('Palabras iniciales restauradas'); };
+  renderTabs(); renderTabla();
+
+  // ---------- efectos ----------
+  const sel = $('#ef-juego');
+  const JUEGOS_EF = { '': 'Todos los juegos', carrera: 'Carrera', bosque: 'Bosque', globos: 'Globos', gusanos: 'Gusanos', memoria: 'Memoria', tren: 'Tren', lectura: 'Lectura', ballet: 'Ballet', princesa: 'Pintar personaje', pintar: 'Lienzo', cuidar: 'Cuidar personaje' };
+  sel.innerHTML = Object.entries(JUEGOS_EF).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  const keyEf = g => sel.value ? `efecto ${sel.value} ${g}` : `efecto ${g}`;
+  function renderEfectos() {
+    $('#lista-efectos').innerHTML = Object.entries(J.GRUPOS_EFECTOS).map(([g, n]) => {
+      const k = keyEf(g), st = J.voices.has(k) ? '<span class="estado local">● propio (en este navegador)</span>' : J.voices.hasPublic(k) ? '<span class="estado pub">● propio publicado</span>' : '<span class="estado no">○ el del juego</span>';
+      return `<div class="efecto" data-g="${g}"><b>${n}</b>${st}<div class="btns"><button data-a="play">▶ Escuchar</button><label style="font-weight:400"><input type="file" accept="audio/*" data-a="file" hidden><span class="btnlike" style="display:inline-block;border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer">📁 Subir</span></label><button class="rec" data-a="rec">🎙️ Grabar</button>${J.voices.has(k) ? '<button class="danger" data-a="del">✕</button>' : ''}</div></div>`;
+    }).join('');
+  }
+  sel.onchange = renderEfectos;
+  let recEf = null;
+  $('#lista-efectos').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-a]'); if (!b) return;
+    const g = b.closest('[data-g]').dataset.g, k = keyEf(g);
+    if (b.dataset.a === 'play') { const url = J.recUrl(k) || (J.voices.has(k) ? null : null); if (J.voices.has(k) || J.voices.hasPublic(k)) { new Audio(await urlDe(k)).play().catch(() => {}); } else J.efecto(g); }
+    if (b.dataset.a === 'del') { await J.voices.del(k); await J.voices.refresh(k); renderEfectos(); toast('Se usa el efecto del juego'); }
+    if (b.dataset.a === 'rec') {
+      if (recEf) { const r = recEf; recEf = null; const wav = await r.stop(); await J.voices.set(k, wav); await J.voices.refresh(k); renderEfectos(); toast('¡Efecto grabado!'); return; }
+      try { recEf = await Herr.grabar(6); b.classList.add('on'); b.textContent = '⏹ Listo'; } catch (er) { toast('No se pudo usar el micrófono'); }
+    }
+  });
+  $('#lista-efectos').addEventListener('change', async e => {
+    const inp = e.target.closest('input[data-a="file"]'); if (!inp || !inp.files[0]) return;
+    const g = inp.closest('[data-g]').dataset.g, k = keyEf(g), f = inp.files[0];
+    if (f.size > 3e6) { toast('Ese sonido pesa mucho (máximo 3 MB)'); return; }
+    let blob = f; try { blob = await Herr.procesar(f, { recortar: true }); } catch (er) {}
+    await J.voices.set(k, blob); await J.voices.refresh(k); renderEfectos(); toast('¡Efecto guardado!'); new Audio(URL.createObjectURL(blob)).play().catch(() => {});
+  });
+  async function urlDe(k) { const b = await J.voices.get(k); return b ? URL.createObjectURL(b) : (J.voices.publicList()[k] || ''); }
+  renderEfectos();
+
+  // ---------- publicar ----------
+  $('#repo').textContent = Herr.REPO;
+  $('#token').value = Herr.token();
+  $('#token').onchange = e => Herr.setToken(e.target.value);
+  $('#btn-publicar').onclick = async () => {
+    const out = $('#pub-estado'); Herr.setToken($('#token').value);
+    if (!Herr.token()) { out.innerHTML = '<span class="err">Primero pega la llave de GitHub.</span>'; return; }
+    $('#btn-publicar').disabled = true;
+    try {
+      const cfg = J.config();
+      const files = [{ path: 'assets/config.json', text: JSON.stringify({ palabras: cfg.palabras, canciones: cfg.canciones, nombres: cfg.nombres }, null, 1) }];
+      const patch = {};
+      let done = {}; try { done = JSON.parse(localStorage.getItem('bl-publicadas') || '{}'); } catch (er) {}
+      for (const k of await J.voices.keys()) {
+        if (k === 'musica local') continue;
+        const blob = await J.voices.get(k); if (!blob || done[k] === blob.size) continue;
+        const ext = /wav/.test(blob.type) ? 'wav' : /mpeg|mp3/.test(blob.type) ? 'mp3' : /ogg/.test(blob.type) ? 'ogg' : /mp4|m4a|aac/.test(blob.type) ? 'm4a' : 'webm';
+        const name = Herr.fileFor(k, ext); files.push({ path: 'assets/voz/' + name, blob, k }); patch[k] = name;
+      }
+      await Herr.publicar({ files, listaPatch: patch, message: 'Configuración y voces de la familia', onProgress: t => { out.textContent = t; } });
+      files.forEach(f => { if (f.k) done[f.k] = f.blob.size; }); try { localStorage.setItem('bl-publicadas', JSON.stringify(done)); } catch (er) {}
+      out.innerHTML = `<span class="ok">¡Publicado!</span> Configuración y ${files.length - 1} sonidos. En uno o dos minutos estará en todos los dispositivos.`;
+    } catch (er) { out.innerHTML = `<span class="err">No se pudo publicar.</span> (${J.esc(er.message)})`; }
+    $('#btn-publicar').disabled = false;
+  };
+
+  // ---------- sesión ----------
+  $('#ses').value = String(P.sessionMin ?? 15); $('#ses').onchange = e => { P.sessionMin = +e.target.value; J.save(); toast('Guardado'); };
+  $('#vel').value = String(P.rate ?? .8); if (!$('#vel').value) $('#vel').value = '0.8';
+  $('#vel').onchange = e => { P.rate = +e.target.value; J.save(); toast('Guardado'); };
+
+  // ---------- progreso ----------
+  const NAMES = { carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', gusanos: 'Aplasta Gusanos', memoria: 'Memoria', tren: 'Tren de sílabas', letras: 'Sonidos de las letras', junta: 'Junta los sonidos', silabas: 'Sílabas', empieza: '¿Con qué sílaba empieza?', palabras: 'Palabras' };
+  function renderProg() {
+    $('#prog').innerHTML = '<tr><th>Actividad</th><th>Niveles superados</th></tr>' + Object.entries(NAMES).map(([k, n]) => `<tr><td>${n}</td><td>${P.level[k] || 0}</td></tr>`).join('') + P.players.map(p => `<tr><td>Estrellas de ${J.esc(p.name)}</td><td>⭐ ${p.stars}</td></tr>`).join('');
+  }
+  renderProg();
+  let armed = false;
+  $('#reset').onclick = e => {
+    if (!armed) { armed = true; e.target.textContent = 'Toca otra vez para confirmar'; setTimeout(() => { armed = false; e.target.textContent = 'Reiniciar progreso'; }, 3000); return; }
+    P.level = {}; P.players.forEach(p => { p.stars = 0; }); J.save(); renderProg(); toast('Progreso reiniciado'); armed = false; e.target.textContent = 'Reiniciar progreso';
+  };
+
+  // ---------- PIN ----------
+  $('#guardar-pin').onclick = () => { const v = $('#pin1').value.trim(); if (!/^\d{4,6}$/.test(v)) { toast('El PIN debe tener de 4 a 6 números'); return; } P.pin = v; J.save(); $('#pin1').value = ''; toast('PIN cambiado'); };
+})();
+</script>
+</body>
+</html>

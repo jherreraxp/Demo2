@@ -104,7 +104,7 @@ details.credits a { color: var(--ink); }
   <div id="islas"></div>
 
   <section class="papas">
-    <button class="papas-btn" id="papas"><span class="fill" id="papas-fill"></span><span style="position:relative">🔒 Para mamá y papá (mantén presionado)</span></button>
+    <button class="papas-btn" id="papas"><span class="fill" id="papas-fill"></span><span style="position:relative">🔒 Para mamá y papá · modo admin</span></button>
     <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. Sigan las islas en orden; cada actividad sube de nivel sola.</p>
     <details class="credits">
       <summary>Créditos</summary>
@@ -188,13 +188,8 @@ details.credits a { color: var(--ink); }
   $('#dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };
   document.addEventListener('click', e => { if (e.target.closest('a.card')) J.sfx('pop'); });
 
-  // botón de papás: mantener presionado 2 segundos
-  let hold = null;
-  const fill = $('#papas-fill');
-  const startHold = e => { e.preventDefault(); let t0 = performance.now(); hold = setInterval(() => { const k = (performance.now() - t0) / 2000; fill.style.width = Math.min(100, k * 100) + '%'; if (k >= 1) { clearInterval(hold); location.href = 'papas.html'; } }, 30); };
-  const stopHold = () => { clearInterval(hold); fill.style.width = '0'; };
-  $('#papas').addEventListener('pointerdown', startHold);
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('#papas').addEventListener(ev, stopHold));
+  // botón de mamá y papá: pide el PIN (1234 al inicio; se cambia en el modo admin)
+  $('#papas').addEventListener('click', () => J.pedirPin(() => { location.href = 'admin.html'; }));
 
   render();
   setTimeout(() => J.say(['¡Hola!', J.childName(), '¿A qué jugamos hoy?']), 900);

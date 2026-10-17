@@ -1,32 +1,33 @@
-// Carrera de Palabras — tu personaje corre por un camino de tres carriles. Vienen animalitos y cosas
-// en 3D con un letrero encima; hay que atrapar el que dice la palabra y guardarlo en la mochila.
+// Carrera de Palabras — tu personaje corre por un camino de tres carriles. Vienen filas de animalitos
+// y cosas (como monedas) con un globito de texto encima. Si atrapa los de la palabra que escuchó, salen
+// moneditas; si atrapa otros, queda una popó en el camino. Con los niveles el dibujo se va borrando
+// hasta que solo queda el texto, y todo va más rápido.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { chispitas, tarjeta, esperaFuente } from './mundo3d.js';
-import { crearPersonaje, crearObjeto, tieneObjeto } from './personajes.js';
+import { crearPersonaje, crearObjeto, crearPopo, crearMoneda } from './personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
 const TEST = location.hash === '#prueba';
 
 // ---------- niveles ----------
+// fade: 0 = se ve el dibujo 3D completo; 1 = solo el globito con el texto
 const NIVELES = [
-  { speed: 6.0, opts: 2, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 2 caminos' },
-  { speed: 6.8, opts: 3, dibujo: true,  tipo: 'palabra',   nombre: 'Con dibujo, 3 caminos' },
-  { speed: 7.6, opts: 3, dibujo: false, tipo: 'palabra',   nombre: '¡Solo la palabra!' },
-  { speed: 8.4, opts: 3, dibujo: false, tipo: 'parecidas', nombre: 'Palabras parecidas' },
-  { speed: 9.2, opts: 3, dibujo: false, tipo: 'silaba',    nombre: '¿Con qué empieza?' },
-  { speed: 10,  opts: 3, dibujo: false, tipo: 'frase',     nombre: 'Frases cortas' },
+  { speed: 6.0,  fila: 3, opts: 2, fade: 0,   meta: 12, tiempo: 100, tipo: 'palabra',   nombre: 'Con dibujo, 2 caminos' },
+  { speed: 7.0,  fila: 3, opts: 3, fade: .35, meta: 14, tiempo: 95,  tipo: 'palabra',   nombre: 'El dibujo se borra un poquito' },
+  { speed: 8.0,  fila: 4, opts: 3, fade: .7,  meta: 16, tiempo: 90,  tipo: 'palabra',   nombre: 'Casi solo la palabra' },
+  { speed: 9.0,  fila: 4, opts: 3, fade: 1,   meta: 18, tiempo: 85,  tipo: 'parecidas', nombre: 'Solo el texto: palabras parecidas' },
+  { speed: 10,   fila: 4, opts: 3, fade: 1,   meta: 18, tiempo: 80,  tipo: 'silaba',    nombre: '¿Con qué empieza?' },
+  { speed: 11,   fila: 5, opts: 3, fade: 1,   meta: 20, tiempo: 80,  tipo: 'frase',     nombre: 'Frases cortas' },
 ];
-const WIN_PER_LEVEL = 8;
-// frase y el objeto 3D que la acompaña
 const FRASES = [['el sol', 'sol'], ['la luna', 'luna'], ['mi gato', 'gato'], ['un pato', 'pato'], ['la casa', 'casa'], ['el oso', 'oso'], ['una palta', 'palta'], ['el choclo', 'choclo'], ['la llama', 'llama'], ['la nube', 'nube'], ['el perro', 'perro'], ['la vaca', 'vaca']];
-const EASY = J.WORDS.filter(w => tieneObjeto(w[0]));
+let EASY = [];   // [palabra, sílabas, dibujo, modelo] — se carga de la configuración (modo admin)
 const syl0 = w => J.strip(w[1].split('-')[0]);
 
 const LANE_W = 2.2, ROAD_W = LANE_W * 3, LOOP = 150;
-const ROW_START = TEST ? -22 : -55;
-const GAP_SECONDS = 2.6;   // tiempo entre filas
+const ROW_START = TEST ? -24 : -58;
+const SPACING = 2.2;   // distancia entre animalitos de una fila
 
 // ---------- escena ----------
 const canvas = $('#mundo');
@@ -159,43 +160,50 @@ function swapActor() {
   $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`;
 }
 
-// ---------- animalitos con letrero ----------
-const BORDERS = ['#ef5b5b', '#3f8ee8', '#4cb87a', '#9a6ee0', '#f39a3b'];
-function makeItem(item, i) {
+// ---------- animalitos con globito de texto ----------
+function bubbleTex(text) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 300; const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.strokeStyle = '#9a6ee0'; g.lineWidth = 14;
+  g.beginPath(); g.roundRect(14, 14, 484, 210, 90); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(226, 220); g.lineTo(256, 288); g.lineTo(290, 220); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#ffffff'; g.fillRect(230, 206, 56, 18);
+  g.fillStyle = '#23324a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `700 ${text.length > 7 ? 92 : 120}px Andika, "Century Gothic", sans-serif`; g.fillText(text, 256, 122);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const texCache = {};
+function makeItem(item, fade) {
   const g = new THREE.Group();
-  const o = crearObjeto(item.obj);
-  o.group.scale.setScalar(1.5); o.group.rotation.y = 0;
-  o.group.traverse(m => { if (m.isMesh) m.castShadow = true; });
+  const o = crearObjeto(item.obj, item.emoji);
+  o.group.scale.setScalar(1.35);
+  // el dibujo se va borrando con los niveles
+  o.group.traverse(m => { if (m.material) { m.material = m.material.clone(); m.material.transparent = fade > 0; m.material.opacity = 1 - fade; m.castShadow = fade < .5; } });
+  o.group.visible = fade < 1;
   g.add(o.group);
-  // letrero chiquito en un palito, encima del animalito
-  const tex = tarjeta(item.text, { color: BORDERS[i % 5] });
+  const tex = texCache[item.text] || (texCache[item.text] = bubbleTex(item.text));
   const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
-  sign.scale.set(1.15, 1.15, 1); sign.position.y = 2.25;
+  const s = fade >= 1 ? 1.5 : 1.2;
+  sign.scale.set(s, s * 300 / 512, 1); sign.position.y = fade >= 1 ? 1.1 : 2.1;
   g.add(sign);
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .5, 6), new THREE.MeshLambertMaterial({ color: 0xffffff }));
-  stick.position.y = 1.55; g.add(stick);
-  g.userData = { item, o, sign, tex };
+  g.userData = { item, o, sign, baseY: sign.position.y };
   return g;
 }
 
 // ---------- preguntas según el nivel ----------
-function makeQuestion(cfg, keepKey) {
-  const asItem = w => ({ text: w[0], emoji: w[2], obj: w[0], key: w[0] });
+function makeQuestion(cfg) {
+  const asItem = w => ({ text: w[0], emoji: w[2], obj: w[3] || w[0], key: w[0] });
   if (cfg.tipo === 'frase') {
-    const f = keepKey ? FRASES.find(x => x[0] === keepKey) : J.pick(FRASES);
-    const it = x => ({ text: x[0], obj: x[1], key: x[0], emoji: '' });
+    const f = J.pick(FRASES), it = x => ({ text: x[0], obj: x[1], key: x[0], emoji: (J.WORDS.find(w => w[0] === x[1]) || [])[2] || '' });
     return { target: it(f), pool: () => J.shuffle(FRASES.filter(x => x !== f)).slice(0, cfg.opts - 1).map(it), say: ['Atrapa', f[0]] };
   }
   if (cfg.tipo === 'silaba') {
-    // "Atrapa algo que empieza con pa": los letreros muestran palabras
-    const w = keepKey ? EASY.find(x => x[0] === keepKey) : J.pick(EASY.filter(x => /^[^aeiou]?[aeiou]$/.test(syl0(x))));
-    const t = asItem(w); t.syl = syl0(w);
+    const cand = EASY.filter(x => /^[^aeiou]?[aeiou]$/.test(syl0(x)));
+    const w = J.pick(cand.length ? cand : EASY), t = asItem(w); t.syl = syl0(w);
     return { target: t, show: t.syl, pool: () => J.shuffle(EASY.filter(x => syl0(x) !== t.syl)).slice(0, cfg.opts - 1).map(asItem), say: ['Algo que empieza con', t.syl] };
   }
-  const w = keepKey ? EASY.find(x => x[0] === keepKey) : J.pick(EASY);
-  const t = asItem(w);
+  const w = J.pick(EASY), t = asItem(w);
   return {
-    target: t, say: ['Atrapa', w[0]],
+    target: t, say: [`Atrapa ${J.art(w[0])}`, w[0]],
     pool: () => {
       let pool = EASY.filter(x => x[0] !== w[0]);
       if (cfg.tipo === 'parecidas') { const near = pool.filter(x => J.strip(x[0])[0] === J.strip(w[0])[0] || x[0].slice(-2) === w[0].slice(-2)); if (near.length >= cfg.opts - 1) pool = near; }
@@ -206,85 +214,99 @@ function makeQuestion(cfg, keepKey) {
 }
 
 // ---------- estado ----------
-const state = { running: false, lane: 0, x: 0, hopT: 1, scroll: 0, nivel: 0, wins: 0, rows: [], q: null, missed: false, celebrate: 0, nextRow: 0, mochila: [] };
-const metas = $('#metas');
-const speed = () => NIVELES[state.nivel].speed;
+const state = { running: false, lane: 0, x: 0, hopT: 1, scroll: 0, nivel: 0, coins: 0, items: [], popos: [], monedas: [], q: null, celebrate: 0, wave: null, tiempo: 0, mochila: [], fallos: 0 };
+const cfgN = () => NIVELES[state.nivel];
+const speed = () => cfgN().speed * (1 + Math.min(.25, state.fallos * .03));
 
-function newQuestion(keep) {
-  state.q = makeQuestion(NIVELES[state.nivel], keep ? state.q.target.key : null);
-  // las filas que ya venían se van; la siguiente llega pronto
-  state.rows.forEach(r => { if (!r.done) r.fade = .001; });
-  state.nextRow = .4;
+function newWave() {
+  // una ola: en un carril vienen los de la palabra; en los otros, otros animalitos
+  const cfg = cfgN();
+  state.q = makeQuestion(cfg);
+  const q = state.q;
+  const others = q.pool();
+  const lanes = J.shuffle([-1, 0, 1]).slice(0, cfg.opts);
+  const kinds = [q.target, ...others];
+  state.wave = { left: 0, key: q.target.key };
+  lanes.forEach((lane, i) => {
+    for (let k = 0; k < cfg.fila; k++) {
+      const g = makeItem(kinds[i], cfg.fade);
+      g.position.set(lane * LANE_W, 0, ROW_START - k * SPACING - (i % 2) * .6);
+      g.userData.lane = lane; g.userData.good = i === 0;
+      scene.add(g); state.items.push(g); state.wave.left++;
+    }
+  });
   showTarget();
 }
-function spawnRow() {
-  const cfg = NIVELES[state.nivel], q = state.q;
-  const items = J.shuffle([q.target, ...q.pool()]);
-  const lanes = cfg.opts === 2 ? J.shuffle([-1, 0, 1]).slice(0, 2).sort() : [-1, 0, 1];
-  const row = { z: ROW_START, items: [], done: false, key: q.target.key };
-  items.forEach((it, i) => {
-    const g = makeItem(it, i + Math.floor(Math.random() * 5));
-    g.position.set(lanes[i] * LANE_W, 0, ROW_START);
-    g.userData.lane = lanes[i];
-    g.userData.hint = state.missed && it.key === q.target.key;
-    scene.add(g); row.items.push(g);
-  });
-  state.rows.push(row);
-}
 function showTarget() {
-  const q = state.q, cfg = NIVELES[state.nivel];
+  const q = state.q, cfg = cfgN();
   $('#m-etq').textContent = q.target.syl ? 'Empieza con' : 'Atrapa';
-  $('#m-pic').textContent = cfg.dibujo ? q.target.emoji : '🔊';
+  const pic = $('#m-pic');
+  pic.textContent = q.target.emoji || '🔊'; pic.style.opacity = String(1 - cfg.fade); pic.hidden = cfg.fade >= 1;
   $('#m-word').textContent = q.show || q.target.text;
   const box = $('#mision'); box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
   J.say(q.say);
 }
 $('#m-say').onclick = () => state.q && J.say(state.q.say);
-function message(text, secs = 1.4) {
+function message(text, secs = 1.2) {
   const el = $('#mensaje'); el.textContent = text;
   el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
   clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
 }
-function renderMetas() { metas.innerHTML = Array.from({ length: WIN_PER_LEVEL }, (_, i) => `<span class="meta ${i < state.wins ? 'on' : ''}">⭐</span>`).join(''); }
-function renderNivel() { $('#nivel-num').textContent = state.nivel + 1; }
+function renderHud() {
+  const c = cfgN();
+  $('#monedas').textContent = `${state.coins} / ${c.meta}`;
+  $('#nivel-num').textContent = state.nivel + 1;
+  const pct = Math.max(0, state.tiempo / c.tiempo);
+  $('#reloj-barra').style.width = (pct * 100) + '%';
+  $('#reloj-barra').style.background = pct < .25 ? '#ef5b5b' : pct < .5 ? '#f6c33b' : '#4cb87a';
+}
 function renderMochila() { $('#mochila').innerHTML = '🎒 ' + state.mochila.slice(-8).map(e => `<span>${e}</span>`).join(''); }
 
-function judge(row) {
-  const lane = Math.round(state.x / LANE_W);
-  const got = row.items.find(g => g.userData.lane === lane);
-  const q = state.q;
-  if (got && got.userData.item.key === q.target.key) {
-    got.userData.fly = .001;
-    fx.burst(got.position.clone().add(new THREE.Vector3(0, 1, 0)), 50);
-    J.cheer();
-    message(J.pick(['¡A la mochila!', '¡Muy bien!', '¡Bravo!']));
-    J.addStar(); swapActor();
-    state.mochila.push(got.userData.item.emoji || J.WORDS.find(w => w[0] === got.userData.item.obj)?.[2] || '⭐'); renderMochila();
-    state.wins++; state.missed = false; state.celebrate = 1;
-    renderMetas();
-    J.say([got.userData.item.text], { queue: true });
-    if (state.wins >= WIN_PER_LEVEL) { state.running = false; setTimeout(levelUp, 1400); return; }
-    if (P.two) { state.running = false; setTimeout(() => J.nextTurn(() => { swapActor(); state.running = true; newQuestion(); }, { onShow: swapActor }), 1500); return; }
-    setTimeout(() => newQuestion(), 900);
-  } else if (got) {
-    got.userData.bump = .001;
-    J.boing(); state.missed = true;
-    message('¡Casi!');
-    J.say(['Ese es', got.userData.item.text, ...q.say]);
+function atrapar(g) {
+  const ud = g.userData;
+  if (ud.good) {
+    ud.fly = .001;
+    // monedita que sale volando
+    const m = crearMoneda(); m.position.copy(g.position).add(new THREE.Vector3(0, 1.2, 0)); m.userData.t = 0; scene.add(m); state.monedas.push(m);
+    J.moneda();
+    state.coins++;
+    if (state.coins % 3 === 0) { J.cheer(); message(J.pick(['¡Muy bien!', '¡Bravo!', '¡Súper!'])); state.celebrate = .8; J.addStar(); swapActor(); }
+    if (ud.item.emoji) { state.mochila.push(ud.item.emoji); renderMochila(); }
+    if (state.coins >= cfgN().meta) { state.running = false; setTimeout(levelUp, 900); }
   } else {
-    // pasó sin atrapar nada: solo recordar qué buscar
-    state.missed = true;
-    J.say(q.say);
+    // equivocado: queda una popó en el camino
+    ud.bump = .001;
+    const p = crearPopo(); p.position.set(g.position.x, 0, g.position.z + .3); scene.add(p); state.popos.push(p);
+    J.efecto('popo'); state.fallos++;
+    message('¡Uy, popó! 💩', 1);
+    if (state.wave && !state.wave.dicho) { state.wave.dicho = true; J.say(['¡Uy, popó!', ...state.q.say]); }
   }
 }
 function levelUp() {
   P.level.carrera = Math.max(P.level.carrera || 0, state.nivel + 1); J.save();
+  limpiar();
   J.gift(() => {
     state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1);
-    state.wins = 0; renderMetas(); renderNivel();
-    message('Nivel ' + (state.nivel + 1), 2.2);
-    state.running = true; newQuestion();
+    empezarNivel();
   });
+}
+function seAcaboElTiempo() {
+  state.running = false; limpiar();
+  message('¡Se acabó el tiempo!', 2.5);
+  J.say('¡Uy! Se acabó el tiempo. ¡Otra vez!');
+  setTimeout(empezarNivel, 2800);
+}
+function limpiar() {
+  state.items.forEach(g => scene.remove(g)); state.items = [];
+  state.popos.forEach(p => scene.remove(p)); state.popos = [];
+  state.wave = null;
+}
+function empezarNivel() {
+  state.coins = 0; state.fallos = 0; state.tiempo = cfgN().tiempo; state.mochila = [];
+  renderHud(); renderMochila();
+  message('Nivel ' + (state.nivel + 1), 1.6);
+  const go = () => { state.running = true; newWave(); };
+  if (P.two) J.showTurn(go, { onShow: swapActor }); else go();
 }
 
 // ---------- controles ----------
@@ -336,29 +358,28 @@ function frame() {
     pa.needsUpdate = true;
   }
 
-  // filas de animalitos
-  if (state.running && state.q) { state.nextRow -= dt; if (state.nextRow <= 0) { spawnRow(); state.nextRow = GAP_SECONDS; } }
-  for (const row of state.rows) {
-    row.z += dz;
-    for (const g of row.items) {
-      const ud = g.userData;
-      g.position.z = row.z;
-      ud.o.update(dt, ud.fly > 0);
-      ud.sign.position.y = 2.25 + Math.sin(t * 3 + ud.lane) * .05 + (ud.hint ? Math.abs(Math.sin(t * 6)) * .25 : 0);
-      if (ud.fly) { // a la mochila
-        ud.fly += dt; g.position.y += dt * 5; g.position.x += (state.x - g.position.x) * dt * 3; g.scale.multiplyScalar(.94);
-      } else if (ud.bump) { ud.bump += dt; g.position.x += Math.sign(g.position.x - state.x || 1) * dt * 8; g.rotation.z += dt * 6; }
-      if (row.fade) g.scale.multiplyScalar(.9);
+  // reloj del nivel
+  if (state.running) { state.tiempo -= dt; if (Math.floor(state.tiempo * 4) !== Math.floor((state.tiempo + dt) * 4)) renderHud(); if (state.tiempo <= 0) seAcaboElTiempo(); }
+  // animalitos
+  for (const g of state.items.slice()) {
+    const ud = g.userData;
+    g.position.z += dz;
+    ud.o.update(dt, ud.fly > 0);
+    ud.sign.position.y = ud.baseY + Math.sin(t * 3 + ud.lane + g.position.z) * .05;
+    if (ud.fly) { ud.fly += dt; g.position.y += dt * 6; g.position.x += (state.x - g.position.x) * dt * 4; g.scale.multiplyScalar(.92); }
+    else if (ud.bump) { ud.bump += dt; g.position.x += Math.sign(g.position.x - state.x || 1) * dt * 7; g.rotation.z += dt * 6; }
+    else if (!ud.done && g.position.z >= -.4) {
+      ud.done = true;
+      if (Math.abs(g.position.x - state.x) < LANE_W * .55) atrapar(g);
     }
-    if (row.fade) row.fade += dt;
-    if (!row.done && !row.fade && row.z >= -.2) { row.done = true; judge(row); }
-  }
-  for (const row of state.rows.slice()) {
-    if (row.z > 10 || (row.fade && row.fade > .5) || (row.done && row.items.every(g => g.scale.x < .05))) {
-      row.items.forEach(g => { scene.remove(g); g.userData.tex.dispose(); g.userData.sign.material.dispose(); });
-      state.rows.splice(state.rows.indexOf(row), 1);
+    if (g.position.z > 9 || g.scale.x < .05) {
+      scene.remove(g); state.items.splice(state.items.indexOf(g), 1);
+      if (state.wave) { state.wave.left--; if (state.wave.left <= 0 && state.running) { state.wave = null; if (P.two) { state.running = false; J.nextTurn(() => { swapActor(); state.running = true; newWave(); }, { onShow: swapActor }); } else newWave(); } }
     }
   }
+  // popós que se quedan en el camino y moneditas que vuelan
+  for (const p of state.popos.slice()) { p.position.z += dz; if (p.position.z > 10) { scene.remove(p); state.popos.splice(state.popos.indexOf(p), 1); } }
+  for (const m of state.monedas.slice()) { m.userData.t += dt; m.position.y += dt * 4; m.rotation.y += dt * 12; m.scale.setScalar(Math.max(.01, 1 - m.userData.t)); if (m.userData.t > 1) { scene.remove(m); state.monedas.splice(state.monedas.indexOf(m), 1); } }
   fx.update(dt);
 
   camera.position.set(state.x * .45, 4.4, 7.2);
@@ -371,13 +392,14 @@ function frame() {
 function start(nivel) {
   $('#portada').hidden = true;
   J.audio(); J.startMusic();
-  state.nivel = nivel; state.wins = 0; state.mochila = []; renderMetas(); renderNivel(); renderMochila();
-  const go = () => { state.running = true; newQuestion(); };
-  if (P.two) J.showTurn(go, { onShow: swapActor }); else go();
+  state.nivel = nivel;
+  empezarNivel();
 }
 
 (async () => {
   await esperaFuente();
+  await J.ready;
+  EASY = J.palabras('carrera');
   await build();
   J.refreshMusic();
   requestAnimationFrame(frame);

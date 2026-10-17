@@ -19,6 +19,7 @@ body { background: linear-gradient(#9fdcf7, #e9f8ff 60%); }
 .mochila span { font-size: 26px; animation: brinco .5s; }
 @media (max-width: 600px) { .mochila { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); font-size: 22px; } .mochila span { font-size: 20px; } }
 @media (max-width: 420px) { .joy { width: 116px; height: 116px; } .ayuda { font-size: 19px; padding: 8px 14px; } }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -56,9 +57,10 @@ body { background: linear-gradient(#9fdcf7, #e9f8ff 60%); }
   <div class="portada-caja">
     <div style="font-size:64px;line-height:1">🎁📖🐱</div>
     <h1>Bosque de las Palabras</h1>
-    <p>Abre la <b>cajita</b> que brilla, <b>lee</b> lo que dice y busca al animalito por las callecitas. ¡Guárdalo en tu mochila 🎒!</p>
+    <p>Busca la <b>cajita</b> del color que te digo, <b>lee</b> lo que dice y atrapa al animalito que está cerquita. ¡Guárdalo en tu mochila 🎒!</p>
     <p style="font-size:16px">Camina con el joystick 👣, con las flechas o tocando el camino.</p>
     <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
     <button class="go" id="empezar" disabled>Cargando…</button>
     <a class="volver" href="personajes.html?volver=bosque.html">Cambiar personaje</a>
   </div>

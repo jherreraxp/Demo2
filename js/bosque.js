@@ -4,23 +4,27 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { crearMundo, chispitas, esperaFuente, tarjeta } from './mundo3d.js';
-import { crearPersonaje, crearObjeto, BUSCABLES } from './personajes.js';
+import { crearPersonaje, crearObjeto } from './personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
 const C = 5;                       // tamaño de cada cuadra del laberinto
 const PLAYER_R = .45, SPEED = 4.2;
 
-// Niveles: cada vez más grande y con más pistas que leer
+// Niveles: las misiones están cerquita; poco a poco se borra el dibujo y la voz ayuda menos.
+// fade: cuánto se borra el dibujo (0 = se ve, 1 = no hay). voz: 'ya' lee al abrir, 'luego' espera
+// a que ella lea primero, 'poca' solo si pasa mucho rato, 'solo' = solo voz (escucha y busca).
 const NIVELES = [
-  { n: 6, objs: 5, missions: 3, tipo: 'palabra', dibujo: true },
-  { n: 7, objs: 6, missions: 3, tipo: 'palabra', dibujo: false },
-  { n: 8, objs: 7, missions: 4, tipo: 'palabra', dibujo: false },
-  { n: 8, objs: 7, missions: 4, tipo: 'silaba' },
-  { n: 9, objs: 8, missions: 5, tipo: 'palabra', dibujo: false },
-  { n: 10, objs: 9, missions: 5, tipo: 'mezcla' },
+  { n: 6, objs: 5, missions: 3, tipo: 'palabra', fade: 0, voz: 'ya', nombre: 'Dibujo, palabra y voz' },
+  { n: 7, objs: 6, missions: 3, tipo: 'palabra', fade: .55, voz: 'ya', nombre: 'El dibujo se borra un poquito' },
+  { n: 7, objs: 6, missions: 4, tipo: 'palabra', fade: 1, voz: 'luego', nombre: 'Sin dibujo: lee tú primero' },
+  { n: 8, objs: 7, missions: 4, tipo: 'silaba', fade: 1, voz: 'luego', nombre: '¿Con qué sílaba empieza?' },
+  { n: 8, objs: 7, missions: 4, tipo: 'mezcla', fade: 1, voz: 'poca', nombre: 'Casi sin ayuda' },
+  { n: 9, objs: 8, missions: 5, tipo: 'palabra', fade: 1, voz: 'solo', nombre: 'Solo voz: escucha y busca' },
 ];
-const ITEMS = BUSCABLES.map(w => J.WORDS.find(x => x[0] === w)).filter(Boolean); // [palabra, sílabas, emoji]
+let ITEMS = []; // [palabra, sílabas, emoji, modelo] (configurable en el modo admin)
+// colores de las cajitas, con su nombre para la misión: "Busca la cajita" + "morada"
+const CAJAS = [[0x9a6ee0, 'morada', '#9a6ee0'], [0xef5b5b, 'roja', '#ef5b5b'], [0x3f8ee8, 'azul', '#3f8ee8'], [0xf39a3b, 'naranja', '#f39a3b'], [0x4cb87a, 'verde', '#4cb87a'], [0xff7eb6, 'rosada', '#ff7eb6'], [0xf6c33b, 'amarilla', '#e0a800']];
 
 // ---------- mundo ----------
 const W = crearMundo($('#mundo'), { fog: 0xe9f8ff, near: 30, far: 75, fov: 50 });
@@ -107,8 +111,8 @@ function bfs(cells, from, to) {
   while (cur) { path.unshift(cur); cur = prev.get(key(...cur)); }
   return path[0] && path[0][0] === from[0] && path[0][1] === from[1] ? path : [];
 }
-function distances(cells) {
-  const n = cells.length, d = Array.from({ length: n }, () => Array(n).fill(-1)), q = [[0, 0]]; d[0][0] = 0;
+function distances(cells, r0 = 0, c0 = 0) {
+  const n = cells.length, d = Array.from({ length: n }, () => Array(n).fill(-1)), q = [[r0, c0]]; d[r0][c0] = 0;
   while (q.length) { const [r, c] = q.shift(); for (const [nr, nc] of neighbors(cells, r, c)) if (d[nr][nc] < 0) { d[nr][nc] = d[r][c] + 1; q.push([nr, nc]); } }
   return d;
 }
@@ -185,24 +189,37 @@ async function buildLevel(i) {
     o.position.set(x, 0, z); o.lookAt(0, 0, 0); level.add(o);
   });
 
-  // celdas: las cajitas van en callejones lejanos; los animalitos en otras calles
-  const dist = distances(cells), all = [];
-  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-    if (r + c < 2) continue;
-    const cl = cells[r][c];
-    all.push({ r, c, d: dist[r][c], dead: ['n', 's', 'e', 'w'].filter(k => !cl[k]).length === 1 });
+  // misiones cerquita: cada cajita está a pocos pasos de donde terminó la anterior,
+  // y el animalito que pide está a pocos pasos de su cajita
+  const used = new Set(['0,0', '0,1', '1,0']), key = (r, c) => r + ',' + c;
+  const near = (from, min, max) => {
+    const d = distances(cells, from.r, from.c), list = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!used.has(key(r, c)) && d[r][c] >= min) list.push({ r, c, d: d[r][c] });
+    const ok = J.shuffle(list.filter(o => o.d <= max));
+    const pick = ok[0] || list.sort((a, b) => a.d - b.d)[0];
+    if (pick) used.add(key(pick.r, pick.c));
+    return pick;
+  };
+  ITEMS = ITEMS.length >= 4 ? ITEMS : J.palabras('bosque');
+  const pool = J.shuffle(ITEMS);
+  const boxCells = [], objCells = [], words = [];
+  let cur = { r: 0, c: 0 };
+  for (let k = 0; k < cfg.missions; k++) {
+    const b = near(cur, 2, 3); if (!b) break;
+    const o = near(b, 1, 2); if (!o) break;
+    boxCells.push(b); objCells.push(o); words.push(pool[k % pool.length]);
+    cur = o;
   }
-  const far = (list, a, min) => list.every(o => Math.abs(o.r - a.r) + Math.abs(o.c - a.c) >= min);
-  const boxCells = [];
-  for (const cand of all.slice().sort((a, b) => (b.dead - a.dead) || (b.d - a.d))) { if (boxCells.length >= cfg.missions) break; if (far(boxCells, cand, 3)) boxCells.push(cand); }
-  const objCells = [];
-  for (const cand of J.shuffle(all)) { if (objCells.length >= cfg.objs) break; if (far(boxCells, cand, 1) && far(objCells, cand, 2)) objCells.push(cand); }
-  for (const cand of J.shuffle(all)) { if (objCells.length >= cfg.objs) break; if (!boxCells.includes(cand) && !objCells.includes(cand)) objCells.push(cand); }
+  // otros animalitos (distractores) por las calles cercanas
+  const distract = pool.slice(boxCells.length);
+  for (let k = 0; objCells.length < Math.max(cfg.objs, boxCells.length) && k < distract.length; k++) {
+    const o = near(objCells[k % Math.max(1, boxCells.length)] || { r: 0, c: 0 }, 1, 3); if (!o) break;
+    objCells.push(o); words.push(distract[k]);
+  }
 
   // animalitos y cosas, visibles, paseando
-  const words = J.shuffle(ITEMS).slice(0, objCells.length);
   objCells.forEach((cell, k) => {
-    const o = crearObjeto(words[k][0]);
+    const o = crearObjeto(words[k][0], words[k][2]);
     o.group.scale.setScalar(1.6);
     const home = cellPos(cell.r, cell.c, n);
     o.group.position.copy(home);
@@ -212,19 +229,19 @@ async function buildLevel(i) {
 
   // retos (uno por cajita)
   const tipo = cfg.tipo;
-  const missionWords = J.shuffle(words).slice(0, boxCells.length);
   const syl = w => J.strip(w[1].split('-')[0]);
-  state.missions = missionWords.map((w, k) => {
+  const cols = J.shuffle(CAJAS);
+  state.missions = boxCells.map((_, k) => {
+    const w = words[k];
     let t = tipo === 'mezcla' ? (k % 2 ? 'silaba' : 'palabra') : tipo;
     if (t === 'silaba' && words.filter(x => syl(x) === syl(w)).length > 1) t = 'palabra';
-    return { word: w, tipo: t, dibujo: !!cfg.dibujo };
+    return { word: w, tipo: t, fade: cfg.fade, voz: cfg.voz, caja: cols[k % cols.length] };
   });
-  const boxCols = [0xef5b5b, 0x3f8ee8, 0x9a6ee0, 0xf39a3b, 0x4cb87a, 0xff7eb6];
   boxCells.forEach((cell, k) => {
     const p = cellPos(cell.r, cell.c, n);
     const closed = ['n', 's', 'e', 'w'].filter(d => cells[cell.r][cell.c][d]);
     const off = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[closed[0] || 'n'];
-    const h = makeCaja(boxCols[k % boxCols.length]);
+    const h = makeCaja(state.missions[k].caja[0]);
     h.g.position.set(p.x + off[0] * 1.3, 0, p.z + off[1] * 1.3);
     level.add(h.g);
     const ringM = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.35, 32), new THREE.MeshBasicMaterial({ color: 0xfff6a8, transparent: true, opacity: .55, side: THREE.DoubleSide }));
@@ -253,39 +270,49 @@ async function buildLevel(i) {
 const syl0 = w => J.strip(w[1].split('-')[0]);
 const activeBox = () => state.boxes[state.mi];
 function showBoxStep() {
-  // paso 1: ir a la cajita que brilla
+  // paso 1: ir a la cajita del color que dice la misión
   state.stage = 'caja';
+  const m = state.missions[state.mi];
   state.boxes.forEach((b, k) => { b.ring.visible = k === state.mi; });
   const box = $('#mision');
-  $('#m-etq').textContent = 'Abre la cajita'; $('#m-pic').textContent = '🎁'; $('#m-word').textContent = '';
+  $('#m-etq').textContent = 'Busca la cajita'; $('#m-pic').textContent = '🎁'; $('#m-pic').style.opacity = '1';
+  $('#m-word').textContent = m.caja[1]; $('#m-word').style.color = m.caja[2];
   box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
   state.lastFound = performance.now(); hideHada();
-  J.say('Abre una cajita y lee.');
+  J.say(['Busca la cajita', m.caja[1], 'y lee.']);
 }
+const missionText = m => m.tipo === 'silaba' ? syl0(m.word) : m.word[0];
 function openBox(b) {
   b.opened = true; b.openK = .001; J.sfx('pop', .9);
   const m = state.missions[state.mi];
-  const text = m.tipo === 'silaba' ? syl0(m.word) + '…' : m.word[0];
-  const card = new THREE.Sprite(new THREE.SpriteMaterial({ map: tarjeta(text, { emoji: m.dibujo ? m.word[2] : '', color: '#9a6ee0' }) }));
+  const solo = m.voz === 'solo';
+  const text = solo ? '' : m.tipo === 'silaba' ? syl0(m.word) + '…' : m.word[0];
+  // el dibujo se va borrando con los niveles; en "solo voz" la tarjeta muestra una orejita
+  const emoji = solo ? '👂' : m.fade < 1 ? m.word[2] : '';
+  const card = new THREE.Sprite(new THREE.SpriteMaterial({ map: tarjeta(text, { emoji, emojiAlpha: solo ? 1 : 1 - m.fade, color: m.caja[2] }) }));
   card.scale.set(1.7, 1.7, 1); card.position.set(b.h.g.position.x, 1.2, b.h.g.position.z); card.userData.rise = 0;
   level.add(card); b.card = card;
   fx.burst(card.position.clone(), 30, .6);
-  // paso 2: leer y buscar
+  // paso 2: leer y atrapar al animalito que está cerquita
   state.stage = 'buscar';
-  $('#m-etq').textContent = m.tipo === 'silaba' ? 'Empieza con' : 'Busca';
-  $('#m-word').textContent = m.tipo === 'silaba' ? syl0(m.word) : m.word[0];
-  $('#m-pic').textContent = m.dibujo ? m.word[2] : '🔍';
+  $('#m-etq').textContent = solo ? 'Escucha' : m.tipo === 'silaba' ? 'Empieza con' : 'Busca';
+  $('#m-word').textContent = solo ? '' : missionText(m); $('#m-word').style.color = '';
+  const pic = $('#m-pic');
+  pic.textContent = solo ? '👂' : m.fade < 1 ? m.word[2] : '🔍';
+  pic.style.opacity = solo || m.fade >= 1 ? '1' : String(1 - m.fade);
   const box = $('#mision'); box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
   state.lastFound = performance.now();
-  // si ya sabe leer la dejamos leer sola; la voz ayuda si pasa un rato
-  if (m.dibujo) sayMission(); else J.say('¿Qué dice la cajita?');
-  clearTimeout(openBox.t); openBox.t = setTimeout(() => { if (state.stage === 'buscar' && state.missions[state.mi] === m) sayMission(); }, 9000);
+  // la voz ayuda cada vez menos: primero lee ella y luego, si hace falta, ayuda la voz
+  const espera = { ya: 0, luego: 7000, poca: 14000, solo: 0 }[m.voz] ?? 0;
+  if (!espera) sayMission(); else J.say('¿Qué dice la cajita?');
+  clearTimeout(openBox.t);
+  if (espera) openBox.t = setTimeout(() => { if (state.stage === 'buscar' && state.missions[state.mi] === m) sayMission(); }, espera);
 }
 function sayMission() {
   const m = state.missions[state.mi]; if (!m) return;
-  if (state.stage === 'caja') return J.say('Abre una cajita y lee.');
+  if (state.stage === 'caja') return J.say(['Busca la cajita', m.caja[1], 'y lee.']);
   if (m.tipo === 'silaba') J.say(['Algo que empieza con', syl0(m.word)]);
-  else J.say(['Busca', m.word[0]]);
+  else J.say([`Busca ${J.art(m.word[0])}`, m.word[0]]);
 }
 $('#m-say').onclick = sayMission;
 function message(text, secs = 1.8) {
@@ -313,7 +340,7 @@ function touch(o) {
   } else if (o.cool <= 0) {
     o.cool = 5; J.boing();
     message('¡Casi!', 1.2);
-    J.say(['Ese es', o.word[0]].concat(m.tipo === 'silaba' ? ['Algo que empieza con', syl0(m.word)] : ['Busca', m.word[0]]));
+    J.say(m.tipo === 'silaba' ? ['Algo que empieza con', syl0(m.word)] : [`Busca ${J.art(m.word[0])}`, m.word[0]]);
   }
 }
 function renderMochila() { $('#mochila').innerHTML = '🎒 ' + (state.mochila || []).map(e => `<span>${e}</span>`).join(''); }
@@ -476,13 +503,16 @@ function renderLevels() {
   const unlocked = Math.min(NIVELES.length, (P.level.bosque || 0) + 1);
   let sel = Math.min(unlocked - 1, P.level.bosque || 0);
   const box = $('#niveles');
-  box.innerHTML = NIVELES.map((_, i) => `<button data-i="${i}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
-  box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); J.sfx('pop'); };
+  box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
+  box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); $('#nivel-desc').textContent = NIVELES[sel].nombre; J.sfx('pop'); };
+  $('#nivel-desc').textContent = NIVELES[sel].nombre;
   return () => sel;
 }
 
 (async () => {
   await esperaFuente();
+  await J.ready;
+  ITEMS = J.palabras('bosque');
   const keys = { houseA: 'kenney-ciudad/building-small-a.glb', houseB: 'kenney-ciudad/building-small-b.glb', houseC: 'kenney-ciudad/building-small-c.glb', trees: 'kenney-ciudad/grass-trees.glb', treesTall: 'kenney-ciudad/grass-trees-tall.glb' };
   await Promise.all(Object.entries(keys).map(async ([k, f]) => { deco[k] = await glb('assets/modelos/' + f); }));
   await makeActors();

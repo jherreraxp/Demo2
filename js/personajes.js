@@ -4,7 +4,6 @@
 //   parts: { vestido: [mallas], falda: [...] } — cada parte se puede pintar por separado.
 // crearObjeto(palabra) → { group, update(dt, feliz) } para animalitos y cosas que se buscan o atrapan.
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: 0, ...o });
 function mesh(geo, m, x = 0, y = 0, z = 0) {
@@ -59,165 +58,6 @@ function blinker(eyes) {
     eyes.forEach((e, i) => { e.scale.y = closing ? .15 : base[i]; });
     if (t > next + .14) { t = 0; next = 2 + Math.random() * 3; }
   };
-}
-
-// ---------- chicas (princesas y cantantes) ----------
-// cfg: piel, pelo {color, estilo: trenza|afro|corto|coleta}, ropa: vestido|falda|pantalon, colores de cada parte y extras
-const CHICAS = {
-  nieve: { piel: 0xf8dcc8, pelo: { color: 0xf4ecd6, estilo: 'trenza' }, ropa: 'vestido', corona: 'hielo', capa: true, guantes: true, brillos: true,
-    c: { vestido: 0x8fd3f4, blusa: 0x8fd3f4, mangas: 0xd6f2ff, capa: 0xd6f2ff, guantes: 0xd6f2ff, cinturon: 0xffffff, zapatos: 0xcff3ff, corona: 0xd8f7ff } },
-  ana: { piel: 0x8d5a3b, pelo: { color: 0x2b1b14, estilo: 'afro' }, ropa: 'vestido', corona: 'oro', collar: true, guantes: true, mono: true,
-    c: { vestido: 0xf6c33b, blusa: 0xf6c33b, mangas: 0xfff1b8, guantes: 0xffffff, cinturon: 0xef5b8a, moño: 0xef5b8a, collar: 0xffffff, zapatos: 0xef5b8a, corona: 0xffd23f } },
-  estrella: { piel: 0xf0c7a0, pelo: { color: 0x7b4bd0, estilo: 'trenza', larga: true }, ropa: 'falda', corona: 'estrella', microfono: true, chaqueta: true,
-    c: { falda: 0x5a3fa8, blusa: 0xb07de8, chaqueta: 0xffd23f, mangas: 0xffd23f, cinturon: 0x23324a, zapatos: 0xffffff, corona: 0xffd23f } },
-  zoe: { piel: 0xf3cfb0, pelo: { color: 0x1d1d2b, estilo: 'corto', mecha: 0x3f8ee8 }, ropa: 'pantalon', gorra: true, chaqueta: true, collar: true,
-    c: { pantalon: 0x23324a, blusa: 0xffffff, chaqueta: 0x4cb87a, mangas: 0x4cb87a, gorra: 0x3f8ee8, collar: 0xffd23f, zapatos: 0xffffff } },
-  mira: { piel: 0xe9bf98, pelo: { color: 0xff4fa3, estilo: 'coleta' }, ropa: 'falda', chaqueta: true, collar: true, guantes: true,
-    c: { falda: 0xef3b4a, blusa: 0x23324a, chaqueta: 0x23324a, mangas: 0x23324a, guantes: 0x23324a, cinturon: 0xffd23f, collar: 0xffd23f, zapatos: 0x23324a } },
-};
-function chica(id) {
-  const cfg = CHICAS[id] || CHICAS.nieve;
-  const C = cfg.c;
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  const parts = {}, tag = tagger(parts);
-  const skin = () => mat(cfg.piel);
-  const larga = cfg.ropa === 'vestido';
-
-  // falda o vestido (perfil de campana)
-  if (larga) {
-    body.add(tag(mesh(new THREE.LatheGeometry(V2([[0, 0], [.55, 0], [.53, .08], [.4, .45], [.26, .78], [.18, .95], [0, .95]]), 30), mat(C.vestido, cfg.brillos ? { emissive: 0x2a6f9a, emissiveIntensity: .12 } : {})), 'vestido'));
-    // volantes en el borde
-    const volante = tag(mesh(new THREE.TorusGeometry(.53, .035, 8, 40), mat(C.mangas), 0, .05, 0), 'mangas');
-    volante.rotation.x = Math.PI / 2; body.add(volante);
-  } else if (cfg.ropa === 'falda') {
-    body.add(tag(mesh(new THREE.LatheGeometry(V2([[0, .5], [.4, .5], [.38, .56], [.26, .8], [.2, .93], [0, .93]]), 28), mat(C.falda)), 'falda'));
-  } else {
-    // pantalón
-    [-1, 1].forEach(sx => body.add(tag(mesh(new THREE.CylinderGeometry(.085, .075, .62, 12), mat(C.pantalon), sx * .1, .42, 0), 'pantalon')));
-    body.add(tag(mesh(new THREE.CylinderGeometry(.17, .19, .2, 16), mat(C.pantalon), 0, .78, 0), 'pantalon'));
-  }
-  // piernas (si no hay vestido largo)
-  if (!larga) {
-    if (cfg.ropa === 'falda') [-1, 1].forEach(sx => body.add(tag(mesh(new THREE.CylinderGeometry(.06, .06, .4, 10), skin(), sx * .11, .32, 0), 'piel')));
-  }
-  // cinturón
-  if (C.cinturon) body.add(tag(mesh(new THREE.CylinderGeometry(.165, .175, .05, 18), mat(C.cinturon, { metalness: .2 }), 0, .93, 0), 'cinturon'));
-  // blusa / torso
-  body.add(tag(mesh(new THREE.CylinderGeometry(.15, .17, .32, 18), mat(C.blusa), 0, 1.1, 0), 'blusa'));
-  if (cfg.chaqueta) {
-    body.add(tag(mesh(new THREE.CylinderGeometry(.185, .195, .26, 18, 1, true, -Math.PI * .85, Math.PI * 1.7), mat(C.chaqueta, { side: THREE.DoubleSide }), 0, 1.12, 0), 'chaqueta'));
-    [-1, 1].forEach(sx => body.add(tag(mesh(S(.085), mat(C.chaqueta), sx * .2, 1.22, 0), 'chaqueta')));
-  }
-  if (cfg.mono) { const m = tag(mesh(new THREE.TorusKnotGeometry(.05, .02, 30, 6), mat(C.moño), 0, .96, .17), 'moño'); body.add(m); }
-  if (cfg.collar) for (let i = 0; i < 9; i++) { const a = -1.1 + i * .275; body.add(tag(mesh(S(.022, 8, 6), mat(C.collar, { metalness: .3, roughness: .3 }), Math.sin(a) * .13, 1.22 - Math.abs(Math.cos(a)) * .01 - (1 - Math.abs(a) / 1.1) * .05, Math.cos(a) * .13), 'collar')); }
-  // capa
-  if (cfg.capa) body.add(tag(mesh(new THREE.CylinderGeometry(.2, .62, 1.15, 24, 1, true, Math.PI * .55, Math.PI * .9), mat(C.capa, { transparent: true, opacity: .75, side: THREE.DoubleSide, emissive: 0x9fdcff, emissiveIntensity: .2 }), 0, .68, -.02), 'capa'));
-  if (cfg.brillos) {
-    const sp = mat(0xffffff, { emissive: 0xbfefff, emissiveIntensity: 1 });
-    for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2, h = Math.random() * .7; const rr = .55 - h * .45; body.add(mesh(new THREE.OctahedronGeometry(.022), sp, Math.sin(a) * rr, h + .05, Math.cos(a) * rr)); }
-  }
-  // zapatos / botas
-  const feet = [-1, 1].map(sx => {
-    const f = tag(mesh(S(.08, 12, 8), mat(C.zapatos), sx * .11, .06, .05), 'zapatos');
-    f.scale.set(1, .7, 1.5);
-    if (!larga) { f.position.y = .08; f.scale.set(1.15, 1.3, 1.5); }
-    body.add(f); return f;
-  });
-  // cuello y cabeza
-  body.add(tag(mesh(new THREE.CylinderGeometry(.06, .07, .12, 10), skin(), 0, 1.28, 0), 'piel'));
-  const head = new THREE.Group(); head.position.y = 1.55; body.add(head);
-  head.add(tag(mesh(S(.3, 28, 20), skin()), 'piel'));
-  const eyes = face(head, 0, .3, 0, { lashes: true });
-  // pelo
-  const hairM = () => mat(cfg.pelo.color, { roughness: .45 });
-  const cap = tag(mesh(new THREE.SphereGeometry(.325, 28, 18, 0, Math.PI * 2, 0, Math.PI * .52), hairM(), 0, .02, -.02), 'pelo');
-  cap.rotation.x = -.35; head.add(cap);
-  const est = cfg.pelo.estilo;
-  if (est !== 'corto') head.add(tag(mesh(S(.31, 24, 16), hairM(), 0, -.02, -.07), 'pelo'));
-  [[-.16, .17], [-.05, .2], [.07, .2], [.17, .16]].forEach(([x, y]) => { const b = tag(mesh(S(.1, 12, 8), hairM(), x, y, .22), 'pelo'); b.scale.set(1, .8, .7); head.add(b); });
-  let braid = null;
-  if (est === 'trenza' || est === 'coleta') {
-    braid = new THREE.Group();
-    braid.position.set(est === 'trenza' && id === 'nieve' ? -.12 : 0, est === 'coleta' ? .22 : -.08, -.26);
-    head.add(braid);
-    const segs = est === 'coleta' ? 12 : cfg.pelo.larga ? 11 : 8;
-    let node = braid;
-    for (let i = 0; i < segs; i++) {
-      const g = new THREE.Group(); g.position.y = i ? -.1 : 0;
-      const r = (est === 'coleta' ? .11 : .095) - i * .004;
-      const sph = tag(mesh(S(r, 12, 8), hairM(), est === 'trenza' ? (i % 2 ? .02 : -.02) : 0, -.05, -.03), 'pelo');
-      sph.scale.set(1, 1.15, .9); g.add(sph); node.add(g); node = g;
-    }
-    const tie = tag(mesh(new THREE.TorusGeometry(.06, .022, 8, 14), mat(C.moño || C.corona || 0xffd23f), 0, est === 'coleta' ? .1 : -.12, -.03), 'moño');
-    tie.rotation.x = Math.PI / 2; (est === 'coleta' ? braid : node).add(tie);
-  } else if (est === 'afro') {
-    // dos moñitos esponjosos y volumen
-    [-1, 1].forEach(sx => head.add(tag(mesh(S(.17, 16, 12), hairM(), sx * .26, .27, -.04), 'pelo')));
-    const back = tag(mesh(S(.36, 22, 16), hairM(), 0, .02, -.1), 'pelo'); back.scale.set(1.05, 1, .9); head.add(back);
-  } else if (est === 'corto') {
-    const bob = tag(mesh(new THREE.CylinderGeometry(.33, .35, .38, 24, 1, true, Math.PI * .3, Math.PI * 1.4), hairM(), 0, -.08, -.02), 'pelo');
-    bob.material.side = THREE.DoubleSide; head.add(bob);
-    if (cfg.pelo.mecha) head.add(tag(mesh(new THREE.BoxGeometry(.06, .3, .05), mat(cfg.pelo.mecha), .2, 0, .22), 'pelo'));
-  }
-  // corona, gorra
-  if (cfg.corona === 'hielo') {
-    const ice = mat(C.corona, { emissive: 0x9fe6ff, emissiveIntensity: .6, transparent: true, opacity: .9 });
-    [[-.1, .22], [0, .28], [.1, .22]].forEach(([x, h]) => head.add(tag(mesh(new THREE.ConeGeometry(.04, h * .5, 6), ice.clone(), x, .3 + h * .15, .08), 'corona')));
-  } else if (cfg.corona === 'oro') {
-    const gold = mat(C.corona, { metalness: .5, roughness: .3, emissive: 0x6b5200, emissiveIntensity: .25 });
-    head.add(tag(mesh(new THREE.CylinderGeometry(.14, .15, .08, 16, 1, true), gold, 0, .4, .02), 'corona'));
-    [-2, -1, 0, 1, 2].forEach(i => head.add(tag(mesh(new THREE.ConeGeometry(.03, .1, 6), gold.clone(), Math.sin(i * .6) * .14, .48, .02 + Math.cos(i * .6) * .14), 'corona')));
-  } else if (cfg.corona === 'estrella') {
-    head.add(tag(mesh(new THREE.OctahedronGeometry(.07), mat(C.corona, { metalness: .5, roughness: .3, emissive: 0x6b5200, emissiveIntensity: .3 }), .2, .2, .15), 'corona'));
-  }
-  if (cfg.gorra) {
-    const g = tag(mesh(new THREE.SphereGeometry(.335, 24, 14, 0, Math.PI * 2, 0, Math.PI * .45), mat(C.gorra), 0, .04, 0), 'gorra'); head.add(g);
-    head.add(tag(mesh(S(.06, 10, 8), mat(C.gorra), 0, .36, 0), 'gorra'));
-  }
-  // brazos con mangas y guantes
-  const arms = [-1, 1].map(sx => {
-    const a = new THREE.Group(); a.position.set(sx * .2, 1.2, 0);
-    a.add(tag(mesh(new THREE.CylinderGeometry(.05, .05, .16, 10), mat(C.mangas || C.blusa), 0, -.07, 0), 'mangas'));
-    a.add(tag(mesh(new THREE.CylinderGeometry(.045, .045, .22, 10), cfg.guantes ? mat(C.guantes) : skin(), 0, -.25, 0), cfg.guantes ? 'guantes' : 'piel'));
-    a.add(tag(mesh(S(.06, 10, 8), cfg.guantes ? mat(C.guantes) : skin(), 0, -.38, 0), cfg.guantes ? 'guantes' : 'piel'));
-    a.rotation.z = sx * .18;
-    body.add(a); return a;
-  });
-  if (cfg.microfono) {
-    const mic = new THREE.Group(); mic.position.set(0, -.42, .06);
-    mic.add(mesh(new THREE.CylinderGeometry(.025, .02, .16, 10), mat(0x2b2b38)));
-    mic.add(mesh(S(.045, 12, 8), mat(0xc9ccd6, { metalness: .6, roughness: .3 }), 0, .1, 0));
-    mic.rotation.x = -.6; arms[1].add(mic);
-  }
-  const blink = blinker(eyes);
-  let t = 0;
-  function update(dt, mode = 'quieto', speed = 1) {
-    t += dt; blink(dt);
-    let bob = 0, swing = 0, armUp = 0, spin = 0;
-    if (mode === 'correr') { const ph = t * 11 * speed; bob = Math.abs(Math.sin(ph)) * .07; swing = Math.sin(ph); }
-    else if (mode === 'festejar') { bob = Math.abs(Math.sin(t * 7)) * .35; armUp = 1; spin = t * 5; }
-    else if (mode === 'bailar') { bob = Math.abs(Math.sin(t * 5)) * .08; armUp = .5 + Math.sin(t * 5) * .5; spin = Math.sin(t * 2.5) * .6; }
-    else if (mode === 'ballet') {
-      // pirueta cada 4 tiempos, luego brazos en corona y balanceo suave
-      const beat = speed, ph = beat % 4;
-      if (ph < 1.5) { spin = ph / 1.5 * Math.PI * 2; armUp = 1; bob = .1; }
-      else { spin = Math.sin(beat * Math.PI / 2) * .35; armUp = .55 + Math.sin(beat * Math.PI) * .25; bob = Math.abs(Math.sin(beat * Math.PI)) * .06; }
-    }
-    else bob = Math.sin(t * 2) * .015;
-    body.position.y = bob; body.rotation.y = spin;
-    body.rotation.z = mode === 'bailar' ? Math.sin(t * 5) * .1 : 0;
-    arms.forEach((a, i) => { const sx = i ? 1 : -1; a.rotation.x = -swing * .9 * sx; a.rotation.z = sx * (.18 + armUp * 2.4); });
-    feet.forEach((f, i) => { f.position.z = .05 + (mode === 'correr' ? Math.sin(t * 11 * speed + i * Math.PI) * .13 : 0); });
-    if (braid) {
-      const coleta = est === 'coleta';
-      braid.rotation.x = (coleta ? .6 : .25) + (mode === 'correr' ? .35 + Math.sin(t * 5.5 * speed) * .12 : Math.sin(t * 1.6) * .05);
-      braid.rotation.z = Math.sin(t * (mode === 'correr' ? 5.5 : 1.3)) * .12;
-      let n = braid.children.find(c => c.isGroup), k = 1;
-      while (n) { n.rotation.x = Math.sin(t * 4 - k) * .05 + (mode === 'correr' ? .04 : 0) - (coleta && k < 3 ? .3 : 0); n = n.children.find(c => c.isGroup); k++; }
-    }
-    head.rotation.y = mode === 'quieto' ? Math.sin(t * .7) * .15 : 0;
-  }
-  return { group: root, update, parts, ballet: true };
 }
 
 // ---------- monstruito rojo y ratoncito (de pie) ----------
@@ -377,58 +217,8 @@ function quad({ color, belly = 0xffffff, ear = 'punta', tail = 'larga', snout, s
   return { group: root, update, parts };
 }
 
-// ---------- zorrito (modelo glTF de Khronos) ----------
-const loader = new GLTFLoader();
-let foxGLTF = null;
-async function zorro(base) {
-  if (!foxGLTF) foxGLTF = await new Promise(ok => loader.load(base + 'assets/modelos/zorro/Fox.glb', ok, undefined, () => ok(null)));
-  if (!foxGLTF) return quad({ color: 0xf08a3c, ear: 'punta', bushy: true, snout: 0xffffff });
-  const { clone } = await import('three/addons/utils/SkeletonUtils.js');
-  const inner = clone(foxGLTF.scene);
-  inner.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-  const box = new THREE.Box3().setFromObject(inner), h = box.getSize(new THREE.Vector3()).y;
-  inner.scale.multiplyScalar(1.1 / h);
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); body.add(inner);
-  const mixer = new THREE.AnimationMixer(inner);
-  const acts = {}; foxGLTF.animations.forEach(a => { acts[a.name] = mixer.clipAction(a); });
-  let cur = null, t = 0;
-  const use = n => { const a = acts[n]; if (!a || a === cur) return; a.reset().fadeIn(.25).play(); if (cur) cur.fadeOut(.25); cur = a; };
-  return {
-    group: root, parts: {},
-    update(dt, mode = 'quieto', speed = 1) {
-      t += dt;
-      use(mode === 'correr' ? 'Run' : mode === 'quieto' ? 'Survey' : 'Walk');
-      if (cur) cur.timeScale = mode === 'correr' ? speed : 1;
-      body.position.y = mode === 'festejar' ? Math.abs(Math.sin(t * 7)) * .3 : 0;
-      body.rotation.y = mode === 'festejar' ? t * 4 : 0;
-      mixer.update(dt);
-    },
-  };
-}
-
-export const PERSONAJES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'llama', 'rojito', 'raton', 'zorro', 'lobo', 'toro'];
-export const PINTABLES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'llama', 'rojito', 'raton', 'lobo', 'toro'];
-export async function crearPersonaje(id, base = '', { colores = true } = {}) {
-  let ch;
-  if (CHICAS[id]) ch = chica(id);
-  else if (id === 'llama') ch = llama();
-  else if (id === 'rojito' || id === 'raton') ch = bipedo(id);
-  else if (id === 'lobo') ch = quad({ color: 0x8c95a3, belly: 0xe4e8ee, ear: 'punta', tail: 'larga', bushy: true, snout: 0xe4e8ee, size: 1.25 });
-  else if (id === 'toro') ch = quad({ color: 0x8a5a3c, belly: 0xd8b48f, ear: 'redonda', tail: 'larga', snout: 0xf3b6a4, horns: true, size: 1.3 });
-  else if (id === 'zorro') ch = await zorro(base);
-  else ch = chica('nieve');
-  ch.id = id;
-  const saved = colores && window.Juego?.progress?.colors?.[id];
-  if (saved) Object.entries(saved).forEach(([part, hex]) => pintarParte(ch, part, hex));
-  return ch;
-}
-export function pintarParte(ch, part, hex) {
-  (ch.parts[part] || []).forEach(m => {
-    if (!m.userData.ownMat) { m.material = m.material.clone(); m.userData.ownMat = true; }
-    m.material.color.set(hex);
-    if (m.material.map) m.material.color.lerp(new THREE.Color(0xffffff), .25);
-  });
-}
+// personajes jugables: minifiguras y animales de bloques (lego.js)
+export { crearPersonaje, pintarParte, PERSONAJES, PINTABLES, POSES, nombrePersonaje, FIGURAS } from './lego.js';
 
 // ---------- cosas y animalitos para buscar o atrapar ----------
 function simple(build, anim) {
@@ -591,4 +381,27 @@ const OBJETOS = {
 };
 export const BUSCABLES = Object.keys(OBJETOS);
 export function tieneObjeto(word) { return !!OBJETOS[word]; }
-export function crearObjeto(word) { return (OBJETOS[word] || OBJETOS.pelota)(); }
+// palabras sin modelo 3D: su dibujo (emoji) en una tarjetita que flota
+function emojiObjeto(emoji) {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(255,255,255,.92)'; x.beginPath(); x.arc(128, 128, 120, 0, 7); x.fill();
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '170px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; x.fillText(emoji, 128, 140);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return simple(g => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true })); sp.scale.set(.9, .9, 1); sp.position.y = .55; g.add(sp); }, (g, tt, happy) => { g.children[0].position.y = .55 + Math.abs(Math.sin(tt * (happy ? 7 : 2))) * (happy ? .3 : .06); });
+}
+export function crearObjeto(word, emoji) { if (OBJETOS[word]) return OBJETOS[word](); if (emoji) return emojiObjeto(emoji); return OBJETOS.pelota(); }
+// popó (cuando se atrapa el equivocado) y moneda (cuando se atrapa el correcto)
+export function crearPopo() {
+  const g = new THREE.Group(), m = mat(0x7a4a2a, { roughness: .4 });
+  [[.36, .12, 0], [.27, .1, .17], [.17, .09, .31]].forEach(([r, tube, y]) => { const t = mesh(new THREE.TorusGeometry(r * .7, tube + .06, 10, 22), m, 0, y + .08, 0); t.rotation.x = Math.PI / 2; g.add(t); });
+  const tip = mesh(new THREE.ConeGeometry(.1, .2, 12), m, 0, .5, 0); g.add(tip);
+  face(g, .26, .2, .12, { mouth: 0x3b1d0f });
+  return g;
+}
+export function crearMoneda() {
+  const g = new THREE.Group();
+  const gold = mat(0xffcc33, { metalness: .6, roughness: .25, emissive: 0x6b4d00, emissiveIntensity: .3 });
+  const c = mesh(new THREE.CylinderGeometry(.32, .32, .08, 28), gold); c.rotation.x = Math.PI / 2; g.add(c);
+  const s = mesh(new THREE.OctahedronGeometry(.13), mat(0xfff1a8, { emissive: 0xffe066, emissiveIntensity: .5 }), 0, 0, .06); s.scale.z = .3; g.add(s);
+  return g;
+}

@@ -20,6 +20,13 @@ body { background: #1d1440; }
 .cancion b { font-size: 15px; line-height: 1.1; }
 .cancion small { font-size: 12px; opacity: .7; }
 .cancion.on { background: #ffe27a; transform: translateY(-4px); }
+.posiciones { position: fixed; left: 10px; top: calc(env(safe-area-inset-top, 0px) + 130px); bottom: calc(env(safe-area-inset-bottom, 0px) + 130px); z-index: 5; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; width: 168px; padding-right: 4px; }
+.pos { border: 0; border-radius: 14px; background: rgba(255,255,255,.9); padding: 6px 10px; font: inherit; font-size: 15px; font-weight: 800; text-align: left; box-shadow: 0 3px 0 rgba(0,0,0,.3); cursor: pointer; color: #23324a; }
+.pos small { display: block; font-size: 12px; font-weight: 600; opacity: .7; }
+.pos.on { background: #ffe27a; }
+.pos:disabled { background: rgba(255,255,255,.45); cursor: default; }
+.nueva { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 30; background: #fff; border-radius: 26px; padding: 18px 24px; text-align: center; font-size: 26px; font-weight: 800; box-shadow: 0 10px 0 rgba(0,0,0,.3); color: #23324a; }
+@media (max-width: 700px) { .posiciones { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); left: 0; right: 0; width: auto; flex-direction: row; overflow-x: auto; padding: 0 10px; height: 54px; } .pos { flex: none; } .aplauso { bottom: calc(env(safe-area-inset-bottom, 0px) + 184px) !important; } }
 .aplauso { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); z-index: 6; background: #fff; border-radius: 999px; padding: 10px 16px; font-size: 22px; font-weight: 800; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
 .aplauso:active { transform: translateY(4px); }
 </style>
@@ -36,12 +43,13 @@ body { background: #1d1440; }
 </div>
 <div class="titulo"><h1 id="t-cancion">Escenario de Ballet</h1><p id="t-autor">Elige una canción y toca a tu bailarina</p></div>
 <button class="aplauso" id="aplauso">👏 ¡Bravo!</button>
+<div class="posiciones" id="posiciones" aria-label="Posiciones de ballet"></div>
 <div class="canciones" id="canciones" aria-label="Canciones"></div>
 
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje } from './js/personajes.js';
+import { crearPersonaje, POSES } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -162,10 +170,15 @@ $('#canciones').addEventListener('click', e => {
 
 W.onFrame((dt, t) => {
   const beat = J.musicBeat();
+  if (manualT > 0) { manualT -= dt; if (manualT <= 0) manualT = 0; }
   dancers.forEach((d, i) => {
     if (d.leap > 0) { d.leap -= dt * 1.4; d.group.position.y = Math.sin((1 - Math.max(0, d.leap)) * Math.PI) * 1.2; }
     else d.group.position.y = 0;
-    if (d.ballet) d.update(dt, d.leap > 0 ? 'festejar' : 'ballet', beat + i * 2);
+    if (d.ballet) {
+      // coreografía: cambia de posición cada 2 tiempos; si la niña elige una, la mantiene un ratito
+      if (!manualT && unlocked.length) { const k = Math.floor((beat + i) / 2) % unlocked.length; if (d.poseK !== k) { d.poseK = k; d.setPose(unlocked[k]); } }
+      d.update(dt, d.leap > 0 ? 'festejar' : 'ballet', beat + i * 2);
+    }
     else d.update(dt, d.leap > 0 ? 'festejar' : 'bailar');
   });
   beams.forEach((b, i) => { b.rotation.z = Math.sin(t * .6 + i * 2) * .35; });
@@ -177,6 +190,27 @@ W.onFrame((dt, t) => {
 });
 
 await makeDancers();
+dancers.forEach(d => d.setTutu && d.setTutu(true));
+// ---------- posiciones de ballet: se abren con las estrellas ----------
+const stars = Math.max(...(P.two ? P.players : [P.players[0]]).map(p => p.stars));
+const unlocked = Object.entries(POSES).filter(([, p]) => stars >= p.estrellas).map(([k]) => k);
+let manualT = 0;
+function renderPoses(sel) {
+  $('#posiciones').innerHTML = Object.entries(POSES).map(([k, p]) => stars >= p.estrellas
+    ? `<button class="pos ${k === sel ? 'on' : ''}" data-pose="${k}">${p.nombre}</button>`
+    : `<button class="pos" disabled>🔒 ${p.nombre}<small>con ⭐ ${p.estrellas}</small></button>`).join('');
+}
+renderPoses();
+$('#posiciones').addEventListener('click', e => {
+  const b = e.target.closest('[data-pose]'); if (!b) return;
+  manualT = 6; dancers.forEach(d => d.setPose && d.setPose(b.dataset.pose));
+  renderPoses(b.dataset.pose); J.sparkle(); J.say(POSES[b.dataset.pose].nombre);
+});
+// avisar cuando hay una posición nueva
+const visto = P.balletVisto || 0;
+const nuevas = Object.values(POSES).filter(p => p.estrellas > visto && p.estrellas <= stars);
+if (nuevas.length && visto) { const n = document.createElement('div'); n.className = 'nueva'; n.innerHTML = `🩰 ¡Nueva posición!<br>${nuevas.map(p => p.nombre).join('<br>')}`; document.body.appendChild(n); J.cheer(true); setTimeout(() => n.remove(), 3500); }
+P.balletVisto = stars; J.save();
 const start = SONG_IDS.includes(J.currentSong()) && J.currentSong() !== 'reino' ? J.currentSong() : 'cisnes';
 setDeco(start);
 if (J.currentSong() !== start || !J.isMusicOn()) J.setSong(start);

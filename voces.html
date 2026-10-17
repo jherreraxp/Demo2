@@ -64,10 +64,11 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <script>window.SIN_MUSICA = true;</script>
 <script src="js/comun.js"></script>
 <script src="js/frases.js"></script>
+<script src="js/herramientas.js"></script>
 </head>
 <body>
 <main>
-  <div class="top"><a href="papas.html" aria-label="Volver al panel">⬅</a><h1>🎙️ Estudio de voz</h1></div>
+  <div class="top"><a href="admin.html" aria-label="Volver al modo admin">⬅</a><h1>🎙️ Estudio de voz</h1></div>
 
   <section class="card">
     <p>Graba con tu voz lo que dice el juego. Toca <b>Grabar</b>, di la frase y toca <b>Listo</b>. El juego recorta el silencio, sube el volumen y pasa sola a la siguiente frase que falta.</p>
@@ -125,6 +126,9 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <script>
 (async () => {
   const J = window.Juego, $ = s => document.querySelector(s);
+  document.querySelector('main').hidden = true;
+  await new Promise(ok => J.pedirPin(ok));
+  document.querySelector('main').hidden = false;
   await J.voices.ready;
   const GRUPOS = window.FRASES;
   let g = 0, idx = 0;
@@ -158,164 +162,63 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   $('#escuchar').onclick = () => { const it = GRUPOS[g].items[idx]; if (it.key.startsWith('sonido ')) J.sound(it.key.slice(7)); else J.say(it.texto); };
   $('#borrar').onclick = async () => { const it = GRUPOS[g].items[idx]; await J.voices.del(it.key); await J.voices.refresh(it.key); local.delete(it.key); estado('Borrada'); renderAll(); };
 
-  // ---------- micrófono (se abre una sola vez, sin música, sin cortes) ----------
-  let stream = null, mr = null, chunks = [], analyser = null, raf = null;
-  async function mic() {
-    if (stream) return stream;
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
-    const ctx = J.audio();
-    if (ctx) { analyser = ctx.createAnalyser(); analyser.fftSize = 512; ctx.createMediaStreamSource(stream).connect(analyser); }
-    return stream;
-  }
-  function meter() {
-    if (!analyser) return;
-    const d = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(d);
-    let peak = 0; for (const v of d) peak = Math.max(peak, Math.abs(v - 128) / 128);
-    $('#nivel').style.width = Math.min(100, peak * 160) + '%';
-    raf = requestAnimationFrame(meter);
-  }
-  let starting = false;
-  async function startRec() {
-    if (starting) return;
-    starting = true;
-    J.stopVoice();
-    try { await mic(); } catch (e) { starting = false; estado('No se pudo usar el micrófono. Revisa el permiso del navegador para este sitio.'); return; }
-    const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-    const rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
-    const parts = [];
-    rec.ondataavailable = e => e.data.size && parts.push(e.data);
-    rec.onstop = () => finish(rec, parts);
-    rec.start();
-    mr = rec; starting = false;
-    $('#grabar').classList.add('on'); $('#grabar').textContent = '⏹ Listo';
-    $('#prompter').classList.add('recording');
-    estado('Grabando… di la frase y toca Listo');
-    meter();
-    clearTimeout(startRec.t); startRec.t = setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 20000);
-  }
-  async function finish(rec, parts) {
-    if (mr === rec) mr = null;
-    cancelAnimationFrame(raf); $('#nivel').style.width = '0';
-    $('#grabar').classList.remove('on'); $('#grabar').textContent = '⏺ Grabar';
-    $('#prompter').classList.remove('recording');
-    const raw = new Blob(parts, { type: rec.mimeType || 'audio/webm' });
-    estado('Guardando…');
-    let wav;
-    try { wav = await procesar(raw); } catch (e) { wav = raw; }
-    const it = GRUPOS[g].items[idx];
-    await J.voices.set(it.key, wav); await J.voices.refresh(it.key); local.add(it.key);
-    estado('¡Guardada! ' + (it.texto));
-    new Audio(URL.createObjectURL(wav)).play().catch(() => {});
-    if ($('#auto').checked) {
-      const next = GRUPOS[g].items.findIndex((x, i) => i > idx && !stateOf(x.key));
-      if (next >= 0) idx = next;
+  // ---------- grabar (herramientas.js: sin música, recorta silencios, WAV) ----------
+  let rec = null, raf = null, busy = false;
+  function meter() { $('#nivel').style.width = Math.min(100, Herr.level() * 160) + '%'; raf = requestAnimationFrame(meter); }
+  async function toggleRec() {
+    if (busy) return;
+    if (rec) { // terminar
+      busy = true;
+      const r = rec; rec = null;
+      cancelAnimationFrame(raf); $('#nivel').style.width = '0';
+      $('#grabar').classList.remove('on'); $('#grabar').textContent = '⏺ Grabar'; $('#prompter').classList.remove('recording');
+      estado('Guardando…');
+      const wav = await r.stop();
+      const it = GRUPOS[g].items[idx];
+      await J.voices.set(it.key, wav); await J.voices.refresh(it.key); local.add(it.key);
+      estado('¡Guardada! ' + it.texto);
+      new Audio(URL.createObjectURL(wav)).play().catch(() => {});
+      if ($('#auto').checked) { const next = GRUPOS[g].items.findIndex((x, i) => i > idx && !stateOf(x.key)); if (next >= 0) idx = next; }
+      renderAll(); busy = false;
+      return;
     }
-    renderAll();
+    busy = true;
+    try { rec = await Herr.grabar(20); } catch (e) { busy = false; estado('No se pudo usar el micrófono. Revisa el permiso del navegador para este sitio.'); return; }
+    $('#grabar').classList.add('on'); $('#grabar').textContent = '⏹ Listo'; $('#prompter').classList.add('recording');
+    estado('Grabando… di la frase y toca Listo'); meter(); busy = false;
   }
   let lastClick = 0;
-  $('#grabar').onclick = () => {
-    const now = performance.now(); if (now - lastClick < 400) return; lastClick = now;
-    if (mr && mr.state === 'recording') mr.stop(); else startRec();
-  };
+  $('#grabar').onclick = () => { const now = performance.now(); if (now - lastClick < 400) return; lastClick = now; toggleRec(); };
   addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); $('#grabar').click(); } });
 
-  // recorta silencios, normaliza el volumen y convierte a WAV (suena en todos los navegadores)
-  async function procesar(blob) {
-    const ctx = J.audio();
-    const buf = await new Promise((ok, no) => blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab, ok, no)));
-    const data = buf.getChannelData(0), sr = buf.sampleRate;
-    let peak = 0; for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
-    const th = Math.max(0.012, peak * 0.08);
-    let a = 0, b = data.length - 1;
-    while (a < b && Math.abs(data[a]) < th) a++;
-    while (b > a && Math.abs(data[b]) < th) b--;
-    a = Math.max(0, a - Math.floor(sr * .08)); b = Math.min(data.length - 1, b + Math.floor(sr * .15));
-    const outRate = 24000, len = Math.max(1, Math.round((b - a) * outRate / sr));
-    const off = new OfflineAudioContext(1, len, outRate);
-    const src = off.createBufferSource();
-    const cut = off.createBuffer(1, b - a, sr); cut.copyToChannel(data.slice(a, b), 0);
-    src.buffer = cut;
-    const gain = off.createGain(); gain.gain.value = peak > 0 ? Math.min(6, .9 / peak) : 1;
-    src.connect(gain).connect(off.destination); src.start();
-    const res = await off.startRendering();
-    return wavBlob(res.getChannelData(0), outRate);
-  }
-  function wavBlob(samples, rate) {
-    const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
-    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
-    w(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
-    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-    w(36, 'data'); v.setUint32(40, samples.length * 2, true);
-    for (let i = 0; i < samples.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 0x7fff, true);
-    return new Blob([buf], { type: 'audio/wav' });
-  }
-
   // ---------- publicar en GitHub ----------
-  const host = location.hostname.endsWith('github.io');
-  const OWNER = host ? location.hostname.split('.')[0] : 'jherreraxp';
-  const REPO = host ? (location.pathname.split('/')[1] || 'Demo2') : 'Demo2';
-  const BRANCH = 'gh-pages';
-  $('#repo-nombre').textContent = REPO;
-  try { $('#token').value = localStorage.getItem('bl-gh-token') || ''; } catch (e) {}
-  $('#token').onchange = e => { try { localStorage.setItem('bl-gh-token', e.target.value.trim()); } catch (er) {} };
-  const hash = s => { let h = 5381; for (const c of s) h = (h * 33 + c.codePointAt(0)) >>> 0; return h.toString(36); };
-  const fileFor = k => 'v-' + J.strip(k).replace(/ñ/g, 'n').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) + '-' + hash(k) + '.wav';
-  function pendientes() { return [...local].filter(k => GRUPOS.some(gr => gr.items.some(it => it.key === k)) || k === 'nombre' || k === 'bravo'); }
+  $('#repo-nombre').textContent = Herr.REPO;
+  $('#token').value = Herr.token();
+  $('#token').onchange = e => Herr.setToken(e.target.value);
+  function pendientes() { return [...local].filter(k => GRUPOS.some(gr => gr.items.some(it => it.key === k)) || k === 'nombre' || k === 'bravo' || k.startsWith('efecto ')); }
   function renderPend() { const n = pendientes().length; $('#pendientes').textContent = n ? `${n} grabaciones en este navegador` : 'Ninguna todavía'; }
-  async function gh(path, opts = {}) {
-    const token = $('#token').value.trim();
-    const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}${path}`, { ...opts, headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', ...(opts.headers || {}) } });
-    if (!r.ok) { const t = await r.text(); throw new Error(r.status + ' ' + t.slice(0, 160)); }
-    return r.status === 204 ? null : r.json();
-  }
-  const b64 = async blob => { const bytes = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
-  // sube varios archivos en un solo commit y actualiza lista.json
-  async function publish(files, listaPatch, out) {
-    if (!$('#token').value.trim()) { out.innerHTML = '<span class="err">Primero pega la llave de GitHub.</span>'; return false; }
-    try { localStorage.setItem('bl-gh-token', $('#token').value.trim()); } catch (e) {}
-    out.textContent = 'Conectando con GitHub…';
-    const ref = await gh(`/git/ref/heads/${BRANCH}`);
-    const parent = await gh(`/git/commits/${ref.object.sha}`);
-    let lista = {};
-    try { const f = await gh(`/contents/assets/voz/lista.json?ref=${BRANCH}`); lista = JSON.parse(decodeURIComponent(escape(atob(f.content.replace(/\n/g, ''))))); } catch (e) {}
-    const tree = [];
-    let n = 0;
-    for (const f of files) {
-      const blob = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await b64(f.blob), encoding: 'base64' }) });
-      tree.push({ path: 'assets/voz/' + f.name, mode: '100644', type: 'blob', sha: blob.sha });
-      out.textContent = `Subiendo ${++n} de ${files.length}…`;
-    }
-    Object.assign(lista, listaPatch);
-    const sorted = Object.fromEntries(Object.entries(lista).sort(([a], [b]) => a.localeCompare(b)));
-    const lb = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: JSON.stringify(sorted, null, 1), encoding: 'utf-8' }) });
-    tree.push({ path: 'assets/voz/lista.json', mode: '100644', type: 'blob', sha: lb.sha });
-    const t = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: parent.tree.sha, tree }) });
-    const c = await gh('/git/commits', { method: 'POST', body: JSON.stringify({ message: `Voces de la familia: ${files.length} archivos`, tree: t.sha, parents: [ref.object.sha] }) });
-    await gh(`/git/refs/heads/${BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) });
-    return true;
-  }
   $('#publicar').onclick = async () => {
     const out = $('#pub-estado');
+    Herr.setToken($('#token').value);
     const keys = pendientes();
     if (!keys.length) { out.textContent = 'No hay grabaciones nuevas.'; return; }
     $('#publicar').disabled = true;
     try {
-      // no volver a subir lo que ya se publicó igual
       let done = {}; try { done = JSON.parse(localStorage.getItem('bl-publicadas') || '{}'); } catch (er) {}
       const files = [], patch = {};
-      for (const k of keys) { const blob = await J.voices.get(k); if (!blob || done[k] === blob.size) continue; const name = fileFor(k); files.push({ name, blob, k }); patch[k] = name; }
+      for (const k of keys) { const blob = await J.voices.get(k); if (!blob || done[k] === blob.size) continue; const name = Herr.fileFor(k); files.push({ path: 'assets/voz/' + name, blob, k }); patch[k] = name; }
       if (!files.length) { out.textContent = 'Todo ya está publicado.'; $('#publicar').disabled = false; return; }
-      if (await publish(files, patch, out)) {
-        files.forEach(f => { done[f.k] = f.blob.size; }); try { localStorage.setItem('bl-publicadas', JSON.stringify(done)); } catch (er) {}
-        out.innerHTML = `<span class="ok">¡Listo! Se publicaron ${files.length} grabaciones.</span> En uno o dos minutos ya suenan en todos los dispositivos.`;
-      }
-    } catch (e) { out.innerHTML = `<span class="err">No se pudo publicar.</span> Revisa que la llave tenga permiso de escritura en ${REPO}. (${J.esc(e.message)})`; }
+      await Herr.publicar({ files, listaPatch: patch, message: `Voces de la familia: ${files.length} archivos`, onProgress: t => { out.textContent = t; } });
+      files.forEach(f => { done[f.k] = f.blob.size; }); try { localStorage.setItem('bl-publicadas', JSON.stringify(done)); } catch (er) {}
+      out.innerHTML = `<span class="ok">¡Listo! Se publicaron ${files.length} grabaciones.</span> En uno o dos minutos ya suenan en todos los dispositivos.`;
+    } catch (e) { out.innerHTML = `<span class="err">No se pudo publicar.</span> Revisa que la llave tenga permiso de escritura en ${Herr.REPO}. (${J.esc(e.message)})`; }
     $('#publicar').disabled = false;
   };
   $('#musica').onchange = async e => {
     const f = e.target.files[0], out = $('#mus-estado'); if (!f) return;
+    Herr.setToken($('#token').value);
     if (f.size > 12e6) { out.innerHTML = '<span class="err">La canción pesa mucho (máximo 12 MB).</span>'; return; }
-    try { if (await publish([{ name: 'musica.mp3', blob: f }], { musica: 'musica.mp3' }, out)) out.innerHTML = '<span class="ok">¡Canción publicada!</span> En uno o dos minutos suena en el juego.'; }
+    try { await Herr.publicar({ files: [{ path: 'assets/voz/musica.mp3', blob: f }], listaPatch: { musica: 'musica.mp3' }, message: 'Canción de la familia', onProgress: t => { out.textContent = t; } }); out.innerHTML = '<span class="ok">¡Canción publicada!</span> En uno o dos minutos suena en el juego.'; }
     catch (er) { out.innerHTML = `<span class="err">No se pudo publicar.</span> (${J.esc(er.message)})`; }
   };
 

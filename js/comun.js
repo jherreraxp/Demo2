@@ -98,6 +98,81 @@
   ]);
   voices.ready = ready;
   voices.lista = () => lista;
+
+  // ---------- configuración (modo admin) ----------
+  // Lo que mamá y papá configuran: palabras por juego, canciones, nombres de personajes.
+  // Se guarda en este navegador y se puede publicar en assets/config.json para todos los dispositivos.
+  let publicConfig = {};
+  const configReady = fetch(ROOT + 'assets/config.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).then(c => { publicConfig = c || {}; }).catch(() => {});
+  const allReady = Promise.all([ready, configReady]).then(() => { Object.entries(config().nombres).forEach(([id, n]) => { if (CHARS[id] && n) CHARS[id].name = n; }); });
+  const MODELOS = ['gato', 'perro', 'pato', 'oso', 'conejo', 'vaca', 'llama', 'sapo', 'pez', 'pelota', 'flor', 'palta', 'choclo', 'carro', 'sol', 'luna', 'nube', 'casa', 'dado', 'taza', 'uva', 'pera', 'tomate', 'papa', 'piña', 'abeja', 'tortuga', 'loro', 'mono', 'lobo', 'toro', 'ratón', 'gusano'];
+  const EXTRA_EMOJI = { Zoe: '🎧', Mira: '💃', Ana: '👸🏾', Lula: '🦙', Avelu: '👧' };
+  const JUEGOS_PALABRAS = {
+    carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', gusanos: 'Aplasta Gusanos',
+    memoria: 'Memoria: figuras y palabras', memoria_silabas: 'Memoria: vocales y sílabas', tren: 'Tren de sílabas', lectura: 'Lectura: Palabras',
+  };
+  const SEMILLAS = {
+    carrera: MODELOS, bosque: MODELOS,
+    globos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
+    gusanos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
+    memoria: ['perro', 'gato', 'pato', 'oso', 'llama', 'sol', 'luna', 'casa', 'Zoe', 'Mira', 'mamá', 'papá'],
+    memoria_silabas: ['a', 'e', 'i', 'o', 'u', 'ma', 'me', 'mi', 'mo', 'mu', 'pa', 'pe', 'pi', 'po', 'pu', 'la', 'lo', 'sa', 'so', 'su'],
+    tren: ['gato', 'pato', 'casa', 'luna', 'sopa', 'taza', 'mano', 'palta', 'pelota', 'tomate', 'conejo', 'tortuga', 'papa', 'dado', 'vaca', 'bota'],
+    lectura: ['oso', 'uva', 'ojo', 'mano', 'mono', 'mapa', 'pato', 'papa', 'pera', 'luna', 'lupa', 'loro', 'lobo', 'sopa', 'sapo', 'taza', 'nube', 'dado', 'dedo', 'gato', 'casa', 'vaca', 'bota', 'cama'],
+  };
+  // separar en sílabas (reglas simples del español)
+  function silabas(w) {
+    const V = 'aeiouáéíóúü', low = w.toLowerCase();
+    const isV = c => V.includes(c);
+    const insep = ['pr', 'br', 'tr', 'dr', 'cr', 'gr', 'fr', 'pl', 'bl', 'cl', 'gl', 'fl', 'ch', 'll', 'rr'];
+    const out = []; let cur = '', i = 0;
+    while (i < low.length) {
+      cur += w[i];
+      if (isV(low[i])) {
+        // consonantes que siguen hasta la próxima vocal
+        let j = i + 1; while (j < low.length && !isV(low[j])) j++;
+        if (j >= low.length) { cur += w.slice(i + 1); out.push(cur); cur = ''; break; }
+        const cons = low.slice(i + 1, j);
+        let take = 0;
+        if (cons.length === 1) take = 0;
+        else if (cons.length === 2) take = insep.includes(cons) ? 0 : 1;
+        else take = insep.includes(cons.slice(-2)) ? cons.length - 2 : cons.length - 1;
+        cur += w.slice(i + 1, i + 1 + take); out.push(cur); cur = ''; i = i + 1 + take; continue;
+      }
+      i++;
+    }
+    if (cur) out.length ? out[out.length - 1] += cur : out.push(cur);
+    return out.join('-');
+  }
+  function itemDe(t) {
+    if (typeof t === 'object' && t) return { t: t.t, s: t.s || silabas(t.t), e: t.e || '', m: t.m === undefined ? (MODELOS.includes(t.t) ? t.t : null) : t.m };
+    const w = WORDS.find(x => x[0] === t);
+    return { t, s: w ? w[1] : silabas(t), e: w ? w[2] : (EXTRA_EMOJI[t] || ''), m: MODELOS.includes(t) ? t : null };
+  }
+  function config() {
+    const l = progress.config || {};
+    return {
+      palabras: Object.assign({}, publicConfig.palabras || {}, l.palabras || {}),
+      canciones: Object.assign({ menu: 'reino', juegos: 'reino', ballet: 'cisnes', repetir: false }, publicConfig.canciones || {}, l.canciones || {}),
+      nombres: Object.assign({}, publicConfig.nombres || {}, l.nombres || {}),
+    };
+  }
+  function setConfig(seccion, clave, valor) {
+    progress.config = progress.config || {};
+    progress.config[seccion] = progress.config[seccion] || {};
+    if (valor === undefined) delete progress.config[seccion][clave]; else progress.config[seccion][clave] = valor;
+    save(progress);
+  }
+  // palabras de un juego en el formato [palabra, sílabas, dibujo, modelo3D]
+  function palabras(juego) {
+    const list = config().palabras[juego] || SEMILLAS[juego] || [];
+    return list.map(itemDe).filter(x => x.t).map(x => [x.t, x.s, x.e, x.m]);
+  }
+  // artículo para frases más naturales: "Busca el" + "gato", "Busca la" + "casa"
+  const FEM = ['mano', 'flor', 'nariz', 'mamá', 'luna', 'nube', 'sopa', 'llave'];
+  const MASC = ['mapa', 'papá', 'día', 'sofá', 'oso', 'sol', 'pez', 'dado', 'dedo', 'tomate', 'choclo', 'ratón'];
+  const art = w => FEM.includes(w) ? 'la' : MASC.includes(w) ? 'el' : /a$/.test(J_strip(w)) ? 'la' : 'el';
+  function J_strip(x) { return strip(String(x)).toLowerCase(); }
   // URL de la grabación de una frase (primero la de este navegador, luego la publicada)
   function recUrl(text) {
     const k = norm(text);
@@ -122,7 +197,10 @@
   let queue = [], busy = false, run = 0, current = null;
   function say(parts, opts = {}) {
     if (!opts.queue) stopVoice();
-    (Array.isArray(parts) ? parts : [parts]).filter(Boolean).forEach(t => queue.push({ t: String(t), opts }));
+    let list = (Array.isArray(parts) ? parts : [parts]).filter(Boolean).map(String);
+    // si la familia grabó la frase completa ("busca el gato"), se usa esa grabación más fluida
+    if (list.length > 1 && recUrl(list.join(' '))) list = [list.join(' ')];
+    list.forEach(t => queue.push({ t, opts }));
     if (opts.onend) queue.push({ fn: opts.onend });
     pump();
   }
@@ -187,8 +265,12 @@
   }
 
   // ---------- efectos ----------
+  // Grupos de efectos. Mamá y papá pueden poner su propio sonido por grupo o por juego (modo admin):
+  // se guarda como "efecto <grupo>" o "efecto <juego> <grupo>".
+  const GRUPOS_EFECTOS = { acierto: '✅ Acierto', error: '❌ Error', moneda: '🪙 Moneda', salto: '🦘 Salto', pop: '🫧 Pop / tocar', festejo: '🎺 Festejo', aplauso: '👏 Aplausos', popo: '💩 Popó', pum: '🔨 ¡Pum!', abrir: '🎁 Abrir regalo' };
+  const JUEGO = window.JUEGO || (location.pathname.split('/').pop() || 'index.html').replace('.html', '');
   const SFX = { coin: 'coin.mp3', jump: 'jump.mp3', land: 'land.mp3', pop: 'placement-a.mp3', pop2: 'placement-c.mp3', tick: 'toggle.mp3' };
-  const buffers = {};
+  const buffers = {}, custom = {};
   function loadSfx() {
     const c = audio(); if (!c) return;
     Object.entries(SFX).forEach(([k, f]) => {
@@ -197,15 +279,28 @@
       fetch(base + f).then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => c.decodeAudioData(b, ok, no)))
         .then(buf => { buffers[k] = buf; }).catch(() => { buffers[k] = null; });
     });
+    allReady.then(() => Object.keys(GRUPOS_EFECTOS).forEach(g => [`efecto ${JUEGO} ${g}`, `efecto ${g}`].forEach(key => {
+      const url = local[key] || pub[key]; if (!url || custom[key]) return;
+      custom[key] = 'loading';
+      fetch(url).then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => c.decodeAudioData(b, ok, no))).then(buf => { custom[key] = buf; }).catch(() => { delete custom[key]; });
+    })));
   }
+  function playBuf(buf, vol = .9, rate = 1) { const c = audio(); const s = c.createBufferSource(), g = c.createGain(); s.buffer = buf; s.playbackRate.value = rate; g.gain.value = vol; s.connect(g).connect(master); s.start(); }
+  // efecto personalizado del grupo (si existe); devuelve true si sonó
+  function efectoPropio(grupo) {
+    const buf = custom[`efecto ${JUEGO} ${grupo}`] || custom[`efecto ${grupo}`];
+    if (buf && buf !== 'loading') { playBuf(buf); return true; }
+    return false;
+  }
+  const GRUPO_DE = { coin: 'moneda', jump: 'salto', pop: 'pop', pop2: 'pop', tick: 'pop', land: 'pum' };
   function sfx(name, vol = 0.8, rate = 1) {
     const c = audio(); if (!c) return;
+    if (GRUPO_DE[name] && efectoPropio(GRUPO_DE[name])) return;
+    if (name === 'coin') return moneda();
+    if (name === 'pop' || name === 'pop2') return burbuja(rate);
     const buf = buffers[name];
-    if (buf && buf !== 'loading') {
-      const s = c.createBufferSource(), g = c.createGain();
-      s.buffer = buf; s.playbackRate.value = rate; g.gain.value = vol;
-      s.connect(g).connect(master); s.start();
-    } else tones([880, 1320], 0.08, 'triangle', 0.2);
+    if (buf && buf !== 'loading') playBuf(buf, vol, rate);
+    else tones([880, 1320], 0.08, 'triangle', 0.2);
   }
   function tones(freqs, dur = 0.12, type = 'sine', vol = 0.25) {
     const c = audio(); if (!c) return;
@@ -217,28 +312,46 @@
       o.connect(g).connect(master); o.start(t); o.stop(t + dur * 1.8);
     });
   }
-  const ding = () => tones([660, 880, 1175], 0.11, 'triangle');
+  let nz = null;
+  function noiseBuf() { const c = audio(); if (!nz) { nz = c.createBuffer(1, c.sampleRate, c.sampleRate); const d = nz.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return nz; }
+  function noiseHit(t, dur, type, freq, q, vol, sweepTo) {
+    const c = audio(); const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = noiseBuf(); f.type = type; f.frequency.setValueAtTime(freq, t); if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur); f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(master); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+  }
+  function sweep(type, f0, f1, t, dur, vol) {
+    const c = audio(); const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(master); o.start(t); o.stop(t + dur + .02); return o;
+  }
+  // moneda clásica: dos notas brillantes
+  function moneda() { const c = audio(); if (!c) return; const t = c.currentTime; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(988, t); o.frequency.setValueAtTime(1319, t + .07); g.gain.setValueAtTime(.08, t); g.gain.setValueAtTime(.08, t + .07); g.gain.exponentialRampToValueAtTime(0.0001, t + .45); o.connect(g).connect(master); o.start(t); o.stop(t + .5); tones([2637, 3136], .04, 'sine', .03); }
+  // burbuja que revienta
+  function burbuja(rate = 1) { const c = audio(); if (!c) return; const t = c.currentTime; sweep('sine', 300 * rate, 1200 * rate, t, .07, .25); noiseHit(t, .03, 'highpass', 3000, .7, .12); }
+  const ding = () => { if (efectoPropio('acierto')) return; tones([784, 988, 1319], 0.09, 'triangle', .2); tones([1568, 1976, 2637], 0.09, 'sine', .05); };
   const boing = () => {
+    if (efectoPropio('error')) return;
     const c = audio(); if (!c) return;
-    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
-    o.type = 'sine'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.35);
-    g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-    o.connect(g).connect(master); o.start(t); o.stop(t + 0.42);
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(110, t + .45);
+    lfo.frequency.value = 18; lg.gain.value = 30; lfo.connect(lg).connect(o.frequency);
+    g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .5);
+    o.connect(g).connect(master); o.start(t); lfo.start(t); o.stop(t + .52); lfo.stop(t + .52);
   };
-  const fanfare = () => tones([523, 659, 784, 1047, 784, 1047, 1319], 0.12, 'triangle', 0.22);
+  const fanfare = () => { if (efectoPropio('festejo')) return; tones([523, 659, 784, 1047, 784, 1047, 1319], 0.12, 'triangle', 0.22); tones([262, 330, 392, 523], .24, 'square', .04); };
   const sparkle = () => tones([1568, 2093, 2637, 3136], 0.05, 'sine', 0.08);
+  // aplausos: muchas palmas sueltas + murmullo de público
   function applause(seconds = 1.6) {
+    if (efectoPropio('aplauso')) return;
     const c = audio(); if (!c) return;
-    const len = Math.floor(c.sampleRate * 0.05);
-    const noise = c.createBuffer(1, len, c.sampleRate), d = noise.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-    for (let i = 0; i < Math.floor(seconds * 28); i++) {
-      const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-      s.buffer = noise; f.type = 'bandpass'; f.frequency.value = 900 + Math.random() * 1800; f.Q.value = 1.2;
-      const t = c.currentTime + Math.random() * seconds;
-      g.gain.value = 0.25 * (1 - (t - c.currentTime) / seconds * 0.7);
-      s.connect(f).connect(g).connect(master); s.start(t);
+    const t0 = c.currentTime;
+    for (let i = 0; i < Math.floor(seconds * 45); i++) {
+      const t = t0 + Math.random() * seconds, fade = 1 - (t - t0) / seconds * .75;
+      noiseHit(t, .03 + Math.random() * .03, 'bandpass', 900 + Math.random() * 2200, 1 + Math.random(), .22 * fade);
     }
+    noiseHit(t0, seconds + .4, 'bandpass', 700, .5, .05);
   }
   function partyHorn() {
     const c = audio(); if (!c) return;
@@ -248,10 +361,25 @@
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.03); g.gain.setValueAtTime(0.12, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
     o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 0.62);
   }
+  // efectos con nombre: popó, ¡pum!, abrir regalo
+  function efecto(grupo) {
+    if (efectoPropio(grupo)) return;
+    const c = audio(); if (!c) return; const t = c.currentTime;
+    if (grupo === 'popo') { sweep('sine', 220, 60, t, .28, .35); noiseHit(t, .22, 'lowpass', 600, 1, .3, 150); sweep('triangle', 500, 900, t + .25, .12, .06); }
+    else if (grupo === 'pum') { sweep('sine', 160, 40, t, .2, .5); noiseHit(t, .08, 'bandpass', 1800, 1, .3); sweep('triangle', 900, 300, t + .02, .15, .12); }
+    else if (grupo === 'abrir') { sweep('triangle', 400, 1600, t, .25, .12); tones([1319, 1568, 2093], .06, 'sine', .07); }
+    else if (grupo === 'moneda') moneda();
+    else if (grupo === 'acierto') ding();
+    else if (grupo === 'error') boing();
+    else if (grupo === 'aplauso') applause();
+    else if (grupo === 'festejo') fanfare();
+    else if (grupo === 'pop') burbuja();
+    else if (grupo === 'salto') sfx('jump');
+  }
   const SHOUTS = ['¡Yupi!', '¡Bravo!', '¡Wiii!', '¡Hurra!', '¡Sí!'];
   const PRAISES = ['¡Muy bien!', '¡Bravo!', '¡Genial!', '¡Súper!', '¡Excelente!', '¡Lo lograste!', '¡Qué lista eres!'];
   function cheer(big = false) {
-    ding(); partyHorn();
+    ding(); if (!custom['efecto acierto'] && !custom[`efecto ${JUEGO} acierto`]) partyHorn();
     if (big) { applause(2.2); setTimeout(fanfare, 250); } else applause(1.1);
     say(pick(SHOUTS), { queue: true, pitch: 1.6, rate: 1.05 });
   }
@@ -301,7 +429,10 @@
 
   let musicOn = progress.music !== false && !NO_MUSIC_PAGE(), timer = null, songEl = null, noise = null, speakingDuck = false;
   function NO_MUSIC_PAGE() { return !!window.SIN_MUSICA; }
-  let songId = progress.song || 'reino', tick = 0, nextTime = 0, melIdx = 0, melNext = 0;
+  // canción según el lugar: menú, juegos o ballet (se configura en el modo admin)
+  const PAGINA = location.pathname.split('/').pop() || 'index.html';
+  const MUSICA_CTX = window.MUSICA_CTX || (PAGINA.startsWith('ballet') ? 'ballet' : PAGINA === 'index.html' ? 'menu' : 'juegos');
+  let songId = 'reino', songChosen = false, tick = 0, nextTime = 0, melIdx = 0, melNext = 0, ended = false;
   const TICK = .25;
 
   function env(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
@@ -373,7 +504,11 @@
     const s = SONGS[songId] || SONGS.reino, spb = 60 / s.bpm;
     while (nextTime < ctx.currentTime + 0.15) {
       let b = tick * TICK;
-      if (b >= s.len - 1e-6) { tick = 0; melIdx = 0; melNext = 0; b = 0; }
+      if (b >= s.len - 1e-6) {
+        // al terminar: repetir o detenerse (según la configuración)
+        if (!config().canciones.repetir) { ended = true; stopMusic(); updateMusicButtons(); return; }
+        tick = 0; melIdx = 0; melNext = 0; b = 0;
+      }
       const t = nextTime;
       while (melIdx < s.notes.length && melNext <= b + 1e-6) { const [n, d] = s.notes[melIdx]; if (n) instrument(s.inst, n, t + (melNext - b) * spb, d * spb); melNext += d; melIdx++; }
       const barIdx = Math.floor(b / s.bar + 1e-6), inBar = +(b - barIdx * s.bar).toFixed(3);
@@ -385,10 +520,13 @@
   function startMusic() {
     if (!musicOn || NO_MUSIC_PAGE()) return;
     const c = audio(); if (!c) return;
+    if (!songChosen) songId = config().canciones[MUSICA_CTX] || 'reino';
+    ended = false;
     const url = currentSongUrl();
     if (url) {
       if (timer) { clearInterval(timer); timer = null; musicGain.gain.setTargetAtTime(0, c.currentTime, .05); }
-      if (!songEl || songEl.dataset.src !== url) { if (songEl) songEl.pause(); songEl = new Audio(url); songEl.dataset.src = url; songEl.loop = true; }
+      if (!songEl || songEl.dataset.src !== url) { if (songEl) songEl.pause(); songEl = new Audio(url); songEl.dataset.src = url; songEl.onended = () => { ended = true; updateMusicButtons(); }; }
+      songEl.loop = !!config().canciones.repetir;
       songEl.volume = speakingDuck ? .12 : .4;
       songEl.play().catch(() => {});
       return;
@@ -414,7 +552,7 @@
     if (ctx && timer) musicGain.gain.setTargetAtTime(on ? 0.12 : 0.42, ctx.currentTime, 0.15);
   }
   function setMusic(on) { musicOn = on && !NO_MUSIC_PAGE(); progress.music = on; save(progress); musicOn ? startMusic() : stopMusic(); updateMusicButtons(); }
-  function setSong(id) { songId = id; progress.song = id; save(progress); stopMusic(); musicOn = !NO_MUSIC_PAGE(); progress.music = true; save(progress); startMusic(); updateMusicButtons(); }
+  function setSong(id, { guardar = true } = {}) { songId = id; songChosen = true; if (guardar) setConfig('canciones', MUSICA_CTX, id); stopMusic(); musicOn = !NO_MUSIC_PAGE(); progress.music = true; save(progress); startMusic(); updateMusicButtons(); }
   function songList() {
     const l = Object.entries(SONGS).map(([id, s]) => ({ id, nombre: s.nombre, emoji: s.emoji, autor: s.autor || 'original' }));
     if (pub.musica) l.push({ id: 'mia', nombre: 'Canción de la familia', emoji: '📀', autor: 'publicada' });
@@ -456,10 +594,34 @@
     setTimeout(() => document.addEventListener('click', function close(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', close); } }), 0);
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopMusic(); else if (musicOn && ctx) startMusic(); });
-  function unlock() { audio(); loadSfx(); ready.then(startMusic); }
+  function unlock() { audio(); loadSfx(); allReady.then(startMusic); }
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, unlock, { once: true, passive: true }));
   document.addEventListener('click', e => { const b = e.target.closest('[data-musica]'); if (b) { audio(); musicMenu(b); } });
   document.addEventListener('DOMContentLoaded', updateMusicButtons);
+
+  // ---------- PIN de mamá y papá ----------
+  const pin = () => progress.pin || '1234';
+  function pedirPin(onOk) {
+    try { if (+sessionStorage.getItem('bl-admin') > Date.now()) { onOk(); return; } } catch (e) {}
+    const w = document.createElement('div'); w.className = 'regalo';
+    w.innerHTML = `<div class="regalo-caja pin"><p class="regalo-titulo">🔒 Para mamá y papá</p><p class="regalo-sub">Escribe el PIN</p><div class="pin-dots"></div><div class="pin-teclas">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '✕', 0, '⌫'].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div></div>`;
+    document.body.appendChild(w);
+    let v = '';
+    const dots = w.querySelector('.pin-dots');
+    const draw = () => { dots.textContent = '●'.repeat(v.length) + '○'.repeat(Math.max(0, 4 - v.length)); };
+    draw();
+    w.addEventListener('click', e => {
+      const b = e.target.closest('[data-k]'); if (!b) return;
+      const k = b.dataset.k;
+      if (k === '✕') { w.remove(); return; }
+      if (k === '⌫') v = v.slice(0, -1); else v += k;
+      draw();
+      if (v.length >= pin().length) {
+        if (v === pin()) { try { sessionStorage.setItem('bl-admin', Date.now() + 30 * 60000); } catch (er) {} w.remove(); onOk(); }
+        else { v = ''; dots.textContent = '✗ Intenta otra vez'; setTimeout(draw, 900); }
+      }
+    });
+  }
 
   // ---------- turnos (modo 2 jugadores) ----------
   function nextTurn(cb, opts = {}) {
@@ -572,6 +734,9 @@
   .menu-musica button b{font-size:16px;line-height:1.1}
   .menu-musica button small{font-size:13px;opacity:.7;line-height:1.1}
   .menu-musica button.on{background:#ffe27a}
+  .pin .pin-dots{font-size:30px;letter-spacing:.3em;margin:8px 0;min-height:1.2em}
+  .pin-teclas{display:grid;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center}
+  .pin-teclas button{height:58px;border-radius:16px;border:0;background:#eef3fb;font:inherit;font-size:24px;font-weight:800;cursor:pointer;color:#23324a}
   @keyframes regalo-bote{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-12px) rotate(4deg)}}
   @keyframes regalo-in{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion: reduce){.regalo-abrir,.regalo-caja,.turno-cara{animation:none}}`;
@@ -581,7 +746,8 @@
     WORDS, CHARS, pick, shuffle, strip, esc, norm, progress, save: () => save(progress), player, childName, addStar,
     say, stopVoice, sound, SOUNDS, SOUND_WORD, PRAISES, SHOUTS, voices, recUrl, ROOT,
     sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift,
-    startMusic, stopMusic, setMusic, setSong, songList, musicBeat, SONGS, currentSong: () => songId, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, audio,
+    startMusic, stopMusic, setMusic, setSong, songList, musicBeat, SONGS, currentSong: () => songId, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, isPlaying: () => !!timer || !!(songEl && !songEl.paused), audio,
+    efecto, moneda, GRUPOS_EFECTOS, JUEGO, config, setConfig, palabras, silabas, art, SEMILLAS, JUEGOS_PALABRAS, MODELOS, itemDe, ready: allReady, pin, pedirPin, MUSICA_CTX,
     nextTurn, showTurn,
   };
 })();

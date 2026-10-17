@@ -39,7 +39,7 @@ export function crearMundo(canvas, { fog = 0xdff3ff, near = 40, far = 120, fov =
 }
 
 // Tarjeta con dibujo y/o palabra para usar como textura
-export function tarjeta(text, { emoji = '', color = '#3f8ee8', size = 512, bg = '#ffffff', ink = '#23324a', round = true } = {}) {
+export function tarjeta(text, { emoji = '', color = '#3f8ee8', size = 512, bg = '#ffffff', ink = '#23324a', round = true, emojiAlpha = 1 } = {}) {
   const c = document.createElement('canvas'); c.width = c.height = size;
   const g = c.getContext('2d');
   const s = size / 512;
@@ -50,7 +50,7 @@ export function tarjeta(text, { emoji = '', color = '#3f8ee8', size = 512, bg = 
   g.textAlign = 'center'; g.textBaseline = 'middle';
   if (emoji) {
     g.font = `${(text ? 230 : 300) * s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    g.fillText(emoji, 256 * s, (text ? 205 : 262) * s);
+    g.globalAlpha = emojiAlpha; g.fillText(emoji, 256 * s, (text ? 205 : 262) * s); g.globalAlpha = 1;
   }
   if (text) {
     g.fillStyle = ink;
