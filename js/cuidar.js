@@ -2,7 +2,7 @@
 // El fondo es un parque difuminado (js/parque.js).
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './mundo3d.js';
-import { crearPersonaje, PERSONAJES } from './personajes.js';
+import { crearPersonaje, PERSONAJES, CARAS } from './personajes.js';
 import { pintarParque } from './parque.js';
 
 const J = window.Juego, P = J.progress;
@@ -226,6 +226,9 @@ function cosquillas() { hacer('festejar', 1.6); J.say('¡Jajaja!'); J.sfx('pop',
 
 // ---------- modos y herramientas ----------
 const MODOS = {
+  caritas: { decir: '¿Cómo se siente?', herr() {
+    return Object.entries(CARAS).map(([k, c]) => `<button data-c="${k}" class="${ch.cara === k ? 'on' : ''}">${c.emoji} ${c.nombre}</button>`).join('');
+  } },
   decorar: { decir: '¡A decorar!', herr() {
     return Object.entries(ADORNOS).filter(([, a]) => !(a.soloFigura && A.animal)).map(([k, a]) => `<button data-a="${k}" class="${state.adornos.has(k) ? 'on' : ''}">${a.emoji} ${a.nombre}</button>`).join('');
   } },
@@ -261,6 +264,15 @@ $('#modos').addEventListener('click', e => { const b = e.target.closest('[data-m
 $('#herr').addEventListener('click', e => {
   const a = e.target.closest('[data-a]');
   if (a) { const k = a.dataset.a, on = !puestos[k]; ponerAdorno(k, on); if (on) J.say(J.pick(['¡Qué bonito!', '¡Qué linda!'])); renderHerr(); return; }
+  const c = e.target.closest('[data-c]');
+  if (c) {
+    // la carita se guarda y se usa en todos los juegos
+    const k = c.dataset.c; ch.setCara && ch.setCara(k);
+    P.caras = P.caras || {}; P.caras[id] = k; J.save();
+    J.sfx('pop'); J.say(CARAS[k].nombre);
+    hacer({ feliz: 'festejar', sorpresa: 'saludar' }[k] || 'quieto', 1.5);
+    renderHerr(); return;
+  }
   const h = e.target.closest('[data-h]'); if (!h) return;
   const k = h.dataset.h;
   if (k === 'ensuciar') { ensuciar(); J.sfx('pop2'); }

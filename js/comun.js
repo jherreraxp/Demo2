@@ -109,13 +109,14 @@
   const EXTRA_EMOJI = { Zoe: '🎧', Mira: '💃', Ana: '👸🏾', Lula: '🦙', Avelu: '👧' };
   const JUEGOS_PALABRAS = {
     carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', gusanos: 'Aplasta Gusanos',
-    memoria: 'Memoria: figuras y palabras', memoria_silabas: 'Memoria: vocales y sílabas', tren: 'Tren de sílabas', lectura: 'Lectura: Palabras',
+    memoria: 'Memoria: figuras y palabras', memoria_letras: 'Memoria: vocales y letras', memoria_silabas: 'Memoria: vocales y sílabas', tren: 'Tren de sílabas', lectura: 'Lectura: Palabras',
   };
   const SEMILLAS = {
     carrera: MODELOS, bosque: MODELOS,
     globos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
     gusanos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
     memoria: ['perro', 'gato', 'pato', 'oso', 'llama', 'sol', 'luna', 'casa', 'Zoe', 'Mira', 'mamá', 'papá'],
+    memoria_letras: ['a', 'e', 'i', 'o', 'u', 'm', 's', 'l', 'p'],
     memoria_silabas: ['a', 'e', 'i', 'o', 'u', 'ma', 'me', 'mi', 'mo', 'mu', 'pa', 'pe', 'pi', 'po', 'pu', 'la', 'lo', 'sa', 'so', 'su'],
     tren: ['gato', 'pato', 'casa', 'luna', 'sopa', 'taza', 'mano', 'palta', 'pelota', 'tomate', 'conejo', 'tortuga', 'papa', 'dado', 'vaca', 'bota'],
     lectura: ['oso', 'uva', 'ojo', 'mano', 'mono', 'mapa', 'pato', 'papa', 'pera', 'luna', 'lupa', 'loro', 'lobo', 'sopa', 'sapo', 'taza', 'nube', 'dado', 'dedo', 'gato', 'casa', 'vaca', 'bota', 'cama'],

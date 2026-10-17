@@ -21,7 +21,20 @@ body { background: #1d1440; }
 .cancion small { font-size: 12px; opacity: .7; }
 .cancion.on { background: #ffe27a; transform: translateY(-4px); }
 .posiciones { position: fixed; left: 10px; top: calc(env(safe-area-inset-top, 0px) + 130px); bottom: calc(env(safe-area-inset-bottom, 0px) + 130px); z-index: 5; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; width: 168px; padding-right: 4px; }
-.pos { border: 0; border-radius: 14px; background: rgba(255,255,255,.9); padding: 6px 10px; font: inherit; font-size: 15px; font-weight: 800; text-align: left; box-shadow: 0 3px 0 rgba(0,0,0,.3); cursor: pointer; color: #23324a; }
+.pos { border: 0; border-radius: 14px; background: rgba(255,255,255,.9); padding: 4px 8px 4px 4px; font: inherit; font-size: 14px; font-weight: 800; text-align: left; box-shadow: 0 3px 0 rgba(0,0,0,.3); cursor: pointer; color: #23324a; display: flex; align-items: center; gap: 6px; line-height: 1.1; }
+.pos img { width: 44px; height: 54px; flex: none; border-radius: 10px; background: linear-gradient(#ffe9f6, #e7dcff); }
+.pos kbd { margin-left: auto; flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #23324a; color: #fff; font: 800 13px/1.4 system-ui, sans-serif; text-align: center; }
+.pos:disabled img { filter: grayscale(1) opacity(.5); }
+.caritas { position: fixed; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 130px); z-index: 6; display: flex; flex-direction: column; gap: 6px; }
+.caritas button { width: 54px; height: 54px; border-radius: 16px; background: rgba(255,255,255,.9); font-size: 28px; box-shadow: 0 3px 0 rgba(0,0,0,.3); position: relative; }
+.caritas button.on { background: #ffe27a; }
+.caritas kbd, .dpad kbd { position: absolute; right: 4px; bottom: 2px; line-height: 1; font: 800 10px system-ui, sans-serif; color: #5b6b82; }
+.dpad { position: fixed; right: 80px; top: calc(env(safe-area-inset-top, 0px) + 150px); z-index: 6; display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); gap: 4px; }
+.dpad button { border-radius: 14px; background: rgba(255,255,255,.85); font-size: 22px; box-shadow: 0 3px 0 rgba(0,0,0,.3); touch-action: none; }
+.dpad .arr { grid-area: 1 / 2; } .dpad .izq { grid-area: 2 / 1; } .dpad .sal { grid-area: 2 / 2; font-size: 16px; } .dpad .der { grid-area: 2 / 3; } .dpad .aba { grid-area: 3 / 2; }
+.teclas { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 112px); z-index: 5; background: rgba(35,50,74,.6); color: #fff; border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 700px) { .caritas { top: auto; right: auto; left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 186px); flex-direction: row; gap: 4px; } .caritas button { width: 40px; height: 40px; font-size: 22px; border-radius: 12px; } .dpad { right: auto; left: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 236px); grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); } .teclas { display: none; } }
+@media (hover: none) { .teclas, .pos kbd, .caritas kbd, .dpad kbd { display: none; } }
 .pos small { display: block; font-size: 12px; font-weight: 600; opacity: .7; }
 .pos.on { background: #ffe27a; }
 .pos:disabled { background: rgba(255,255,255,.45); cursor: default; }
@@ -44,12 +57,21 @@ body { background: #1d1440; }
 <div class="titulo"><h1 id="t-cancion">Escenario de Ballet</h1><p id="t-autor">Elige una canción y toca a tu bailarina</p></div>
 <button class="aplauso" id="aplauso">👏 ¡Bravo!</button>
 <div class="posiciones" id="posiciones" aria-label="Posiciones de ballet"></div>
+<div class="caritas" id="caritas" aria-label="Caritas"></div>
+<div class="dpad" id="dpad" aria-label="Mover a la bailarina">
+  <button class="arr" data-d="arriba" aria-label="Atrás">⬆️</button>
+  <button class="izq" data-d="izquierda" aria-label="Izquierda">⬅️</button>
+  <button class="sal" data-d="salto" aria-label="Saltar">🦘<kbd>␣</kbd></button>
+  <button class="der" data-d="derecha" aria-label="Derecha">➡️</button>
+  <button class="aba" data-d="abajo" aria-label="Adelante">⬇️</button>
+</div>
+<div class="teclas">⬅️➡️⬆️⬇️ mover · espacio saltar · números y letras: posiciones y caritas</div>
 <div class="canciones" id="canciones" aria-label="Canciones"></div>
 
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, POSES } from './js/personajes.js';
+import { crearPersonaje, POSES, CARAS } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -173,12 +195,24 @@ W.onFrame((dt, t) => {
   if (manualT > 0) { manualT -= dt; if (manualT <= 0) manualT = 0; }
   // sin música las bailarinas saludan; con música bailan
   const sonando = J.isPlaying();
+  // flechas: la bailarina se desliza por el escenario en puntitas
+  const mx = (mover.derecha ? 1 : 0) - (mover.izquierda ? 1 : 0), mz = (mover.abajo ? 1 : 0) - (mover.arriba ? 1 : 0);
+  const moviendo = !!(mx || mz);
+  const lim = narrow() ? 1.4 : 3.6;
+  if (moviendo) { pasoX = Math.max(-lim, Math.min(lim, pasoX + mx * dt * 3)); pasoZ = Math.max(-1.6, Math.min(2.4, pasoZ + mz * dt * 2.4)); manualT = Math.max(manualT, 1.5); }
   dancers.forEach((d, i) => {
     if (d.leap > 0) { d.leap -= dt * 1.4; d.group.position.y = Math.sin((1 - Math.max(0, d.leap)) * Math.PI) * 1.2; }
     else d.group.position.y = 0;
+    const baseX = dancers.length > 1 ? (i ? 1.6 : -1.6) : 0;
+    d.group.position.x += (Math.max(-lim - .6, Math.min(lim + .6, baseX + pasoX)) - d.group.position.x) * Math.min(1, dt * 8);
+    d.group.position.z += (pasoZ - d.group.position.z) * Math.min(1, dt * 8);
+    const rotT = moviendo ? Math.atan2(mx, mz) : 0;
+    let dr = rotT - d.group.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr));
+    d.group.rotation.y += dr * Math.min(1, dt * 8);
+    if (moviendo && d.ballet && d.poseK !== 'mov') { d.poseK = 'mov'; d.setPose(unlocked.includes('releve') ? 'releve' : 'primera'); }
     if (d.ballet) {
       // coreografía: cambia de posición cada 2 tiempos; si la niña elige una, la mantiene un ratito
-      if (!manualT && unlocked.length) { const k = Math.floor((beat + i) / 2) % unlocked.length; if (d.poseK !== k) { d.poseK = k; d.setPose(unlocked[k]); } }
+      if (!manualT && !moviendo && unlocked.length) { const k = Math.floor((beat + i) / 2) % unlocked.length; if (d.poseK !== k) { d.poseK = k; d.setPose(unlocked[k]); } }
       d.update(dt, d.leap > 0 ? 'festejar' : (sonando || manualT) ? 'ballet' : 'saludar', beat + i * 2);
     }
     else d.update(dt, d.leap > 0 ? 'festejar' : sonando ? 'bailar' : 'saludar');
@@ -196,18 +230,73 @@ dancers.forEach(d => d.setTutu && d.setTutu(true));
 // ---------- posiciones de ballet: se abren con las estrellas ----------
 const stars = Math.max(...(P.two ? P.players : [P.players[0]]).map(p => p.stars));
 const unlocked = Object.entries(POSES).filter(([, p]) => stars >= p.estrellas).map(([k]) => k);
-let manualT = 0;
-function renderPoses(sel) {
-  $('#posiciones').innerHTML = Object.entries(POSES).map(([k, p]) => stars >= p.estrellas
-    ? `<button class="pos ${k === sel ? 'on' : ''}" data-pose="${k}">${p.nombre}</button>`
-    : `<button class="pos" disabled>🔒 ${p.nombre}<small>con ⭐ ${p.estrellas}</small></button>`).join('');
+let manualT = 0, pasoX = 0, pasoZ = 0;
+const mover = { izquierda: false, derecha: false, arriba: false, abajo: false };
+// teclas: 1–9, 0, A, G para las posiciones; F T L E S para las caritas
+const TECLAS_POSE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'g'];
+const POSE_KEYS = Object.keys(POSES);
+const teclaDe = k => TECLAS_POSE[POSE_KEYS.indexOf(k)] || '';
+const TECLAS_CARA = { f: 'feliz', t: 'triste', l: 'llora', e: 'enojada', s: 'sorpresa' };
+// fotito de cada posición: la misma bailarina dibujada en un lienzo chiquito
+const fotos = {};
+async function hacerFotos() {
+  const id = P.players[0].char;
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setSize(88, 108); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xffffff, 0xd8c8ff, 2.2));
+  const l = new THREE.DirectionalLight(0xffffff, 1.6); l.position.set(2, 4, 5); sc.add(l);
+  const cam = new THREE.PerspectiveCamera(30, 88 / 108, .1, 50); cam.position.set(0, 1.2, 4.3); cam.lookAt(0, 1.1, 0);
+  const d = await crearPersonaje(id); d.setTutu && d.setTutu(true); sc.add(d.group);
+  for (const k of POSE_KEYS) {
+    if (d.ballet) { d.setPose(k); for (let i = 0; i < 30; i++) d.update(.05, 'ballet', 0); }
+    else for (let i = 0; i < 10; i++) d.update(.05, 'bailar');
+    d.group.rotation.y = POSES[k].spin ? .6 : 0;
+    r.render(sc, cam); fotos[k] = r.domElement.toDataURL();
+  }
+  r.dispose();
 }
-renderPoses();
-$('#posiciones').addEventListener('click', e => {
-  const b = e.target.closest('[data-pose]'); if (!b) return;
-  manualT = 6; dancers.forEach(d => d.setPose && d.setPose(b.dataset.pose));
-  renderPoses(b.dataset.pose); J.sparkle(); J.say(POSES[b.dataset.pose].nombre);
+function renderPoses(sel) {
+  $('#posiciones').innerHTML = Object.entries(POSES).map(([k, p]) => {
+    const img = fotos[k] ? `<img src="${fotos[k]}" alt="">` : '';
+    return stars >= p.estrellas
+      ? `<button class="pos ${k === sel ? 'on' : ''}" data-pose="${k}">${img}<span>${p.nombre}</span><kbd>${teclaDe(k).toUpperCase()}</kbd></button>`
+      : `<button class="pos" disabled>${img}<span>🔒 ${p.nombre}<small>con ⭐ ${p.estrellas}</small></span></button>`;
+  }).join('');
+}
+function renderCaritas() {
+  const cur = dancers[0] && dancers[0].cara;
+  $('#caritas').innerHTML = Object.entries(CARAS).map(([k, c]) => `<button data-cara="${k}" class="${k === cur ? 'on' : ''}" aria-label="${c.nombre}">${c.emoji}<kbd>${Object.keys(TECLAS_CARA).find(t => TECLAS_CARA[t] === k).toUpperCase()}</kbd></button>`).join('');
+}
+function elegirPose(k) {
+  if (!POSES[k] || stars < POSES[k].estrellas) return;
+  manualT = 6; dancers.forEach(d => { d.setPose && d.setPose(k); d.poseK = k; });
+  renderPoses(k); J.sparkle(); J.say(POSES[k].nombre);
+}
+function elegirCara(k) {
+  dancers.forEach(d => d.setCara && d.setCara(k));
+  renderCaritas(); J.sfx('pop'); J.say(CARAS[k].nombre);
+}
+function saltar() { dancers.forEach(d => { if (!(d.leap > 0)) { d.leap = 1; } }); J.efecto('salto'); fx.burst(new THREE.Vector3(pasoX, 2.5, pasoZ), 30); }
+renderPoses(); renderCaritas();
+hacerFotos().then(() => renderPoses()).catch(() => {});
+$('#posiciones').addEventListener('click', e => { const b = e.target.closest('[data-pose]'); if (b) elegirPose(b.dataset.pose); });
+$('#caritas').addEventListener('click', e => { const b = e.target.closest('[data-cara]'); if (b) elegirCara(b.dataset.cara); });
+const FLECHAS = { arrowleft: 'izquierda', arrowright: 'derecha', arrowup: 'arriba', arrowdown: 'abajo' };
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (FLECHAS[k]) { mover[FLECHAS[k]] = true; e.preventDefault(); return; }
+  if (e.repeat) return;
+  if (k === ' ') { saltar(); e.preventDefault(); return; }
+  const i = TECLAS_POSE.indexOf(k); if (i >= 0) { elegirPose(POSE_KEYS[i]); return; }
+  if (TECLAS_CARA[k]) elegirCara(TECLAS_CARA[k]);
 });
+addEventListener('keyup', e => { const k = FLECHAS[e.key.toLowerCase()]; if (k) mover[k] = false; });
+addEventListener('blur', () => Object.keys(mover).forEach(k => { mover[k] = false; }));
+// direccional en pantalla (tablet)
+const dpad = $('#dpad');
+dpad.addEventListener('pointerdown', e => { const b = e.target.closest('[data-d]'); if (!b) return; e.preventDefault(); if (b.dataset.d === 'salto') return saltar(); mover[b.dataset.d] = true; b.setPointerCapture(e.pointerId); });
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => dpad.addEventListener(ev, e => { const b = e.target.closest('[data-d]'); if (b && b.dataset.d !== 'salto') mover[b.dataset.d] = false; }));
 // avisar cuando hay una posición nueva
 const visto = P.balletVisto || 0;
 const nuevas = Object.values(POSES).filter(p => p.estrellas > visto && p.estrellas <= stars);

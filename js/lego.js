@@ -74,7 +74,54 @@ function cara(head, r, y, opts = {}) {
   });
   const smile = mesh(new THREE.TorusGeometry(.055, .012, 6, 16, Math.PI), mat(opts.boca || 0xb3243f), 0, y - .06, r * .97); smile.rotation.z = Math.PI; head.add(smile);
   if (opts.mejillas !== false) [-1, 1].forEach(sx => { const c = mesh(new THREE.CircleGeometry(.03, 12), mat(0xff8fab, { transparent: true, opacity: .6 }), sx * r * .62, y - .04, r * .9); c.rotation.y = sx * .6; head.add(c); });
+  eyes.cara = expresiones(head, { eyes, ex: r * .38, ey: y + .03, z: r * .97, my: y - .06, smile, boca: opts.boca || 0xb3243f, s: opts.grandes ? 1.4 : 1 });
   return eyes;
+}
+// ---------- caritas: feliz, triste, llora, enojada, sorpresa ----------
+export const CARAS = {
+  feliz:    { nombre: 'Feliz', emoji: '😊' },
+  triste:   { nombre: 'Triste', emoji: '😢' },
+  llora:    { nombre: 'Llora', emoji: '😭' },
+  enojada:  { nombre: 'Enojada', emoji: '😠' },
+  sorpresa: { nombre: 'Sorpresa', emoji: '😮' },
+};
+function expresiones(head, { eyes, ex, ey, z, my, smile = null, boca = 0xb3243f, s = 1 }) {
+  const black = mat(0x1d2233, { roughness: .3 });
+  const brows = [-1, 1].map(sx => { const b = mesh(box(.075 * s, .016, .012), black, sx * ex, ey + .075 * s, z + .006); b.visible = false; head.add(b); return b; });
+  const mouths = {};
+  if (smile) {
+    mouths.feliz = smile;
+    const sad = mesh(new THREE.TorusGeometry(.045, .012, 6, 16, Math.PI), mat(boca), 0, my - .035, z); head.add(sad); mouths.triste = sad;
+    const o = mesh(new THREE.CircleGeometry(.05, 16), mat(0x5a1a2a), 0, my - .015, z + .004); o.scale.set(.8, 1.1, 1); head.add(o); mouths.abierta = o;
+    const flat = mesh(box(.08, .014, .01), mat(boca), 0, my - .02, z + .004); head.add(flat); mouths.plana = flat;
+  }
+  const tearMat = mat(0x7fd3ff, { transparent: true, opacity: .85, emissive: 0x2a8ad8, emissiveIntensity: .3 });
+  const tears = [-1, 1].map(sx => { const t = mesh(new THREE.SphereGeometry(.026 * s, 10, 8), tearMat, sx * (ex + .01), ey - .04, z + .01); t.scale.y = 1.5; t.visible = false; head.add(t); return t; });
+  let cur = 'feliz', t = 0;
+  const BOCA = { feliz: 'feliz', triste: 'triste', llora: 'abierta', enojada: 'plana', sorpresa: 'abierta' };
+  function set(name) {
+    cur = CARAS[name] ? name : 'feliz';
+    Object.entries(mouths).forEach(([k, m]) => { m.visible = k === BOCA[cur]; });
+    brows.forEach((b, i) => {
+      const sx = i ? 1 : -1;
+      b.visible = cur !== 'feliz';
+      b.rotation.z = cur === 'enojada' ? sx * .5 : (cur === 'triste' || cur === 'llora') ? -sx * .4 : 0;
+      b.position.y = ey + (cur === 'sorpresa' ? .1 : cur === 'enojada' ? .06 : .075) * s;
+    });
+    tears.forEach(tr => { tr.visible = cur === 'llora'; });
+  }
+  set('feliz');
+  return {
+    set, get actual() { return cur; },
+    update(dt, closed) {
+      t += dt;
+      const k = { feliz: 1, triste: .8, llora: .3, enojada: .55, sorpresa: 1.35 }[cur];
+      eyes.forEach(e => { e.scale.y = closed ? .2 : k; e.scale.x = cur === 'sorpresa' ? 1.2 : 1; });
+      if (cur === 'llora') tears.forEach((tr, i) => { const ph = (t * 1.3 + i * .5) % 1; tr.position.y = ey - .04 - ph * .16; tr.scale.setScalar(1 - ph * .4); tr.scale.y *= 1.5; });
+      if (cur === 'enojada') head.rotation.z = Math.sin(t * 18) * .03;
+      else if (cur === 'llora') head.rotation.z = Math.sin(t * 9) * .04;
+    },
+  };
 }
 function minifig(id) {
   const cfg = FIGURAS[id];
@@ -185,7 +232,7 @@ function animarMinifig(f) {
     t += dt;
     // parpadeo
     blinkT -= dt; const closed = blinkT < 0 && blinkT > -.12; if (blinkT < -.12) blinkT = 2 + Math.random() * 3;
-    f.eyes.forEach(e => { e.scale.y = closed ? .2 : 1; });
+    if (f.eyes.cara) f.eyes.cara.update(dt, closed); else f.eyes.forEach(e => { e.scale.y = closed ? .2 : 1; });
     let pose = null, bob = 0, spin = 0, lean = 0, headTurn = 0;
     if (mode === 'correr') {
       const ph = t * 12 * extra, s = Math.sin(ph);
@@ -233,6 +280,8 @@ function animarMinifig(f) {
     // puntos donde se pueden poner adornos (cuidar.html)
     anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: .36, cuello: 1.13, frente: .2 },
     setPose(name) { target = POSES[name] || POSES.primera; },
+    setCara(name) { f.eyes.cara && f.eyes.cara.set(name); },
+    get cara() { return f.eyes.cara ? f.eyes.cara.actual : 'feliz'; },
     setTutu(on) { if (f.tutu) f.tutu.visible = on; if (f.vestido) { f.vestido.visible = !on; f.legs.forEach(l => { l.visible = on; }); } },
   };
 }
@@ -261,6 +310,7 @@ function animal(id) {
   const snout = tag(mesh(box(.22, .16, .18), fur('nariz'), 0, -.07, .24), 'nariz'); head.add(snout);
   head.add(mesh(box(.08, .05, .04), mat(0x2b1d1d), 0, -.02, .34));
   const eyes = [-1, 1].map(sx => { const e = mesh(box(.05, .07, .02), mat(0x1d2233), sx * .1, .06, .175); head.add(e); return e; });
+  const cara = expresiones(head, { eyes, ex: .1, ey: .06, z: .172, my: -.1 });
   [-1, 1].forEach(sx => {
     const ear = tag(mesh(new THREE.ConeGeometry(.08, .2, 4), fur('orejas'), sx * .12, .25, -.02), 'orejas'); ear.rotation.y = Math.PI / 4; head.add(ear);
     if (tipo === 'toro') { const h = tag(mesh(new THREE.ConeGeometry(.045, .28, 8), mat(C.cuernos), sx * .25, .16, .02), 'cuernos'); h.rotation.z = -sx * .9; head.add(h); }
@@ -280,7 +330,7 @@ function animal(id) {
   let t = 0, blinkT = 2;
   function update(dt, mode = 'quieto', speed = 1) {
     t += dt; blinkT -= dt; const closed = blinkT < 0 && blinkT > -.12; if (blinkT < -.12) blinkT = 2 + Math.random() * 3;
-    eyes.forEach(e => { e.scale.y = closed ? .2 : 1; });
+    cara.update(dt, closed);
     const run = mode === 'correr', happy = mode === 'festejar' || mode === 'feliz';
     const ph = t * 12 * speed;
     legs.forEach((l, i) => { l.rotation.x = run ? Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * .75 : happy ? Math.sin(t * 12 + i) * .25 : 0; });
@@ -288,9 +338,10 @@ function animal(id) {
     body.rotation.y = mode === 'festejar' ? t * 4 : (mode === 'bailar' || mode === 'ballet') ? Math.sin(t * 3) * .5 : 0;
     tail.rotation.y = Math.sin(t * (happy || mode === 'bailar' ? 14 : 4)) * .5;
     neck.rotation.x = run ? -.1 : Math.sin(t * 1.5) * .05;
-    head.rotation.z = mode === 'bailar' || mode === 'ballet' ? Math.sin(t * 5) * .2 : 0;
+    if (mode === 'bailar' || mode === 'ballet') head.rotation.z = Math.sin(t * 5) * .2;
+    else if (cara.actual !== 'enojada' && cara.actual !== 'llora') head.rotation.z = 0;
   }
-  return { group: root, parts, update, setPose() {}, setTutu() {}, anclas: { cabeza: head, cuerpo: body, mano: null, alto: .18, cuello: L + .3, frente: .18, animal: true } };
+  return { group: root, parts, update, setPose() {}, setTutu() {}, setCara: n => cara.set(n), get cara() { return cara.actual; }, anclas: { cabeza: head, cuerpo: body, mano: null, alto: .18, cuello: L + .3, frente: .18, animal: true } };
 }
 
 export async function crearPersonaje(id, base = '', { colores = true } = {}) {
@@ -299,6 +350,8 @@ export async function crearPersonaje(id, base = '', { colores = true } = {}) {
   ch.group.scale.multiplyScalar(1.05);
   const saved = colores && window.Juego?.progress?.colors?.[id];
   if (saved) Object.entries(saved).forEach(([part, hex]) => pintarParte(ch, part, hex));
+  const carita = window.Juego?.progress?.caras?.[id];
+  if (carita && ch.setCara) ch.setCara(carita);
   return ch;
 }
 export function pintarParte(ch, part, hex) {

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/juego3d.css">
 <style>
 body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b6ff); min-height: 100vh; }
+#niveles .pro { background: linear-gradient(135deg, #ffd23f, #ff7eb6); }
 #nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
 .tablero { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: 12px; display: grid; place-content: center; gap: var(--gap, 12px); grid-template-columns: repeat(var(--cols, 4), var(--w, 120px)); grid-auto-rows: var(--h, 150px); padding: 0 12px; }
 .carta { position: relative; perspective: 900px; cursor: pointer; border: 0; padding: 0; background: none; touch-action: manipulation; }
@@ -63,11 +64,18 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
   // Niveles: figuras → figura con su palabra → vocales y sílabas → palabras conocidas.
   // Las palabras se cambian en el modo admin ("memoria" y "memoria_silabas").
   const NIVELES = [
+    { pares: 4, tipo: 'vocales', nombre: 'Solo vocales: a e i o u' },
+    { pares: 4, tipo: 'letras', nombre: 'Letras m, s, l, p' },
+    { pares: 5, tipo: 'letras-mix', nombre: 'Vocales y letras' },
+    { pares: 4, tipo: 'silabas-simples', nombre: 'Sílabas: ma, sa, la, pa' },
     { pares: 4, tipo: 'figuras', nombre: 'Figuras iguales' },
     { pares: 6, tipo: 'figura-texto', nombre: 'El dibujo y su palabra' },
     { pares: 6, tipo: 'silabas', nombre: 'Vocales y sílabas' },
+    { pares: 6, tipo: 'silaba-figura', nombre: 'La sílaba y su dibujo' },
     { pares: 8, tipo: 'palabras', nombre: 'Palabras que ya conoces' },
+    { pares: 12, tipo: 'pro', nombre: '⭐ Nivel Pro: baraja grande', pro: true },
   ];
+  const VOC = ['a', 'e', 'i', 'o', 'u'];
   const state = { nivel: 0, cartas: [], abiertas: [], pares: 0, total: 0, bloqueado: false, jugando: false };
 
   function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; }
@@ -78,12 +86,39 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
   }
 
   // cada pareja: { id, a: {emoji, texto}, b: {emoji, texto}, dice }
+  // las letras se dicen con su sonido (mmm, sss), las vocales y sílabas tal cual
+  const letra = t => ({ id: t, a: { texto: t }, b: { texto: t }, dice: t, sonido: t.length === 1 && !VOC.includes(t) });
+  const syl1 = w => J.strip(w[1].split('-')[0]).toLowerCase();
   function parejas(cfg) {
+    const letras = J.palabras('memoria_letras').map(w => w[0].toLowerCase());
+    if (cfg.tipo === 'vocales') return J.shuffle(letras.filter(l => VOC.includes(l)).concat(VOC)).filter((x, i, a) => a.indexOf(x) === i).slice(0, cfg.pares).map(letra);
+    if (cfg.tipo === 'letras') { const c = letras.filter(l => !VOC.includes(l)); return J.shuffle(c.length ? c : ['m', 's', 'l', 'p']).slice(0, cfg.pares).map(letra); }
+    if (cfg.tipo === 'letras-mix') return J.shuffle([...new Set(letras)]).slice(0, cfg.pares).map(letra);
+    if (cfg.tipo === 'silabas-simples') {
+      const c = letras.filter(l => !VOC.includes(l)).slice(0, 4);
+      return J.shuffle((c.length ? c : ['m', 's', 'l', 'p']).map(l => l + J.pick(VOC))).slice(0, cfg.pares).map(letra);
+    }
     if (cfg.tipo === 'silabas') {
       const s = J.shuffle(J.palabras('memoria_silabas').map(w => w[0])).slice(0, cfg.pares);
-      return s.map(t => ({ id: t, a: { texto: t }, b: { texto: t }, dice: t }));
+      return s.map(letra);
     }
     let lista = J.palabras('memoria');
+    if (cfg.tipo === 'silaba-figura') {
+      // "ma" con el dibujo de la mano: una sola palabra por sílaba
+      const vistos = new Set();
+      lista = J.shuffle(lista.filter(w => w[2])).filter(w => { const k = syl1(w); if (vistos.has(k)) return false; vistos.add(k); return true; }).slice(0, cfg.pares);
+      return lista.map(w => ({ id: w[0], a: { texto: syl1(w) }, b: { emoji: w[2] }, dice: syl1(w), dice2: w[0] }));
+    }
+    if (cfg.tipo === 'pro') {
+      // baraja grande: mezcla de todo
+      const todas = [
+        ...J.shuffle(lista.filter(w => w[2])).slice(0, 5).map(w => ({ id: w[0], a: { emoji: w[2] }, b: { texto: w[0] }, dice: w[0] })),
+        ...J.shuffle(lista).slice(0, 4).map(w => ({ id: 'p-' + w[0], a: { texto: w[0] }, b: { texto: w[0] }, dice: w[0] })),
+        ...J.shuffle(J.palabras('memoria_silabas').map(w => w[0])).slice(0, 4).map(letra),
+      ];
+      const ids = new Set();
+      return J.shuffle(todas.filter(p => !ids.has(p.id) && ids.add(p.id))).slice(0, cfg.pares);
+    }
     if (cfg.tipo !== 'palabras') lista = lista.filter(w => w[2]);
     lista = J.shuffle(lista).slice(0, cfg.pares);
     return lista.map(w => {
@@ -93,6 +128,7 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
       return { id: w[0], a: txt, b: txt, dice: w[0] };
     });
   }
+  const decir = (p, lado) => p.sonido ? J.sound(p.dice) : J.say(p.dice2 && lado && lado.emoji ? p.dice2 : p.dice);
 
   function layout() {
     const n = state.cartas.length; if (!n) return;
@@ -133,7 +169,7 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
     if (!state.jugando || state.bloqueado || c.abierta || c.hecha) return;
     J.sfx('pop', .7, 1 + state.abiertas.length * .15);
     c.abierta = true; c.el.classList.add('vuelta'); c.el.setAttribute('aria-label', c.lado.texto || c.p.dice);
-    J.say(c.p.dice);
+    decir(c.p, c.lado);
     state.abiertas.push(c);
     if (state.abiertas.length < 2) return;
     const [a, b] = state.abiertas;
@@ -145,7 +181,7 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
         $('#pares').textContent = `${state.pares} / ${state.total}`;
         J.efecto('acierto'); J.addStar(); updatePlayer();
         message(J.pick(['¡Pareja!', '¡Muy bien!', '¡Bravo!']));
-        J.say([a.p.dice, J.pick(J.PRAISES)]);
+        if (a.p.sonido) { J.sound(a.p.dice); J.say(J.pick(J.PRAISES), { queue: true }); } else J.say([a.p.dice, J.pick(J.PRAISES)]);
         if (state.pares >= state.total) setTimeout(nivelListo, 1400);
       }, 650);
     } else {
@@ -187,12 +223,22 @@ body { background: radial-gradient(circle at 50% 30%, #fff4fb, #ffd6ec 55%, #c9b
   (async () => {
     await J.ready;
     updatePlayer(); J.refreshMusic();
-    const unlocked = Math.min(NIVELES.length, (P.level.memoria || 0) + 1);
-    let sel = unlocked - 1;
+    // el nivel Pro se gana al final, o papá/mamá lo abren con la clave
+    const abierto = i => i < Math.min(NIVELES.length, (P.level.memoria || 0) + 1) || (NIVELES[i].pro && P.memoriaPro);
+    let sel = Math.max(0, Math.min(NIVELES.length - 1, P.level.memoria || 0));
+    while (sel > 0 && !abierto(sel)) sel--;
     const box = $('#niveles');
-    box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
-    box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); $('#nivel-desc').textContent = NIVELES[sel].nombre; J.sfx('pop'); };
-    $('#nivel-desc').textContent = NIVELES[sel].nombre;
+    const pintar = () => {
+      box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${!abierto(i) ? `${n.pro ? '' : 'disabled'} aria-label="Nivel bloqueado"` : ''} class="${i === sel ? 'on' : ''}${n.pro ? ' pro' : ''}">${abierto(i) ? (n.pro ? '⭐' : i + 1) : n.pro ? '🔑' : '🔒'}</button>`).join('');
+      $('#nivel-desc').textContent = NIVELES[sel].nombre + (abierto(NIVELES.length - 1) ? '' : ' · 🔑 = Nivel Pro con la clave de papás');
+    };
+    pintar();
+    box.onclick = e => {
+      const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;
+      const i = +b.dataset.i;
+      if (!abierto(i)) { J.pedirPin(() => { P.memoriaPro = true; J.save(); sel = i; pintar(); }); return; }
+      sel = i; pintar(); J.sfx('pop');
+    };
     const go = $('#empezar'); go.disabled = false; go.textContent = '▶ ¡A jugar!';
     go.onclick = () => start(sel);
     if (location.hash === '#prueba') { window.__m = { state, voltear, NIVELES, start }; start(0); }
