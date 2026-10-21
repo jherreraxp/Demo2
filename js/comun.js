@@ -369,6 +369,7 @@
   }
   // efectos con nombre: popó, ¡pum!, abrir regalo
   function efecto(grupo) {
+    if (grupo === 'acierto') festejo();
     if (efectoPropio(grupo)) return;
     const c = audio(); if (!c) return; const t = c.currentTime;
     if (grupo === 'popo') { sweep('sine', 220, 60, t, .28, .35); noiseHit(t, .22, 'lowpass', 600, 1, .3, 150); sweep('triangle', 500, 900, t + .25, .12, .06); }
@@ -388,6 +389,7 @@
     ding(); if (!custom['efecto acierto'] && !custom[`efecto ${JUEGO} acierto`]) partyHorn();
     if (big) { applause(2.2); setTimeout(fanfare, 250); } else applause(1.1);
     say(pick(SHOUTS), { queue: true, pitch: 1.6, rate: 1.05 });
+    festejo(big ? 6 : 4);
   }
 
   // ---------- música ----------
@@ -677,13 +679,56 @@
   function loop() {
     cx.clearRect(0, 0, cv.width, cv.height);
     bits.forEach(b => {
-      b.x += b.vx; b.y += b.vy; b.vy += .45; b.vx *= .99; b.a += .2; b.life--;
+      b.x += b.vx; b.y += b.vy; b.vy += b.fw ? .1 : .45; b.vx *= b.fw ? .97 : .99; if (b.fw) b.vy *= .97; b.a += .2; b.life--;
       cx.save(); cx.translate(b.x, b.y); cx.rotate(b.a); cx.fillStyle = b.c;
-      if (b.star) { cx.font = `${b.r * 3}px serif`; cx.fillText('⭐', -b.r, b.r); } else cx.fillRect(-b.r / 2, -b.r / 2, b.r, b.r * 1.6);
+      if (b.fw) { cx.globalAlpha = Math.min(1, b.life / 25); cx.shadowColor = b.c; cx.shadowBlur = 10; cx.beginPath(); cx.arc(0, 0, b.r, 0, 7); cx.fill(); }
+      else if (b.star) { cx.font = `${b.r * 3}px serif`; cx.fillText('⭐', -b.r, b.r); } else cx.fillRect(-b.r / 2, -b.r / 2, b.r, b.r * 1.6);
       cx.restore();
     });
     bits = bits.filter(b => b.life > 0 && b.y < cv.height + 20);
     raf = bits.length ? requestAnimationFrame(loop) : (cx.clearRect(0, 0, cv.width, cv.height), null);
+  }
+
+  // ---------- festejo de los aciertos ----------
+  // Bichitos, estrellitas y cositas que aparecen en cualquier parte de la pantalla, bailan con un
+  // soniditos y un fuego artificial. Se llama solo en cada acierto (cheer y efecto 'acierto').
+  const BICHOS = ['🐞', '🦋', '🐝', '🐛', '🐌', '🐣', '🦄', '⭐', '🌟', '✨', '🎈', '🍭', '🌈', '🌸', '🍓', '🧁', '🐸', '🐥', '🦊', '🐰'];
+  let festejoT = 0, festejoCss = false;
+  function festejo(n = 4) {
+    const now = Date.now(); if (now - festejoT < 900) return; festejoT = now;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || progress.festejo === false || !document.body) return;
+    if (!festejoCss) {
+      festejoCss = true;
+      const st = document.createElement('style');
+      st.textContent = `.bichito{position:fixed;z-index:49;pointer-events:none;font-size:clamp(38px,8vmin,72px);line-height:1;transform:translate(-50%,-50%) scale(0);animation:bichito-sale 1.9s cubic-bezier(.3,1.6,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.18))}
+.bichito i{display:block;font-style:normal;animation:bichito-baila .32s ease-in-out infinite alternate}
+@keyframes bichito-sale{0%{transform:translate(-50%,-50%) scale(0) rotate(-30deg)}18%{transform:translate(-50%,-50%) scale(1.15) rotate(8deg)}30%{transform:translate(-50%,-50%) scale(1) rotate(0)}80%{opacity:1;transform:translate(-50%,-60%) scale(1)}100%{opacity:0;transform:translate(-50%,-120%) scale(.6)}}
+@keyframes bichito-baila{from{transform:rotate(-14deg) translateY(0)}to{transform:rotate(14deg) translateY(-10px)}}`;
+      document.head.appendChild(st);
+    }
+    // en cualquier parte, pero no justo encima del centro donde suele estar la respuesta
+    for (let i = 0; i < n; i++) {
+      // por los bordes, para no tapar las respuestas
+      const lado = i % 4, r = Math.random();
+      const x = lado === 0 ? 4 + r * 12 : lado === 1 ? 84 + r * 12 : 10 + r * 80;
+      const y = lado === 2 ? 14 + Math.random() * 8 : lado === 3 ? 86 + Math.random() * 8 : 18 + Math.random() * 70;
+      const el = document.createElement('div'); el.className = 'bichito';
+      el.style.left = x + '%'; el.style.top = y + '%'; el.style.animationDelay = (i * .12) + 's';
+      el.innerHTML = `<i style="animation-duration:${.25 + Math.random() * .2}s">${pick(BICHOS)}</i>`;
+      document.body.appendChild(el); setTimeout(() => el.remove(), 2400 + i * 120);
+      setTimeout(() => { const c = audio(); if (c) tones([pick([1047, 1175, 1319, 1568, 1760])], .07, pick(['sine', 'triangle']), .05); }, i * 120 + 60);
+    }
+    fuegoArtificial(innerWidth * (.15 + Math.random() * .7), innerHeight * (.15 + Math.random() * .3));
+  }
+  function fuegoArtificial(x, y) {
+    if (!cv) { confetti(0); }
+    cv.width = innerWidth; cv.height = innerHeight;
+    const cols = pick([['#ff7eb6', '#ffd23f', '#ffffff'], ['#9a6ee0', '#7fd3ff', '#ffffff'], ['#4cb87a', '#f6c33b', '#ff7eb6'], ['#ef5b5b', '#f39a3b', '#ffe27a']]);
+    const n = 46;
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, v = 4 + Math.random() * 3.5; bits.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 2.6 + Math.random() * 1.6, c: pick(cols), a: 0, life: 55 + Math.random() * 20, fw: true }); }
+    const c = audio();
+    if (c) { const t = c.currentTime; sweep('sine', 900, 1800, t, .25, .04); noiseHit(t + .22, .35, 'lowpass', 900, 1, .22, 120); }
+    if (!raf) loop();
   }
 
   // ---------- regalo ----------
@@ -750,6 +795,7 @@
 
   window.Juego = {
     WORDS, CHARS, pick, shuffle, strip, esc, norm, progress, save: () => save(progress), player, childName, addStar,
+    festejo, fuegoArtificial,
     say, stopVoice, sound, SOUNDS, SOUND_WORD, PRAISES, SHOUTS, voices, recUrl, ROOT,
     sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift,
     startMusic, stopMusic, setMusic, setSong, songList, musicBeat, SONGS, currentSong: () => songId, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, isPlaying: () => !!timer || !!(songEl && !songEl.paused), audio,
