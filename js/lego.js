@@ -66,9 +66,24 @@ const ANIMALES = {
   llama: { nombre: 'Llamita Lula', ojos: 0x3b2a20, c: { pelaje: 0xf6efe2, panza: 0xffffff, orejas: 0xf6efe2, nariz: 0xe8d9c3, manta: 0xff5d8f, pompones: 0xb98cff }, tipo: 'llama' },
   zorro: { nombre: 'Zorrito', ojos: 0x3b2a20, c: { pelaje: 0xf08a3c, panza: 0xffffff, orejas: 0xf08a3c, nariz: 0xffffff, cola: 0xffffff }, tipo: 'zorro' },
   lobo:  { nombre: 'Lobito', ojos: 0x3f8ee8, c: { pelaje: 0x8c95a3, panza: 0xe4e8ee, orejas: 0x6c7480, nariz: 0xe4e8ee, cola: 0x8c95a3 }, tipo: 'lobo' },
+  gato:  { nombre: 'Gatito Michi', ojos: 0x4cb87a, c: { pelaje: 0xffb36b, panza: 0xffffff, orejas: 0xffb36b, nariz: 0xfff1e0, cola: 0xffb36b }, tipo: 'gato' },
+  perro: { nombre: 'Perrito Toby', ojos: 0x5a3220, c: { pelaje: 0xf2e2c9, panza: 0xffffff, orejas: 0x8a5a3c, nariz: 0xffffff, cola: 0xf2e2c9, manchas: 0x8a5a3c, collar: 0xff5d8f }, tipo: 'perro' },
+  unicornio: { nombre: 'Unicornio Lulú', ojos: 0x8a4fd8, c: { pelaje: 0xffffff, panza: 0xfff4fb, orejas: 0xffffff, nariz: 0xffe3f1, cuerno: 0xffd23f, crin: 0xff8cc6, cola: 0xb98cff }, tipo: 'unicornio' },
   toro:  { nombre: 'Torito', ojos: 0x3b2a20, c: { pelaje: 0x8a5a3c, panza: 0xd8b48f, orejas: 0x8a5a3c, nariz: 0xf3b6a4, cuernos: 0xfff4dc, cola: 0x5a3a24 }, tipo: 'toro' },
 };
-export const PERSONAJES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara', 'mama', 'papa', 'llama', 'rojito', 'raton', 'zorro', 'lobo', 'toro'];
+// animalitos que se paran en dos patas
+const PELUCHES = {
+  conejo:   { nombre: 'Conejita Coco', ojos: 0x8a4fd8, c: { pelaje: 0xfafafa, panza: 0xffe3f1, orejas: 0xffb6d5, nariz: 0xffe3f1, 'moño': 0xff5d8f }, tipo: 'conejo' },
+  oso:      { nombre: 'Osito Bruno', ojos: 0x3b2a20, c: { pelaje: 0xb07a4a, panza: 0xf0d2a8, orejas: 0x8a5a3c, nariz: 0xf0d2a8, 'moño': 0x3f8ee8 }, tipo: 'oso' },
+  panda:    { nombre: 'Pandita Pao', ojos: 0x2b1d1d, c: { pelaje: 0xffffff, panza: 0xffffff, orejas: 0x1d1d26, nariz: 0xffffff, patas: 0x1d1d26 }, tipo: 'panda' },
+  pollito:  { nombre: 'Pollito Pío', ojos: 0x2b1d1d, c: { pelaje: 0xffe14d, panza: 0xfff3a8, alas: 0xffd23f, pico: 0xff9a2b, patas: 0xff9a2b }, tipo: 'pollito' },
+  pinguino: { nombre: 'Pingüino Pepe', ojos: 0x2b1d1d, c: { pelaje: 0x2b2f45, panza: 0xffffff, alas: 0x2b2f45, pico: 0xffb23f, patas: 0xffb23f, 'moño': 0xef5b5b }, tipo: 'pinguino' },
+};
+export const PERSONAJES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara', 'mama', 'papa', 'llama', 'rojito', 'raton', 'zorro', 'lobo', 'toro', 'gato', 'perro', 'conejo', 'oso', 'panda', 'unicornio', 'pollito', 'pinguino'];
+// emoji de cada personaje (por si la lista de nombres del juego todavía no lo tiene)
+export const EMOJI = { nieve: '👸', ana: '👸🏾', estrella: '🎤', zoe: '🎧', mira: '💃', amara: '👧🏻', mama: '👩', papa: '👨', llama: '🦙', rojito: '❤️', raton: '🐭', zorro: '🦊', lobo: '🐺', toro: '🐂', gato: '🐱', perro: '🐶', conejo: '🐰', oso: '🧸', panda: '🐼', unicornio: '🦄', pollito: '🐥', pinguino: '🐧' };
+export const ESTILOS = { bloques: { nombre: 'Bloques', emoji: '🟪' }, lego: { nombre: 'Lego', emoji: '🧱' }, muneca: { nombre: 'Muñequita', emoji: '🪆' } };
+export const estiloActual = () => { const e = window.Juego?.progress?.estilo; return ESTILOS[e] ? e : 'bloques'; };
 export const PINTABLES = PERSONAJES;
 
 // ---------- poses de ballet ----------
@@ -107,13 +122,22 @@ function dibujarCara(g, v, o) {
   const [expr, extra] = v.split('_');
   const e = expr === 'guino' ? 'feliz' : expr === 'llora2' ? 'llora' : expr;
   const blink = extra === 'b';
-  const ink = '#2a1a2e', ex = [82, 174], ey = o.animal ? 92 : 98, rx = o.animal ? 27 : 33, ry = o.animal ? 31 : 40;
+  // estilos de carita: lego (ojitos de punto pintados), muñeca (ojos grandes y cejas gruesas) o bloques
+  const lego = o.estilo === 'lego', mun = o.estilo === 'muneca';
+  const ink = '#2a1a2e';
+  const ex = lego ? [94, 162] : mun ? [80, 176] : [82, 174];
+  const ey = lego ? 92 : mun ? 100 : o.animal ? 92 : 98;
+  const rx = lego ? 13 : mun ? 31 : o.animal ? 27 : 33, ry = lego ? 18 : mun ? 39 : o.animal ? 31 : 40;
+  // manchas de panda alrededor de los ojos
+  if (o.parches) { g.fillStyle = o.parches; ex.forEach((x, i) => { const sx = i ? 1 : -1; g.beginPath(); g.ellipse(x + sx * 4, ey + 8, rx * 1.5, ry * 1.32, sx * -.45, 0, Math.PI * 2); g.fill(); }); }
   // cachetes
   const blush = (x, y, a = .55) => { const gr = g.createRadialGradient(x, y, 2, x, y, 30); gr.addColorStop(0, `rgba(255,105,150,${a})`); gr.addColorStop(1, 'rgba(255,105,150,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, 30, 18, 0, 0, Math.PI * 2); g.fill(); };
   if (o.hocico) { // hocico pintado de los animales y del ratón
     g.fillStyle = o.hocico; g.beginPath(); g.ellipse(128, 172, 62, 42, 0, 0, Math.PI * 2); g.fill();
   }
-  blush(46, 158, e === 'enojada' ? .8 : .55); blush(210, 158, e === 'enojada' ? .8 : .55);
+  if (lego) { blush(60, 140, e === 'enojada' ? .5 : .25); blush(196, 140, e === 'enojada' ? .5 : .25); }
+  else if (mun) { blush(52, 160, e === 'enojada' ? .7 : .45); blush(204, 160, e === 'enojada' ? .7 : .45); }
+  else { blush(46, 158, e === 'enojada' ? .8 : .55); blush(210, 158, e === 'enojada' ? .8 : .55); }
   // ojos
   const ojo = (x, sx, forma) => {
     if (forma === 'cerrado') { // feliz con ojitos cerrados: ^
@@ -127,6 +151,15 @@ function dibujarCara(g, v, o) {
       return;
     }
     const big = forma === 'grande', ky = big ? 1.12 : 1, kx = big ? 1.05 : 1;
+    if (lego) { // ojito de punto negro con brillito
+      g.save();
+      if (forma === 'enojado') { g.beginPath(); g.moveTo(x - rx * 2, ey - ry * (sx < 0 ? .6 : .0)); g.lineTo(x + rx * 2, ey - ry * (sx < 0 ? .0 : .6)); g.lineTo(x + rx * 2, ey + ry * 2); g.lineTo(x - rx * 2, ey + ry * 2); g.closePath(); g.clip(); }
+      g.fillStyle = ink; g.beginPath(); g.ellipse(x, ey, rx * (big ? 1.3 : 1), ry * (big ? 1.3 : 1), 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x - rx * .3, ey - ry * .35, rx * .38, 0, Math.PI * 2); g.fill();
+      g.restore();
+      if (e === 'triste' || e === 'llora') { g.fillStyle = 'rgba(170,225,255,.85)'; g.beginPath(); g.ellipse(x, ey + ry * .7, rx * .7, ry * .25, 0, 0, Math.PI * 2); g.fill(); }
+      return;
+    }
     g.save();
     if (forma === 'enojado') { // párpado de arriba en diagonal
       g.beginPath(); g.moveTo(x - rx * 1.4, ey - ry * (sx < 0 ? .55 : .05)); g.lineTo(x + rx * 1.4, ey - ry * (sx < 0 ? .05 : .55)); g.lineTo(x + rx * 1.4, ey + ry * 2); g.lineTo(x - rx * 1.4, ey + ry * 2); g.closePath(); g.clip();
@@ -134,7 +167,7 @@ function dibujarCara(g, v, o) {
     // blanco del ojo
     g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(x, ey, rx * kx, ry * ky, 0, 0, Math.PI * 2); g.fill();
     // iris con degradado
-    const ir = rx * (big ? .62 : .8), iry = ry * (big ? .66 : .82);
+    const ir = rx * (big ? .62 : mun ? .86 : .8), iry = ry * (big ? .66 : mun ? .86 : .82);
     const gr = g.createLinearGradient(x, ey - iry, x, ey + iry); gr.addColorStop(0, oscuro(o.ojos, .45)); gr.addColorStop(.6, hex(o.ojos)); gr.addColorStop(1, '#' + new THREE.Color(o.ojos).lerp(new THREE.Color(0xffffff), .45).getHexString());
     g.fillStyle = gr; g.beginPath(); g.ellipse(x + sx * 2, ey + 4, ir, iry, 0, 0, Math.PI * 2); g.fill();
     // pupila
@@ -150,7 +183,8 @@ function dibujarCara(g, v, o) {
     g.strokeStyle = ink;
     if (forma === 'enojado') { g.lineWidth = 8; g.beginPath(); g.moveTo(x - rx * 1.05, ey - ry * (sx < 0 ? .5 : .1)); g.lineTo(x + rx * 1.05, ey - ry * (sx < 0 ? .1 : .5)); g.stroke(); }
     else {
-      g.lineWidth = 7; g.beginPath(); g.ellipse(x, ey, rx * kx, ry * ky, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+      g.lineWidth = mun ? 11 : 7; g.beginPath(); g.ellipse(x, ey, rx * kx, ry * ky, 0, Math.PI * (mun ? 1.02 : 1.08), Math.PI * (mun ? 1.98 : 1.92)); g.stroke();
+      if (mun) { g.lineWidth = 6; g.beginPath(); g.moveTo(x + sx * rx * kx * .95, ey - ry * .3); g.lineTo(x + sx * (rx * kx + 12), ey - ry * .55); g.stroke(); }
       if (o.pestanas) { g.lineWidth = 5; const a0 = sx > 0 ? -.35 : Math.PI + .35; [0, .28].forEach(k => { const a = a0 + (sx > 0 ? -k : k); const px = x + Math.cos(a) * rx * kx, py = ey + Math.sin(a) * ry * ky; g.beginPath(); g.moveTo(px, py); g.lineTo(px + sx * 11, py - 9); g.stroke(); }); }
     }
   };
@@ -164,27 +198,38 @@ function dibujarCara(g, v, o) {
   };
   ojo(ex[0], -1, formaDe(-1)); ojo(ex[1], 1, formaDe(1));
   // cejas
-  g.strokeStyle = o.cejas; g.lineWidth = 9;
+  g.strokeStyle = o.cejas; g.lineWidth = lego ? 5 : mun ? 13 : 9;
   const ceja = (x, sx) => {
-    const top = ey - ry - 16;
+    if (lego && e === 'feliz') return;
+    const top = ey - ry - (lego ? 12 : mun ? 20 : 16);
     let a = 0, dy = 0;
     if (e === 'enojada') { a = .42; dy = 6; }
     if (e === 'triste' || e === 'llora') { a = -.38; }
     if (e === 'sorpresa') dy = -12;
     if (e === 'feliz' && !o.cejasSiempre) dy = -2;
-    const L = 24, inner = x - sx * L, outer = x + sx * L;
+    const L = lego ? 14 : mun ? 30 : 24, inner = x - sx * L, outer = x + sx * L;
     g.beginPath();
     g.moveTo(inner, top + dy + a * L); g.quadraticCurveTo(x, top + dy - 6, outer, top + dy - a * L * .4 + 2); g.stroke();
   };
   ceja(ex[0], -1); ceja(ex[1], 1);
   // nariz (animales y ratón)
   if (o.nariz) { g.fillStyle = o.nariz; g.beginPath(); g.ellipse(128, 150, 15, 10, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(123, 146, 5, 3, 0, 0, Math.PI * 2); g.fill(); }
+  // naricita de muñeca
+  if (mun && !o.nariz) { g.strokeStyle = 'rgba(150,80,70,.55)'; g.lineWidth = 4; g.beginPath(); g.moveTo(122, 146); g.quadraticCurveTo(128, 152, 134, 146); g.stroke(); }
+  // pico de pollito y pingüino
+  if (o.pico) { g.fillStyle = o.pico; g.strokeStyle = oscuro(o.pico, .6); g.lineWidth = 3; g.beginPath(); g.moveTo(104, 140); g.quadraticCurveTo(128, 128, 152, 140); g.lineTo(128, 172); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(108, 146); g.lineTo(148, 146); g.stroke(); }
   if (o.bigotes) { g.strokeStyle = ink; g.lineWidth = 3; [-1, 1].forEach(sx => [-6, 4].forEach(dy => { g.beginPath(); g.moveTo(128 + sx * 30, 162 + dy); g.lineTo(128 + sx * 70, 156 + dy * 2.2); g.stroke(); })); }
   // barba de papá (sombrita)
   if (o.barba) { const gb = g.createRadialGradient(128, 222, 10, 128, 222, 95); gb.addColorStop(0, 'rgba(60,40,30,.28)'); gb.addColorStop(1, 'rgba(60,40,30,0)'); g.fillStyle = gb; g.fillRect(20, 150, 216, 74); }
   // boca
-  const my = o.animal ? 178 : 160;
+  const my = lego ? 140 : mun ? 168 : o.animal ? 178 : 160;
   g.strokeStyle = ink; g.lineWidth = 4;
+  if (o.pico && (e === 'feliz' || e === 'triste' || e === 'enojada')) return lagrimas();
+  if (lego && e === 'feliz') { g.lineWidth = 8; g.beginPath(); g.moveTo(92, my); g.quadraticCurveTo(128, my + 36, 164, my); g.stroke(); return lagrimas(); }
+  if (mun && e === 'feliz') {
+    g.beginPath(); g.moveTo(104, my); g.quadraticCurveTo(128, my + 26, 152, my); g.quadraticCurveTo(128, my + 10, 104, my); g.closePath();
+    g.fillStyle = '#a8364f'; g.fill(); g.strokeStyle = ink; g.lineWidth = 4; g.stroke(); return lagrimas();
+  }
   const bocaAbierta = (w, h, top = 0) => {
     const path = () => { g.beginPath(); g.moveTo(128 - w, my + top - 4); g.quadraticCurveTo(128, my + top + 8, 128 + w, my + top - 4); g.quadraticCurveTo(128 + w * .92, my + h, 128, my + h + 2); g.quadraticCurveTo(128 - w * .92, my + h, 128 - w, my + top - 4); g.closePath(); };
     path(); g.fillStyle = '#7a1f35'; g.fill();
@@ -201,7 +246,8 @@ function dibujarCara(g, v, o) {
     g.beginPath(); g.roundRect(100, my + 8, 56, 22, 8); g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 4; g.stroke();
     g.lineWidth = 2.5; g.beginPath(); g.moveTo(100, my + 19); g.lineTo(156, my + 19); [114, 128, 142].forEach(x => { g.moveTo(x, my + 8); g.lineTo(x, my + 30); }); g.stroke();
   }
-  // lágrimas
+  lagrimas();
+  function lagrimas() {
   if (e === 'llora' || (e === 'triste' && !blink)) {
     const fase = expr === 'llora2' ? 1 : 0;
     g.fillStyle = 'rgba(120,205,255,.92)'; g.strokeStyle = 'rgba(60,150,230,.9)'; g.lineWidth = 2;
@@ -213,6 +259,7 @@ function dibujarCara(g, v, o) {
         g.fillStyle = 'rgba(120,205,255,.95)'; gota(x + sx * 14, ey + 40 + fase * 34, 9); gota(x + sx * 4, ey + 82 - fase * 24, 7);
       });
     } else gota(ex[1] + 10, ey + ry + 14, 8);
+  }
   }
 }
 // texturas de la carita: cada variante se dibuja la primera vez que se usa (ahorra memoria en tablets)
@@ -233,11 +280,16 @@ function texturasCara(o) {
   });
 }
 // pone la carita en la cabeza y devuelve el control de expresiones
-function ponerCara(head, { w, h, z, y = 0, o }) {
+// forma: plana (bloques), cilindro (lego) o esfera (muñeca)
+function ponerCara(head, { w, h, z, y = 0, o, cilindro = 0, esfera = 0 }) {
   let tex = texturasCara(o);
   const m = new THREE.MeshStandardMaterial({ map: tex.feliz, transparent: true, roughness: .4, polygonOffset: true, polygonOffsetFactor: -2, depthWrite: false });
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
-  plane.position.set(0, y, z + .002); plane.renderOrder = 2; head.add(plane);
+  let geo;
+  if (cilindro) { const arc = w / cilindro; geo = new THREE.CylinderGeometry(cilindro + .004, cilindro + .004, h, 24, 1, true, -arc / 2, arc); }
+  else if (esfera) { const aw = w / esfera, ah = h / esfera; geo = new THREE.SphereGeometry(esfera + .005, 32, 20, Math.PI / 2 - aw / 2, aw, Math.PI / 2 - ah / 2 + .12, ah); }
+  else geo = new THREE.PlaneGeometry(w, h);
+  const plane = new THREE.Mesh(geo, m);
+  plane.position.set(0, y, cilindro || esfera ? 0 : z + .002); plane.renderOrder = 2; head.add(plane);
   let cur = 'feliz', t = 0, guinoT = 0;
   return {
     set(name) { cur = CARAS[name] ? name : 'feliz'; },
@@ -352,28 +404,34 @@ function figura(id) {
     cara = ponerCara(head, { w: HW - .1, h: HH - .08, z: HD / 2, o: { ojos: cfg.ojos, cejas, pestanas: !cfg.chico, barba: cfg.barba } });
     pelo(head, cfg, tag);
   }
-  // gorra, audífonos, aretes y coronas
+  accesorios(head, cfg, C, tag);
+  return animar({ root, body, head, arms, legs, cara, parts, vestido, falda, tutu, capa, braids: head.userData.braids || [] });
+}
+// gorra, audífonos, aretes y coronas (hechos para la cabeza de bloques; en otras cabezas se escalan)
+function accesorios(head, cfg, C, tag, { k = 1, top: topReal = HH / 2, sinGorra = false } = {}) {
+  const acc = new THREE.Group(); acc.scale.setScalar(k); acc.position.y = topReal - (HH / 2) * k; head.add(acc);
   const top = HH / 2;
+  if (sinGorra) cfg = { ...cfg, gorra: false };
   if (cfg.gorra) {
     const gc = mat(C.gorra);
-    const dome = tag(mesh(new THREE.SphereGeometry(.34, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5), gc, 0, top - .04, -.01), 'gorra'); dome.scale.set(1, .58, .92); head.add(dome);
-    head.add(tag(mesh(rbox(.6, .06, HD + .08, .03), gc, 0, top - .02, -.01), 'gorra'));
-    const visor = tag(mesh(rbox(.42, .035, .24, .015), gc), 'gorra'); visor.position.set(0, top - .01, HD / 2 + .08); visor.rotation.x = -.08; head.add(visor);
-    const parche = tag(mesh(rbox(.13, .1, .02, .02), mat(C.logo || 0xff8cc6)), 'logo'); parche.position.set(0, top + .045, HD / 2 + .015); parche.rotation.x = -.42; head.add(parche);
+    const dome = tag(mesh(new THREE.SphereGeometry(.34, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5), gc, 0, top - .04, -.01), 'gorra'); dome.scale.set(1, .58, .92); acc.add(dome);
+    acc.add(tag(mesh(rbox(.6, .06, HD + .08, .03), gc, 0, top - .02, -.01), 'gorra'));
+    const visor = tag(mesh(rbox(.42, .035, .24, .015), gc), 'gorra'); visor.position.set(0, top - .01, HD / 2 + .08); visor.rotation.x = -.08; acc.add(visor);
+    const parche = tag(mesh(rbox(.13, .1, .02, .02), mat(C.logo || 0xff8cc6)), 'logo'); parche.position.set(0, top + .045, HD / 2 + .015); parche.rotation.x = -.42; acc.add(parche);
   }
   if (cfg.audifonos) {
     const am = mat(C.audifonos, { roughness: .3 });
     const R = HW / 2 + .07;
-    const band = tag(mesh(new THREE.TorusGeometry(R, .028, 8, 32, Math.PI), am), 'audifonos'); band.position.y = .02; head.add(band);
+    const band = tag(mesh(new THREE.TorusGeometry(R, .028, 8, 32, Math.PI), am), 'audifonos'); band.position.y = .02; acc.add(band);
     [-1, 1].forEach(sx => {
-      const cup = tag(mesh(new THREE.CylinderGeometry(.095, .095, .08, 22), am, sx * R, -.01, 0), 'audifonos'); cup.rotation.z = Math.PI / 2; head.add(cup);
-      const pad = mesh(new THREE.CylinderGeometry(.065, .065, .085, 18), mat(0xff8cc6), sx * (R + .005), -.01, 0); pad.rotation.z = Math.PI / 2; head.add(pad);
+      const cup = tag(mesh(new THREE.CylinderGeometry(.095, .095, .08, 22), am, sx * R, -.01, 0), 'audifonos'); cup.rotation.z = Math.PI / 2; acc.add(cup);
+      const pad = mesh(new THREE.CylinderGeometry(.065, .065, .085, 18), mat(0xff8cc6), sx * (R + .005), -.01, 0); pad.rotation.z = Math.PI / 2; acc.add(pad);
     });
   }
-  if (cfg.aretes) [-1, 1].forEach(sx => head.add(mesh(new THREE.SphereGeometry(.025, 10, 8), mat(0xffd23f, { metalness: .5, roughness: .3 }), sx * (HW / 2 + .03), -.08, .02)));
-  if (cfg.corona === 'hielo') [[-.09, .14], [0, .2], [.09, .14]].forEach(([x, h]) => head.add(tag(mesh(new THREE.ConeGeometry(.038, h, 6), mat(C.corona, { emissive: 0x9fe6ff, emissiveIntensity: .6, transparent: true, opacity: .9 }), x, top + .06 + h / 2, .1), 'corona')));
-  if (cfg.corona === 'oro') { head.add(tag(mesh(new THREE.CylinderGeometry(.14, .15, .07, 18, 1, true), mat(C.corona, { metalness: .5, roughness: .3, side: THREE.DoubleSide }), 0, top + .2, 0), 'corona')); [-2, -1, 0, 1, 2].forEach(i => head.add(tag(mesh(new THREE.ConeGeometry(.025, .08, 6), mat(C.corona, { metalness: .5 }), Math.sin(i * .6) * .14, top + .27, Math.cos(i * .6) * .14), 'corona'))); }
-  return animar({ root, body, head, arms, legs, cara, parts, vestido, falda, tutu, capa, braids: head.userData.braids || [] });
+  if (cfg.aretes) [-1, 1].forEach(sx => acc.add(mesh(new THREE.SphereGeometry(.025, 10, 8), mat(0xffd23f, { metalness: .5, roughness: .3 }), sx * (HW / 2 + .03), -.08, .02)));
+  if (cfg.corona === 'hielo') [[-.09, .14], [0, .2], [.09, .14]].forEach(([x, h]) => acc.add(tag(mesh(new THREE.ConeGeometry(.038, h, 6), mat(C.corona, { emissive: 0x9fe6ff, emissiveIntensity: .6, transparent: true, opacity: .9 }), x, top + .06 + h / 2, .1), 'corona')));
+  if (cfg.corona === 'oro') { acc.add(tag(mesh(new THREE.CylinderGeometry(.14, .15, .07, 18, 1, true), mat(C.corona, { metalness: .5, roughness: .3, side: THREE.DoubleSide }), 0, top + .2, 0), 'corona')); [-2, -1, 0, 1, 2].forEach(i => acc.add(tag(mesh(new THREE.ConeGeometry(.025, .08, 6), mat(C.corona, { metalness: .5 }), Math.sin(i * .6) * .14, top + .27, Math.cos(i * .6) * .14), 'corona'))); }
+  return acc;
 }
 function pelo(head, cfg, tag) {
   const H = () => mat(cfg.pelo.c, { roughness: .5 });
@@ -463,14 +521,255 @@ function animar(f) {
     if (f.falda) f.falda.scale.x = 1 + (run ? Math.sin(t * 24) * .03 : 0);
   }
   return {
-    group: f.root, parts: f.parts, update, ballet: true,
+    group: f.root, parts: f.parts, update, ballet: true, _repintar: f._repintar,
     // puntos donde se pueden poner adornos (cuidar.html)
-    anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: HH / 2 + .1, cuello: 1.17, frente: HD / 2 },
+    anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: HH / 2 + .1, cuello: 1.17, frente: HD / 2, ...(f.anclas || {}) },
     setPose(name) { target = POSES[name] || POSES.primera; },
     setCara(name) { f.cara.set(name); },
     get cara() { return f.cara.actual; },
-    setTutu(on) { if (f.tutu) f.tutu.visible = on; if (f.vestido) f.vestido.visible = !on; if (f.falda) f.falda.visible = !on; },
+    setTutu(on) { if (f.tutu) f.tutu.visible = on; if (f.vestido) { f.vestido.visible = !on; if (f.piernasBajoVestido) f.legs.forEach(l => { l.visible = on; }); } if (f.falda) f.falda.visible = !on; },
   };
+}
+
+// ---------- estilo LEGO: minifigura clásica ----------
+// cabeza de cilindro con botón arriba, carita pintada, torso trapecio, cadera, piernas cortas y manos de pinza
+function figuraLego(id) {
+  const cfg = FIGURAS[id], C = cfg.c;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const parts = {}, tag = tagger(parts);
+  const plas = (c, o = {}) => mat(c, { roughness: .28, ...o });
+  const piel = () => plas(cfg.piel, cfg.peludo ? { roughness: .9 } : {});
+  // piernas con el pie incluido
+  const legs = [-1, 1].map(sx => {
+    const hip = new THREE.Group(); hip.position.set(sx * .105, .56, 0); body.add(hip);
+    hip.add(tag(mesh(rbox(.2, .42, .24, .02), plas(C.pantalon || 0x3f8ee8), 0, -.24, -.01), 'pantalon'));
+    hip.add(tag(mesh(rbox(.2, .1, .3, .02), plas(C.zapatos || C.pantalon), 0, -.5, .02), 'zapatos'));
+    return hip;
+  });
+  body.add(tag(mesh(rbox(.44, .1, .25, .02), plas(C.cinturon || C.pantalon), 0, .6, 0), 'cinturon'));
+  let vestido = null, falda = null;
+  const trapecio = (rTop, rBot, h, c, part, y, dz = .55) => { const m = tag(mesh(new THREE.CylinderGeometry(rTop, rBot, h, 4, 1), plas(c)), part); m.rotation.y = Math.PI / 4; m.scale.z = dz; m.position.y = y; body.add(m); return m; };
+  if (cfg.ropa === 'vestido') { vestido = trapecio(.25, .36, .58, C.vestido, 'vestido', .31, .7); legs.forEach(l => { l.visible = false; }); }
+  else if (cfg.ropa === 'falda') falda = trapecio(.25, .32, .22, C.falda, 'falda', .48, .7);
+  const tutu = new THREE.Group(); tutu.visible = false; body.add(tutu);
+  for (let k = 0; k < 3; k++) tutu.add(tag(mesh(new THREE.CylinderGeometry(.23, .48 - k * .06, .05, 28, 1, true), plas(C.vestido || C.falda || C.blusa, { side: THREE.DoubleSide, transparent: true, opacity: .85 }), 0, .62 - k * .04, 0), cfg.ropa === 'vestido' ? 'vestido' : cfg.ropa === 'falda' ? 'falda' : 'blusa'));
+  // torso trapecio
+  trapecio(.27, .34, .5, C.blusa, 'blusa', .9);
+  if (cfg.logo) { const lg = tag(logoMesh(cfg.logo, C.logo || 0xffffff), 'logo'); lg.position.set(0, .92, .125); lg.rotation.x = -.07; body.add(lg); }
+  if (cfg.mono) body.add(tag(mesh(new THREE.TorusKnotGeometry(.04, .016, 30, 6), plas(C['moño']), 0, 1.06, .1), 'moño'));
+  if (C.collar && cfg.ropa === 'vestido') { const col = tag(mesh(new THREE.TorusGeometry(.09, .018, 6, 18, Math.PI), plas(C.collar, { metalness: .4 }), 0, 1.08, .1), 'collar'); col.rotation.z = Math.PI; body.add(col); }
+  let capa = null;
+  if (cfg.capa) { capa = tag(mesh(new THREE.PlaneGeometry(.5, .9), plas(cfg.capa, { transparent: true, opacity: .75, side: THREE.DoubleSide })), 'capa'); capa.position.set(0, .66, -.15); body.add(capa); }
+  // brazos inclinados con mano de pinza
+  const arms = [-1, 1].map(sx => {
+    const sh = new THREE.Group(); sh.position.set(sx * .23, 1.06, 0); body.add(sh);
+    const arm = tag(mesh(new THREE.CylinderGeometry(.065, .075, .32, 16), plas(C.mangas || C.blusa)), 'mangas'); arm.position.set(sx * .03, -.15, .02); arm.rotation.z = sx * .18; sh.add(arm);
+    const guante = C.guantes && C.guantes !== cfg.piel;
+    const mano = guante ? plas(C.guantes) : piel();
+    sh.add(tag(mesh(new THREE.CylinderGeometry(.04, .04, .06, 12), mano, sx * .06, -.33, .03), guante ? 'guantes' : 'piel'));
+    const pinza = tag(mesh(new THREE.TorusGeometry(.058, .026, 10, 18, Math.PI * 1.55), mano), guante ? 'guantes' : 'piel');
+    pinza.position.set(sx * .06, -.41, .06); pinza.rotation.set(Math.PI / 2, 0, Math.PI * .72); sh.add(pinza);
+    sh.rotation.z = sx * .05;
+    return sh;
+  });
+  if (cfg.microfono) { const mic = new THREE.Group(); mic.position.set(.06, -.41, .08); mic.add(mesh(new THREE.CylinderGeometry(.02, .016, .15, 10), plas(0x2b2b38))); mic.add(mesh(new THREE.SphereGeometry(.04, 12, 8), plas(0xc9ccd6, { metalness: .6 }), 0, .09, 0)); arms[1].add(mic); }
+  // cuello y cabeza de cilindro con botón
+  body.add(mesh(new THREE.CylinderGeometry(.075, .075, .05, 16), piel(), 0, 1.17, 0));
+  const head = new THREE.Group(); head.position.y = 1.36; body.add(head);
+  const R = .19;
+  head.add(tag(mesh(new THREE.CylinderGeometry(R, R, .3, 32), piel()), 'piel'));
+  head.add(tag(mesh(new THREE.CylinderGeometry(R * .9, R, .02, 32), piel(), 0, .16, 0), 'piel'));
+  head.add(tag(mesh(stud(.1, .07), piel(), 0, .2, 0), 'piel'));
+  head.add(tag(mesh(new THREE.CylinderGeometry(R * .9, R, .02, 32), piel(), 0, -.16, 0), 'piel'));
+  const cejas = cfg.pelo ? oscuro(cfg.pelo.c, .6) : '#2a1a2e';
+  const caraO = { ojos: cfg.ojos, cejas, estilo: 'lego', barba: cfg.barba };
+  if (cfg.cabeza === 'raton') { Object.assign(caraO, { nariz: hex(C.nariz), bigotes: true }); [-1, 1].forEach(sx => { const ear = tag(mesh(new THREE.CylinderGeometry(.11, .11, .04, 22), piel(), sx * .17, .2, 0), 'piel'); ear.rotation.x = Math.PI / 2; head.add(ear); const inn = tag(mesh(new THREE.CylinderGeometry(.07, .07, .02, 18), plas(C.orejas), sx * .17, .2, .025), 'orejas'); inn.rotation.x = Math.PI / 2; head.add(inn); }); }
+  if (cfg.cabeza === 'monstruo') { for (let i = 0; i < 6; i++) { const tuft = tag(mesh(new THREE.ConeGeometry(.04, .12, 6), piel(), -.12 + i * .05, .2, Math.sin(i * 2) * .04), 'piel'); head.add(tuft); } head.add(tag(mesh(new THREE.SphereGeometry(.04, 12, 8), plas(C.nariz), 0, -.03, R + .02), 'nariz')); }
+  const cara = ponerCara(head, { w: .34, h: .28, o: caraO, cilindro: R });
+  if (cfg.pelo) peloLego(head, cfg, tag, R);
+  accesorios(head, cfg, C, tag, { k: .78, top: .16 });
+  head.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+  return animar({ root, body, head, arms, legs, cara, parts, vestido, falda, tutu, capa, piernasBajoVestido: true, braids: head.userData.braids || [], anclas: { alto: .2, cuello: 1.12, frente: R } });
+}
+function peloLego(head, cfg, tag, R) {
+  const H = () => mat(cfg.pelo.c, { roughness: .3 });
+  const e = cfg.pelo.e;
+  const add = (geo, x, y, z, part = 'pelo') => { const m = tag(mesh(geo, H(), x, y, z), part); head.add(m); return m; };
+  // pieza de pelo: casquete que tapa el botón, atrás y flequillo
+  if (!cfg.gorra) { const cap = add(new THREE.SphereGeometry(R + .03, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5), 0, .1, -.01); cap.scale.y = .75; }
+  add(new THREE.CylinderGeometry(R + .03, R + .03, e === 'corto' ? .18 : .26, 28, 1, true, Math.PI * .62, Math.PI * .76), 0, e === 'corto' ? .06 : .02, 0).material.side = THREE.DoubleSide;
+  if (e !== 'corto' && !cfg.gorra) { const f = add(rbox(.3, .07, .06, .03), 0, .12, R - .01); f.rotation.x = -.35; }
+  const braids = [];
+  const chain = (x, y, z, n, r0, ang = 0) => {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.z = ang; head.add(g); braids.push(g);
+    let node = g;
+    for (let i = 0; i < n; i++) { const st = new THREE.Group(); st.position.y = i ? -.07 : 0; const sp = tag(mesh(new THREE.SphereGeometry(r0 - i * .003, 12, 8), H(), 0, -.035, 0), 'pelo'); sp.scale.set(1, 1.2, .9); st.add(sp); node.add(st); node = st; }
+  };
+  if (e === 'larga' || e === 'ondas') {
+    const g = new THREE.Group(); g.position.set(0, .06, -R + .02); head.add(g); braids.push(g);
+    g.add(tag(mesh(rbox(.42, .5, .1, .04), H(), 0, -.24, -.02), 'pelo'));
+    [-1, 1].forEach(sx => g.add(tag(mesh(rbox(.08, .38, .1, .03), H(), sx * .2, -.18, .12), 'pelo')));
+  }
+  if (e === 'trenza') chain(0, -.08, -R - .03, cfg.pelo.larga ? 10 : 7, .065);
+  if (e === 'coletas') [-1, 1].forEach(sx => { add(new THREE.SphereGeometry(.07, 12, 10), sx * .19, .14, -.04); chain(sx * .21, .1, -.05, 7, .06, sx * .35); });
+  if (e === 'afro') { const b = add(new THREE.SphereGeometry(.29, 22, 16), 0, .1, -.06); b.scale.set(1.05, .95, .85); }
+  if (e === 'mono') { add(new THREE.SphereGeometry(.08, 14, 10), 0, .26, -.1); chain(0, .2, -.17, 5, .06); }
+  head.userData.braids = braids;
+}
+
+// ---------- estilo MUÑECA: chibi de vinilo (cabeza grande y redonda, ojos grandes, cejas gruesas) ----------
+function figuraMuneca(id) {
+  const cfg = FIGURAS[id], C = cfg.c;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const parts = {}, tag = tagger(parts);
+  const vin = (c, o = {}) => mat(c, { roughness: .42, ...o });
+  const piel = () => vin(cfg.piel, cfg.peludo ? { roughness: .95 } : {});
+  const caps = (r, len) => new THREE.CapsuleGeometry(r, len, 6, 14);
+  const largas = cfg.ropa === 'pantalon';
+  // piernas delgadas con botas
+  const legs = [-1, 1].map(sx => {
+    const hip = new THREE.Group(); hip.position.set(sx * .09, .68, 0); body.add(hip);
+    hip.add(tag(mesh(caps(.068, .36), largas ? vin(C.pantalon) : piel(), 0, -.24, 0), largas ? 'pantalon' : 'piel'));
+    if (!largas) hip.add(tag(mesh(caps(.074, .06), vin(C.pantalon || C.falda || C.blusa), 0, -.04, 0), 'pantalon'));
+    hip.add(tag(mesh(new THREE.CylinderGeometry(.085, .09, .24, 16), vin(C.zapatos), 0, -.48, 0), 'zapatos'));
+    hip.add(tag(mesh(rbox(.16, .08, .24, .04), vin(C.zapatos), 0, -.6, .04), 'zapatos'));
+    hip.add(mesh(rbox(.17, .03, .25, .012), vin(0x2b2b3d), 0, -.64, .04));
+    return hip;
+  });
+  body.add(tag(mesh(rbox(.3, .12, .2, .06), vin(C.cinturon || C.pantalon || C.blusa), 0, .72, 0), 'cinturon'));
+  let vestido = null, falda = null;
+  if (cfg.ropa === 'vestido') {
+    const pts = [[0, 0], [.34, 0], [.35, .03], [.28, .2], [.2, .44], [.18, .52], [0, .52]].map(([x, y]) => new THREE.Vector2(x, y));
+    vestido = tag(mesh(new THREE.LatheGeometry(pts, 32), vin(C.vestido)), 'vestido'); vestido.scale.z = .75; vestido.position.y = .36; body.add(vestido);
+  } else if (cfg.ropa === 'falda') {
+    falda = tag(mesh(new THREE.CylinderGeometry(.17, .3, .24, 28, 1, true), vin(C.falda, { side: THREE.DoubleSide })), 'falda'); falda.position.y = .62; falda.scale.z = .8; body.add(falda);
+  }
+  const tutu = new THREE.Group(); tutu.visible = false; body.add(tutu);
+  for (let k = 0; k < 3; k++) tutu.add(tag(mesh(new THREE.CylinderGeometry(.18, .44 - k * .05, .05, 28, 1, true), vin(C.vestido || C.falda || C.blusa, { side: THREE.DoubleSide, transparent: true, opacity: .85 }), 0, .72 - k * .04, 0), cfg.ropa === 'vestido' ? 'vestido' : cfg.ropa === 'falda' ? 'falda' : 'blusa'));
+  // torso con chaqueta abierta (las mangas y la chaqueta son del mismo color)
+  const torsoM = tag(mesh(rbox(.32, .4, .2, .09), vin(C.blusa)), 'blusa'); torsoM.position.y = .96; body.add(torsoM);
+  const conChaqueta = cfg.ropa !== 'vestido' && C.mangas && C.mangas !== C.blusa;
+  if (conChaqueta) [-1, 1].forEach(sx => { const pan = tag(mesh(rbox(.12, .4, .05, .025), vin(C.mangas)), 'mangas'); pan.position.set(sx * .12, .96, .095); body.add(pan); });
+  if (cfg.logo) { const lg = tag(logoMesh(cfg.logo, C.logo || 0xffffff), 'logo'); lg.position.set(0, 1.0, .105); body.add(lg); }
+  if (cfg.mono) body.add(tag(mesh(new THREE.TorusKnotGeometry(.035, .014, 30, 6), vin(C['moño']), 0, 1.13, .1), 'moño'));
+  if (C.collar && cfg.ropa === 'vestido') { const col = tag(mesh(new THREE.TorusGeometry(.075, .015, 6, 18, Math.PI), vin(C.collar, { metalness: .4 }), 0, 1.12, .08), 'collar'); col.rotation.z = Math.PI; body.add(col); }
+  let capa = null;
+  if (cfg.capa) { capa = tag(mesh(new THREE.PlaneGeometry(.42, .85), vin(cfg.capa, { transparent: true, opacity: .75, side: THREE.DoubleSide })), 'capa'); capa.position.set(0, .74, -.13); body.add(capa); }
+  // brazos delgados con manitos redondas
+  const arms = [-1, 1].map(sx => {
+    const sh = new THREE.Group(); sh.position.set(sx * .2, 1.12, 0); body.add(sh);
+    sh.add(tag(mesh(caps(.058, .3), vin(C.mangas || C.blusa), 0, -.19, 0), 'mangas'));
+    const guante = C.guantes && C.guantes !== cfg.piel;
+    sh.add(tag(mesh(new THREE.SphereGeometry(.062, 14, 10), guante ? vin(C.guantes) : piel(), 0, -.4, 0), guante ? 'guantes' : 'piel'));
+    sh.rotation.z = sx * .1;
+    return sh;
+  });
+  if (cfg.microfono) { const mic = new THREE.Group(); mic.position.set(0, -.42, .06); mic.add(mesh(new THREE.CylinderGeometry(.02, .016, .15, 10), vin(0x2b2b38))); mic.add(mesh(new THREE.SphereGeometry(.04, 12, 8), vin(0xc9ccd6, { metalness: .6 }), 0, .09, 0)); mic.rotation.x = -.5; arms[1].add(mic); }
+  body.add(mesh(new THREE.CylinderGeometry(.055, .06, .1, 12), piel(), 0, 1.2, 0));
+  // cabeza grande y redonda
+  const head = new THREE.Group(); head.position.y = 1.5; body.add(head);
+  const R = .34;
+  const cr = tag(mesh(new THREE.SphereGeometry(R, 40, 28), piel()), 'piel'); cr.scale.set(1, .96, .92); head.add(cr);
+  [-1, 1].forEach(sx => head.add(tag(mesh(new THREE.SphereGeometry(.06, 12, 10), piel(), sx * (R - .01), -.02, -.02), 'piel')));
+  const cejas = cfg.pelo ? oscuro(cfg.pelo.c, cfg.pelo.c === 0xf7f0dc ? .5 : .45) : '#3a2228';
+  const caraO = { ojos: cfg.ojos, cejas, estilo: 'muneca', pestanas: !cfg.chico, barba: cfg.barba };
+  if (cfg.cabeza === 'raton') { Object.assign(caraO, { nariz: hex(C.nariz), bigotes: true }); [-1, 1].forEach(sx => { const ear = tag(mesh(new THREE.SphereGeometry(.15, 18, 12), piel(), sx * .27, .26, -.04), 'piel'); ear.scale.z = .35; head.add(ear); const inn = tag(mesh(new THREE.SphereGeometry(.1, 16, 10), vin(C.orejas), sx * .27, .26, .0), 'orejas'); inn.scale.z = .3; head.add(inn); }); }
+  if (cfg.cabeza === 'monstruo') { for (let i = 0; i < 7; i++) { const tuft = tag(mesh(new THREE.ConeGeometry(.06, .16, 8), piel(), -.21 + i * .07, .3, Math.sin(i * 2) * .05), 'piel'); tuft.rotation.z = (i - 3) * -.15; head.add(tuft); } head.add(tag(mesh(new THREE.SphereGeometry(.05, 12, 8), vin(C.nariz), 0, -.04, R * .92), 'nariz')); }
+  const cara = ponerCara(head, { w: .5, h: .44, o: caraO, esfera: R * .93 });
+  if (cfg.pelo) peloMuneca(head, cfg, tag, R);
+  accesorios(head, cfg, C, tag, { k: 1.25, top: R * .7 });
+  // el pelo y la gorra no hacen sombra sobre la carita
+  head.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+  return animar({ root, body, head, arms, legs, cara, parts, vestido, falda, tutu, capa, braids: head.userData.braids || [], anclas: { alto: R * .85, cuello: 1.16, frente: R * .9 } });
+}
+function peloMuneca(head, cfg, tag, R) {
+  const H = () => mat(cfg.pelo.c, { roughness: .38 });
+  const e = cfg.pelo.e;
+  const add = (geo, x, y, z) => { const m = tag(mesh(geo, H(), x, y, z), 'pelo'); head.add(m); return m; };
+  // casquete esculpido: tapa arriba y atrás, deja la frente libre
+  if (!cfg.gorra) { const cap = add(new THREE.SphereGeometry(R + .025, 36, 18, 0, Math.PI * 2, 0, Math.PI * .5), 0, 0, -.02); cap.rotation.x = e === 'corto' ? -.22 : -.38; cap.scale.set(1.02, 1, .96); }
+  const back = add(new THREE.SphereGeometry(R + .02, 32, 18, Math.PI, Math.PI, 0, Math.PI * (e === 'corto' ? .62 : .78)), 0, 0, -.01); back.scale.z = .95;
+  // flequillo de mechones esculpidos
+  if (e !== 'corto' && !cfg.gorra) [[-.17, .5, .55], [-.06, .3, .2], [.07, .32, -.2], [.18, .48, -.55]].forEach(([x, sy, a]) => { const m = add(new THREE.CapsuleGeometry(.06, .12, 6, 10), x, .2, R * .78); m.rotation.set(-.9, 0, a); m.scale.set(1, sy * 2, .7); });
+  else if (e === 'corto' && !cfg.gorra) [-1, 1].forEach(sx => { const m = add(new THREE.SphereGeometry(.11, 14, 10), sx * .12, .25, R * .62); m.scale.set(1.4, .6, .8); m.rotation.z = sx * -.3; });
+  // mechones a los lados de la cara
+  if (e !== 'corto' && e !== 'afro') [-1, 1].forEach(sx => { const m = add(new THREE.CapsuleGeometry(.05, .24, 6, 10), sx * (R * .86), -.08, .12); m.rotation.z = sx * .12; });
+  const braids = [];
+  const chain = (x, y, z, n, r0, ang = 0, paso = .085) => {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.z = ang; head.add(g); braids.push(g);
+    let node = g;
+    for (let i = 0; i < n; i++) { const st = new THREE.Group(); st.position.y = i ? -paso : 0; const sp = tag(mesh(new THREE.SphereGeometry(r0 - i * .002, 14, 10), H(), 0, -.04, 0), 'pelo'); sp.scale.set(1, 1.25, .9); st.add(sp); node.add(st); node = st; }
+    return g;
+  };
+  if (e === 'trenza') { add(new THREE.SphereGeometry(.12, 16, 12), 0, .02, -R - .02); chain(.0, -.08, -R - .06, cfg.pelo.larga ? 12 : 9, .085); }
+  if (e === 'larga' || e === 'ondas') {
+    const g = new THREE.Group(); g.position.set(0, .0, -R * .7); head.add(g); braids.push(g);
+    const m = tag(mesh(new THREE.CapsuleGeometry(.24, .5, 8, 16), H(), 0, -.42, -.02), 'pelo'); m.scale.z = .45; g.add(m);
+    if (e === 'ondas') [-1, 0, 1].forEach(k => g.add(tag(mesh(new THREE.SphereGeometry(.1, 12, 10), H(), k * .15, -.78, 0), 'pelo')));
+  }
+  if (e === 'coletas') [-1, 1].forEach(sx => { add(new THREE.SphereGeometry(.09, 14, 10), sx * .27, .22, -.08); chain(sx * .3, .16, -.1, 12, .09, sx * .3, .09); });
+  if (e === 'afro') { [-1, 1].forEach(sx => add(new THREE.SphereGeometry(.16, 18, 14), sx * .28, .2, -.06)); const b = add(new THREE.SphereGeometry(.42, 26, 18), 0, .08, -.1); b.scale.set(1.05, .98, .85); }
+  if (e === 'mono') { [-1, 1].forEach(sx => add(new THREE.SphereGeometry(.12, 18, 14), sx * .2, .3, -.06)); }
+  head.userData.braids = braids;
+}
+
+// ---------- peluches: animalitos que se paran en dos patas (conejita, osito, pandita, pollito, pingüino) ----------
+function peluche(id) {
+  const cfg = PELUCHES[id], C = cfg.c, tipo = cfg.tipo;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const parts = {}, tag = tagger(parts);
+  const fur = part => mat(C[part] ?? C.pelaje, { roughness: .85 });
+  const ave = tipo === 'pollito' || tipo === 'pinguino';
+  const limb = C.patas !== undefined && !ave ? 'patas' : 'pelaje';
+  // patitas
+  const legs = [-1, 1].map(sx => {
+    const hip = new THREE.Group(); hip.position.set(sx * .12, .42, 0); body.add(hip);
+    if (ave) { hip.add(tag(mesh(new THREE.CylinderGeometry(.03, .03, .26, 8), fur('patas'), 0, -.2, 0), 'patas')); hip.add(tag(mesh(rbox(.16, .05, .2, .02), fur('patas'), 0, -.36, .05), 'patas')); }
+    else { hip.add(tag(mesh(rbox(.18, .28, .2, .08), fur(limb), 0, -.16, 0), limb)); hip.add(tag(mesh(rbox(.19, .08, .24, .04), fur('panza'), 0, -.34, .03), 'panza')); }
+    return hip;
+  });
+  // cuerpito redondito con pancita
+  const torso = tag(mesh(rbox(.5, .56, .4, .2), fur('pelaje')), 'pelaje'); torso.position.y = .7; body.add(torso);
+  const pz = tag(mesh(new THREE.SphereGeometry(.2, 18, 12), fur('panza'), 0, .66, .14), 'panza'); pz.scale.set(1, 1.15, .45); body.add(pz);
+  const tutu = new THREE.Group(); tutu.visible = false; body.add(tutu);
+  for (let k = 0; k < 3; k++) tutu.add(mesh(new THREE.CylinderGeometry(.27, .5 - k * .06, .05, 28, 1, true), mat(0xffb6d5, { side: THREE.DoubleSide, transparent: true, opacity: .85 }), 0, .52 - k * .04, 0));
+  // bracitos (alitas en las aves)
+  const arms = [-1, 1].map(sx => {
+    const sh = new THREE.Group(); sh.position.set(sx * .27, .9, 0); body.add(sh);
+    if (ave) { const w = tag(mesh(rbox(.08, .34, .24, .04), fur('alas')), 'alas'); w.position.y = -.15; sh.add(w); }
+    else { const a = tag(mesh(rbox(.14, .32, .15, .07), fur(limb)), limb); a.position.y = -.15; sh.add(a); sh.add(tag(mesh(new THREE.SphereGeometry(.075, 12, 10), fur('panza'), 0, -.32, 0), 'panza')); }
+    sh.rotation.z = sx * .15;
+    return sh;
+  });
+  // cabeza grande
+  const head = new THREE.Group(); head.position.y = 1.28; body.add(head);
+  const hw = .6, hh = .52, hd = .5;
+  head.add(tag(mesh(rbox(hw, hh, hd, .2), fur('pelaje')), 'pelaje'));
+  const caraO = { ojos: cfg.ojos, cejas: tipo === 'panda' ? '#1d1d26' : oscuro(C.pelaje, .4), pestanas: tipo === 'conejo' || tipo === 'pollito', animal: true };
+  if (tipo === 'panda') caraO.parches = '#1d1d26';
+  if (ave) caraO.pico = hex(C.pico);
+  else { caraO.hocico = hex(C.nariz); caraO.nariz = tipo === 'conejo' ? '#ff7eb6' : '#2b1d1d'; }
+  if (tipo === 'conejo') caraO.bigotes = true;
+  const cara = ponerCara(head, { w: hw - .1, h: hh - .08, z: hd / 2, o: caraO });
+  if (!ave) { const h = tag(mesh(new THREE.SphereGeometry(.03, 10, 8), mat(C.nariz)), 'nariz'); h.visible = false; head.add(h); }
+  else { const h = tag(mesh(new THREE.SphereGeometry(.03, 10, 8), mat(C.pico)), 'pico'); h.visible = false; head.add(h); }
+  // orejas y detalles
+  if (tipo === 'conejo') [-1, 1].forEach(sx => {
+    const g = new THREE.Group(); g.position.set(sx * .13, hh / 2, 0); g.rotation.z = -sx * .12; head.add(g);
+    g.add(tag(mesh(rbox(.13, .42, .08, .06), fur('pelaje'), 0, .2, 0), 'pelaje'));
+    g.add(tag(mesh(rbox(.07, .32, .02, .03), fur('orejas'), 0, .2, .045), 'orejas'));
+    if (sx > 0) g.rotation.x = -.35;
+  });
+  if (tipo === 'oso' || tipo === 'panda') [-1, 1].forEach(sx => { const e = tag(mesh(new THREE.SphereGeometry(.1, 16, 12), fur('orejas'), sx * .24, hh / 2 + .02, -.04), 'orejas'); e.scale.z = .6; head.add(e); });
+  if (tipo === 'pollito') [0, 1, 2].forEach(i => { const p = tag(mesh(new THREE.SphereGeometry(.05 - i * .008, 10, 8), fur('pelaje'), (i - 1) * .05, hh / 2 + .04 + (i === 1 ? .03 : 0), .02), 'pelaje'); p.scale.y = 1.6; p.rotation.z = (1 - i) * .4; head.add(p); });
+  if (tipo === 'pinguino') { const cara2 = mesh(new THREE.CircleGeometry(.2, 36), mat(0xffffff, { roughness: .7 }), 0, -.03, hd / 2 + .001); cara2.scale.set(1.22, 1, 1); head.add(cara2); }
+  if (C['moño']) { const m = tag(mesh(new THREE.TorusKnotGeometry(.05, .02, 30, 6), mat(C['moño'])), 'moño'); if (tipo === 'conejo') m.position.set(-.17, hh / 2 + .02, .12); else m.position.set(0, -hh / 2 - .03, hd / 2 - .04); head.add(m); }
+  // colita
+  const tail = new THREE.Group(); tail.position.set(0, .6, -.21); body.add(tail);
+  if (tipo === 'conejo') tail.add(tag(mesh(new THREE.SphereGeometry(.09, 14, 10), fur('panza')), 'panza'));
+  else if (tipo === 'oso' || tipo === 'panda') tail.add(tag(mesh(new THREE.SphereGeometry(.06, 12, 8), fur(tipo === 'panda' ? 'orejas' : 'pelaje')), tipo === 'panda' ? 'orejas' : 'pelaje'));
+  else { const t = tag(mesh(new THREE.ConeGeometry(.08, .16, 4), fur(ave && C.alas !== undefined ? 'alas' : 'pelaje')), ave ? 'alas' : 'pelaje'); t.rotation.x = -Math.PI / 2 - .4; tail.add(t); }
+  return animar({ root, body, head, arms, legs, cara, parts, tutu, braids: [tail], anclas: { alto: hh / 2 + .02, cuello: 1.02, frente: hd / 2 }, _repintar(part, c) { if (part === 'nariz') cara.redibujar({ hocico: hex(c) }); if (part === 'pico') cara.redibujar({ pico: hex(c) }); } });
 }
 
 // ---------- animales de bloques ----------
@@ -479,8 +778,8 @@ function animal(id) {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const parts = {}, tag = tagger(parts);
   const fur = part => mat(C[part] || C.pelaje, { roughness: .8 });
-  const llama = tipo === 'llama';
-  const L = llama ? .5 : tipo === 'toro' ? .32 : .3; // largo de patas
+  const llama = tipo === 'llama', uni = tipo === 'unicornio';
+  const L = llama ? .5 : uni ? .46 : tipo === 'toro' ? .32 : .3; // largo de patas
   body.add(tag(mesh(rbox(.52, .4, .86, .12), fur('pelaje'), 0, L + .22, 0), 'pelaje'));
   body.add(tag(mesh(rbox(.42, .1, .66, .05), fur('panza'), 0, L + .05, 0), 'panza'));
   if (llama) {
@@ -490,18 +789,33 @@ function animal(id) {
   // cuello y cabeza
   const neck = new THREE.Group(); neck.position.set(0, L + .3, .38); body.add(neck);
   if (llama) neck.add(tag(mesh(rbox(.24, .62, .24, .08), fur('pelaje'), 0, .3, 0), 'pelaje'));
-  const head = new THREE.Group(); head.position.set(0, llama ? .66 : .16, llama ? .06 : .14); neck.add(head);
+  if (uni) { const nk = tag(mesh(rbox(.24, .44, .26, .08), fur('pelaje'), 0, .2, 0), 'pelaje'); nk.rotation.x = .25; neck.add(nk); }
+  const head = new THREE.Group(); head.position.set(0, llama ? .66 : uni ? .46 : .16, llama ? .06 : uni ? .14 : .14); neck.add(head);
   const hw = .42, hh = .38, hd = .38;
   head.add(tag(mesh(rbox(hw, hh, hd, .11), fur('pelaje')), 'pelaje'));
-  const caraO = { ojos: cfg.ojos, cejas: oscuro(C.pelaje, .45), pestanas: llama, hocico: hex(C.nariz), nariz: tipo === 'toro' ? '#b5655a' : '#2b1d1d', animal: true };
+  const caraO = { ojos: cfg.ojos, cejas: oscuro(C.pelaje, uni ? .7 : .45), pestanas: llama || uni, hocico: hex(C.nariz), nariz: tipo === 'toro' ? '#b5655a' : tipo === 'gato' ? '#ff7eb6' : uni ? '#ff9ac8' : '#2b1d1d', bigotes: tipo === 'gato', animal: true };
   const cara = ponerCara(head, { w: hw - .08, h: hh - .06, z: hd / 2, o: caraO });
   // la parte "nariz" (hocico) está dibujada en la carita: se vuelve a dibujar al pintarla
   const hocico = tag(mesh(new THREE.SphereGeometry(.03, 10, 8), mat(C.nariz), 0, -.03, hd / 2 + .02), 'nariz'); hocico.visible = false; head.add(hocico);
   [-1, 1].forEach(sx => {
-    const ear = tag(mesh(new THREE.ConeGeometry(.08, .2, 4), fur('orejas'), sx * .13, .26, -.02), 'orejas'); ear.rotation.y = Math.PI / 4; ear.rotation.z = -sx * .2; head.add(ear);
+    if (tipo === 'perro') { const ear = tag(mesh(rbox(.1, .26, .16, .05), fur('orejas'), sx * .23, .02, -.02), 'orejas'); ear.rotation.z = sx * .25; head.add(ear); }
+    else { const ear = tag(mesh(new THREE.ConeGeometry(.08, tipo === 'gato' ? .18 : .2, 4), fur('orejas'), sx * .13, .26, -.02), 'orejas'); ear.rotation.y = Math.PI / 4; ear.rotation.z = -sx * (tipo === 'gato' ? .3 : .2); head.add(ear);
+      if (tipo === 'gato') { const inn = mesh(new THREE.ConeGeometry(.045, .11, 4), mat(0xffb6c8), sx * .13, .25, .01); inn.rotation.y = Math.PI / 4; inn.rotation.z = -sx * .3; head.add(inn); } }
     if (tipo === 'toro') { const h = tag(mesh(new THREE.ConeGeometry(.045, .28, 8), mat(C.cuernos), sx * .27, .17, .02), 'cuernos'); h.rotation.z = -sx * .9; head.add(h); }
     if (llama) [0, 1, 2].forEach(i => head.add(tag(mesh(new THREE.SphereGeometry(.035, 8, 6), mat([C.pompones, 0xffd23f, 0x7fe3ff][i]), sx * (.15 + i * .01), .34 + i * .04, -.02), 'pompones')));
   });
+  if (uni) {
+    const h = tag(mesh(new THREE.ConeGeometry(.05, .26, 12), mat(C.cuerno, { metalness: .4, roughness: .3, emissive: 0x6b5200, emissiveIntensity: .2 }), 0, .3, .08), 'cuerno'); h.rotation.x = .25; head.add(h);
+    // crin de arcoíris por el cuello
+    [0xff8cc6, 0xb98cff, 0x7fd3ff, 0xffd23f].forEach((c, i) => { const m = tag(mesh(rbox(.13, .17, .13, .05), mat(i ? c : C.crin, { roughness: .6 }), 0, .5 - i * .13, -.15 + i * .02), i ? 'crin2' : 'crin'); neck.add(m); });
+    head.add(tag(mesh(rbox(.18, .14, .16, .06), mat(C.crin, { roughness: .6 }), 0, .21, -.06), 'crin'));
+    const fq = tag(mesh(rbox(.14, .07, .08, .03), mat(0xb98cff, { roughness: .6 }), .05, .17, .17), 'crin2'); fq.rotation.z = -.4; head.add(fq);
+  }
+  if (tipo === 'perro') {
+    const col = tag(mesh(new THREE.TorusGeometry(.15, .03, 8, 20), mat(C.collar)), 'collar'); col.position.set(0, -.02, -.04); col.rotation.x = Math.PI / 2; neck.add(col);
+    body.add(tag(mesh(rbox(.04, .2, .26, .03), mat(C.manchas, { roughness: .8 }), .265, L + .26, -.08), 'manchas'));
+    body.add(tag(mesh(rbox(.2, .04, .22, .03), mat(C.manchas, { roughness: .8 }), -.06, L + .43, .12), 'manchas'));
+  }
   // patas (bloques que giran)
   const legs = [[-.15, .28], [.15, .28], [-.15, -.28], [.15, -.28]].map(([x, z]) => {
     const g = new THREE.Group(); g.position.set(x, L + .05, z); body.add(g);
@@ -512,7 +826,10 @@ function animal(id) {
   // cola
   const tail = new THREE.Group(); tail.position.set(0, L + .32, -.42); body.add(tail);
   const bushy = tipo === 'zorro' || tipo === 'lobo';
-  const tl = tag(mesh(rbox(bushy ? .17 : .07, bushy ? .17 : .07, bushy ? .46 : .3, bushy ? .07 : .03), fur('cola'), 0, .05, -.2), bushy ? 'cola' : 'pelaje'); tl.rotation.x = -.5; tail.add(tl);
+  if (tipo === 'gato') { const tl = tag(mesh(rbox(.07, .07, .46, .03), fur('cola'), 0, .14, -.18), 'cola'); tl.rotation.x = -1.05; tail.add(tl); }
+  else if (tipo === 'perro') { const tl = tag(mesh(rbox(.07, .07, .24, .03), fur('cola'), 0, .08, -.1), 'cola'); tl.rotation.x = -.9; tail.add(tl); }
+  else if (uni) { const tl = tag(mesh(rbox(.14, .14, .42, .06), mat(C.cola, { roughness: .6 }), 0, -.08, -.16), 'cola'); tl.rotation.x = .7; tail.add(tl); }
+  else { const tl = tag(mesh(rbox(bushy ? .17 : .07, bushy ? .17 : .07, bushy ? .46 : .3, bushy ? .07 : .03), fur('cola'), 0, .05, -.2), bushy ? 'cola' : 'pelaje'); tl.rotation.x = -.5; tail.add(tl); }
   let t = 0, blinkT = 2;
   function update(dt, mode = 'quieto', speed = 1) {
     t += dt; blinkT -= dt; const closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
@@ -534,8 +851,12 @@ function animal(id) {
   };
 }
 
-export async function crearPersonaje(id, base = '', { colores = true } = {}) {
-  const ch = FIGURAS[id] ? figura(id) : ANIMALES[id] ? animal(id) : figura('nieve');
+// estilo de las figuras humanas: 'bloques' (por defecto), 'lego' o 'muneca' (se elige en Personajes)
+export async function crearPersonaje(id, base = '', { colores = true, estilo } = {}) {
+  const est = ESTILOS[estilo] ? estilo : estiloActual();
+  const hum = est === 'lego' ? figuraLego : est === 'muneca' ? figuraMuneca : figura;
+  const ch = FIGURAS[id] ? hum(id) : ANIMALES[id] ? animal(id) : PELUCHES[id] ? peluche(id) : hum('nieve');
+  ch.estilo = FIGURAS[id] ? est : 'animal';
   ch.id = id;
   ch.group.scale.multiplyScalar(1.05);
   const saved = colores && window.Juego?.progress?.colors?.[id];
@@ -551,4 +872,4 @@ export function pintarParte(ch, part, c) {
   });
   if (ch._repintar) ch._repintar(part, c);
 }
-export function nombrePersonaje(id) { return (FIGURAS[id] || ANIMALES[id] || {}).nombre || id; }
+export function nombrePersonaje(id) { return (FIGURAS[id] || ANIMALES[id] || PELUCHES[id] || {}).nombre || id; }

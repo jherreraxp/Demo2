@@ -18,10 +18,16 @@ body { background: #bfe6ff; }
 .tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 4px 16px; font-size: 20px; font-weight: 800; }
 .tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
 .abajo { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 5; }
-.nombres { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; width: 100%; max-width: 980px; }
-.nombres button { background: rgba(255,255,255,.75); border-radius: 16px; padding: 6px 4px; font-size: 14px; font-weight: 800; line-height: 1.1; box-shadow: 0 4px 0 var(--shadow); }
-.nombres button span { display: block; font-size: 24px; }
+.nombres { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 5px; width: 100%; max-width: 1100px; max-height: 26vh; overflow-y: auto; padding: 2px 2px 6px; }
+.nombres button { background: rgba(255,255,255,.75); border-radius: 14px; padding: 3px 4px; font-size: 13px; font-weight: 800; line-height: 1.05; box-shadow: 0 3px 0 var(--shadow); display: flex; align-items: center; gap: 4px; text-align: left; }
+.nombres button span { display: block; font-size: 22px; flex: none; }
 .nombres button.on { background: var(--gold); }
+.estilos { display: inline-flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
+.estilos button { display: flex; flex-direction: column; align-items: center; gap: 0; background: rgba(255,255,255,.7); border-radius: 18px; padding: 4px 10px 6px; font-size: 15px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); min-width: 78px; }
+.estilos button img, .estilos button .ph { width: 52px; height: 62px; display: block; }
+.estilos button .ph { font-size: 34px; line-height: 62px; }
+.estilos button.on { background: var(--gold); transform: translateY(-2px); }
+@media (max-width: 520px) { .estilos button { min-width: 64px; padding: 3px 6px 5px; font-size: 13px; } .estilos button img, .estilos button .ph { width: 40px; height: 48px; } .estilos button .ph { line-height: 48px; font-size: 28px; } .nombres { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); max-height: 20vh; } .nombres button { font-size: 11px; } .nombres button span { font-size: 18px; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -39,6 +45,7 @@ body { background: #bfe6ff; }
 <div class="titulo">
   <h1>Elige tu personaje</h1>
   <div class="tabs" id="tabs" hidden></div>
+  <div><div class="estilos" id="estilos" aria-label="Estilo de los personajes"></div></div>
 </div>
 <div class="abajo">
   <div class="nombres" id="nombres"></div>
@@ -52,12 +59,14 @@ body { background: #bfe6ff; }
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, PERSONAJES } from './js/personajes.js';
+import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual } from './js/personajes.js';
 import { pintarParque } from './js/parque.js';
 pintarParque(document.querySelector('#parque'));
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
+// nombre y dibujito de cada personaje (los nuevos animalitos pueden no estar todavía en la lista del juego)
+const info = id => J.CHARS[id] || { name: nombrePersonaje(id), emoji: EMOJI[id] || '⭐' };
 const volver = new URLSearchParams(location.search).get('volver');
 if (volver && /^[a-z]+\.html$/.test(volver)) $('#listo').href = volver;
 
@@ -75,28 +84,66 @@ const chars = [];
 let editing = 0; // jugador que está eligiendo
 
 const narrow = () => innerWidth / innerHeight < .8;
-// escenario en filas: 6 + 5 en pantallas anchas, 3 por fila en el celular
+// escenario en filas: 8 por fila en pantallas anchas, 4 en el celular
 function layout() {
-  const n = narrow(), perRow = n ? 3 : 6, gap = n ? 2.1 : 2.2, rowGap = n ? 2.6 : 2.4;
+  const n = narrow(), perRow = n ? 4 : 8, gap = n ? 1.7 : 1.8, rowGap = n ? 2.1 : 2.1;
   const rows = Math.ceil(chars.length / perRow);
   chars.forEach((c, i) => {
     const r = Math.floor(i / perRow), inRow = Math.min(perRow, chars.length - r * perRow), k = i % perRow;
-    c.base.position.set((k - (inRow - 1) / 2) * gap, 0, (r - (rows - 1) / 2) * rowGap);
+    c.base.position.set((k - (inRow - 1) / 2) * gap + (r % 2 ? gap * .25 : 0), 0, (r - (rows - 1) / 2) * rowGap);
   });
-  const far = n ? 14 : 11;
-  camera.position.set(0, n ? 10 : 5.5, far); camera.lookAt(0, n ? -.6 : .6, n ? 1.6 : .3);
+  const far = n ? 9 + rows * 1.4 : 7 + rows * 1.5;
+  camera.position.set(0, n ? 4 + rows * 1.3 : 3.5 + rows * .9, far); camera.lookAt(0, n ? -.2 : .5, n ? 1.2 : .3);
 }
 addEventListener('resize', layout);
 
-for (const [i, id] of PERSONAJES.entries()) {
-  const base = new THREE.Group(); scene.add(base);
-  const ped = new THREE.Mesh(new THREE.CylinderGeometry(.75, .8, .18, 32), new THREE.MeshStandardMaterial({ color: cols[i], roughness: .4 }));
-  ped.position.y = .09; ped.receiveShadow = true; base.add(ped);
-  const ch = await crearPersonaje(id);
-  ch.group.position.y = .18; base.add(ch.group);
-  chars.push({ id, base, ch, ped });
+// arma (o vuelve a armar) a todos los personajes con el estilo elegido
+async function armar(soloHumanos = false) {
+  for (const [i, id] of PERSONAJES.entries()) {
+    let c = chars.find(x => x.id === id);
+    if (c && soloHumanos && !FIGURAS[id]) continue;
+    if (!c) {
+      const base = new THREE.Group(); scene.add(base);
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(.68, .72, .16, 32), new THREE.MeshStandardMaterial({ color: cols[i % cols.length], roughness: .4 }));
+      ped.position.y = .08; ped.receiveShadow = true; base.add(ped);
+      c = { id, base, ped }; chars.push(c);
+    }
+    if (c.ch) c.base.remove(c.ch.group);
+    c.ch = await crearPersonaje(id);
+    c.ch.group.scale.multiplyScalar(.9);
+    c.ch.group.position.y = .16; c.base.add(c.ch.group);
+  }
+  layout();
 }
-layout();
+await armar();
+
+// botones de estilo con una fotito del personaje en cada estilo
+const fotosEstilo = {};
+async function hacerFotos() {
+  const id = FIGURAS[P.players[editing].char] ? P.players[editing].char : 'nieve';
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setSize(104, 124); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
+  const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0xd8c8ff, 2.2));
+  const l = new THREE.DirectionalLight(0xffffff, 1.6); l.position.set(2, 4, 5); sc.add(l);
+  const cam = new THREE.PerspectiveCamera(30, 104 / 124, .1, 50); cam.position.set(0, 1.15, 4.6); cam.lookAt(0, 1.0, 0);
+  for (const est of Object.keys(ESTILOS)) {
+    const d = await crearPersonaje(id, '', { estilo: est }); sc.add(d.group);
+    for (let i = 0; i < 10; i++) d.update(.05, 'quieto');
+    r.render(sc, cam); fotosEstilo[est] = r.domElement.toDataURL(); sc.remove(d.group);
+  }
+  r.dispose(); renderEstilos();
+}
+function renderEstilos() {
+  const cur = estiloActual();
+  $('#estilos').innerHTML = Object.entries(ESTILOS).map(([k, e]) => `<button data-est="${k}" class="${k === cur ? 'on' : ''}" aria-label="Estilo ${e.nombre}">${fotosEstilo[k] ? `<img src="${fotosEstilo[k]}" alt="">` : `<span class="ph">${e.emoji}</span>`}${e.nombre}</button>`).join('');
+}
+renderEstilos(); hacerFotos().catch(() => {});
+$('#estilos').addEventListener('click', async e => {
+  const b = e.target.closest('[data-est]'); if (!b || b.dataset.est === estiloActual()) return;
+  P.estilo = b.dataset.est; J.save(); J.sfx('pop'); renderEstilos();
+  await armar(true);
+  fx.burst(new THREE.Vector3(0, 1.5, 0), 60, 2); J.sparkle();
+});
 
 function render() {
   const two = P.two;
@@ -105,13 +152,14 @@ function render() {
   const id = P.players[editing].char;
   $('#a-pintar').href = 'princesa.html?p=' + id;
   $('#a-cuidar').href = 'cuidar.html?p=' + id;
-  $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${J.CHARS[id].emoji}</span>${J.CHARS[id].name}</button>`).join('');
+  $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${info(id).emoji}</span>${info(id).name}</button>`).join('');
 }
 function pick(id) {
   P.players[editing].char = id; J.save();
   const c = chars.find(c => c.id === id);
   fx.burst(c.base.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 40);
-  J.cheer(); J.say([P.players[editing].name, 'es', J.CHARS[id].name], { queue: true });
+  J.cheer(); J.say([P.players[editing].name, 'es', info(id).name], { queue: true });
+  if (FIGURAS[id]) hacerFotos().catch(() => {});
   render();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) { editing = +b.dataset.p; J.sfx('pop'); render(); } });
@@ -126,6 +174,7 @@ $('#mundo').addEventListener('pointerdown', e => {
 
 W.onFrame((dt, t) => {
   for (const c of chars) {
+    if (!c.ch) continue;
     const mine = P.players[editing].char === c.id;
     c.ch.update(dt, mine ? 'festejar' : 'bailar');
     c.ped.material.emissive = new THREE.Color(mine ? 0x664400 : 0x000000);

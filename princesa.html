@@ -13,8 +13,8 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 .titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 64px); text-align: center; z-index: 5; pointer-events: none; }
 .titulo h1 { margin: 0; font-size: clamp(26px, 6.5vw, 40px); line-height: 1.05; }
 .titulo p { margin: 2px 0 0; font-size: 18px; }
-.tabs { display: inline-flex; gap: 6px; margin-top: 6px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
-.tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 3px 14px; font-size: 18px; font-weight: 800; }
+.tabs { display: flex; gap: 6px; margin: 6px auto 0; pointer-events: auto; flex-wrap: nowrap; overflow-x: auto; max-width: min(100%, 1100px); padding: 2px 12px 8px; scrollbar-width: thin; }
+.tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 3px 14px; font-size: 17px; font-weight: 800; flex: none; white-space: nowrap; }
 .tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
 .paleta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .colores { display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 4px 4px 8px; }
@@ -54,7 +54,7 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, pintarParte, PINTABLES as IDS } from './js/personajes.js';
+import { crearPersonaje, pintarParte, PINTABLES as IDS, EMOJI, nombrePersonaje, FIGURAS } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -73,9 +73,10 @@ const PARTS = {
   lana: ['la lana', 'f'], manta: ['la manta', 'f'], pompones: ['los pompones', 'mp'], orejas: ['las orejas', 'fp'], nariz: ['la nariz', 'f'],
   cuernos: ['los cuernos', 'mp'], pelaje: ['el pelaje', 'm'], panza: ['la panza', 'f'], botones: ['los botones', 'mp'],
   logo: ['el dibujito', 'm'], audifonos: ['los audífonos', 'mp'], cola: ['la cola', 'f'],
+  crin: ['la crin', 'f'], cuerno: ['el cuerno', 'm'], manchas: ['las manchas', 'fp'], alas: ['las alas', 'fp'], pico: ['el pico', 'm'], patas: ['las patas', 'fp'],
 };
-const PARTE_EMOJI = { vestido: '👗', falda: '👗', blusa: '👚', mangas: '🧥', guantes: '🧤', cinturon: '🎀', 'moño': '🎀', collar: '📿', capa: '🦸', pelo: '💇', piel: '🙂', zapatos: '👠', corona: '👑', chaqueta: '🧥', pantalon: '👖', gorra: '🧢', lana: '🧶', manta: '🟥', pompones: '🎈', orejas: '👂', nariz: '👃', cuernos: '🐂', pelaje: '🐾', panza: '⚪', botones: '🔘', logo: '⭐', audifonos: '🎧', cola: '🦊' };
-const PINTABLES = IDS.map(id => [id, (J.CHARS[id]?.emoji || '') + ' ' + (J.CHARS[id]?.name || id)]);
+const PARTE_EMOJI = { vestido: '👗', falda: '👗', blusa: '👚', mangas: '🧥', guantes: '🧤', cinturon: '🎀', 'moño': '🎀', collar: '📿', capa: '🦸', pelo: '💇', piel: '🙂', zapatos: '👠', corona: '👑', chaqueta: '🧥', pantalon: '👖', gorra: '🧢', lana: '🧶', manta: '🟥', pompones: '🎈', orejas: '👂', nariz: '👃', cuernos: '🐂', pelaje: '🐾', panza: '⚪', botones: '🔘', logo: '⭐', audifonos: '🎧', cola: '🦊', crin: '🦄', cuerno: '🦄', manchas: '🐄', alas: '🪽', pico: '🐤', patas: '🐾' };
+const PINTABLES = IDS.map(id => [id, (J.CHARS[id]?.emoji || EMOJI[id] || '') + ' ' + (J.CHARS[id]?.name || nombrePersonaje(id))]);
 
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera, renderer } = W;
@@ -93,12 +94,13 @@ async function load(id) {
   if (char) scene.remove(char.group);
   charId = id;
   char = await crearPersonaje(id);
-  char.group.scale.setScalar(['llama', 'lobo', 'toro'].includes(id) ? 1.1 : 1.3);
+  char.group.scale.setScalar(FIGURAS[id] ? 1.3 : ['llama', 'unicornio'].includes(id) ? 1.1 : ['lobo', 'toro', 'zorro', 'gato', 'perro'].includes(id) ? 1.5 : 1.25);
   scene.add(char.group);
   render();
 }
 function render() {
   $('#tabs').innerHTML = PINTABLES.map(([id, n]) => `<button class="${id === charId ? 'on' : ''}" data-id="${id}">${n}</button>`).join('');
+  $('#tabs .on')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   $('#partes').innerHTML = Object.keys(char?.parts || {}).filter(p => PARTS[p]).map(p => `<button data-p="${p}">${PARTE_EMOJI[p] || ''} ${PARTS[p][0].split(' ').slice(1).join(' ')}</button>`).join('');
   $('#colores').innerHTML = COLORS.map((c, i) => `<button class="c ${c.v === 'arcoiris' ? 'arco' : ''} ${c === color ? 'on' : ''}" data-i="${i}" aria-label="${c.name}" style="${c.v !== 'arcoiris' ? 'background:' + c.v : ''}"></button>`).join('');
 }

@@ -33,6 +33,10 @@
     llama: { name: 'Llamita Lula', emoji: '🦙' }, rojito: { name: 'Monstruito Rojo', emoji: '❤️' }, raton: { name: 'Ratoncito Pipo', emoji: '🐭' },
     zorro: { name: 'Zorrito', emoji: '🦊' }, lobo: { name: 'Lobito', emoji: '🐺' }, toro: { name: 'Torito', emoji: '🐂' },
     amara: { name: 'Amara', emoji: '👧🏻' }, papa: { name: 'Papá', emoji: '👨' }, mama: { name: 'Mamá', emoji: '👩' },
+    gato: { name: 'Gatito Michi', emoji: '🐱' }, perro: { name: 'Perrito Toby', emoji: '🐶' },
+    conejo: { name: 'Conejita Coco', emoji: '🐰' }, oso: { name: 'Osito Bruno', emoji: '🧸' },
+    panda: { name: 'Pandita Pao', emoji: '🐼' }, unicornio: { name: 'Unicornio Lulú', emoji: '🦄' },
+    pollito: { name: 'Pollito Pío', emoji: '🐥' }, pinguino: { name: 'Pingüino Pepe', emoji: '🐧' },
   };
   function load() {
     let d;

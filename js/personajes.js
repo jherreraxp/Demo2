@@ -218,7 +218,7 @@ function quad({ color, belly = 0xffffff, ear = 'punta', tail = 'larga', snout, s
 }
 
 // personajes jugables: minifiguras y animales de bloques (lego.js)
-export { crearPersonaje, pintarParte, PERSONAJES, PINTABLES, POSES, CARAS, nombrePersonaje, FIGURAS } from './lego.js';
+export { crearPersonaje, pintarParte, PERSONAJES, PINTABLES, POSES, CARAS, nombrePersonaje, FIGURAS, ESTILOS, EMOJI, estiloActual } from './lego.js';
 
 // ---------- cosas y animalitos para buscar o atrapar ----------
 function simple(build, anim) {
