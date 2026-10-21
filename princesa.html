@@ -72,8 +72,9 @@ const PARTS = {
   zapatos: ['los zapatos', 'mp'], corona: ['la corona', 'f'], chaqueta: ['la chaqueta', 'f'], pantalon: ['el pantalón', 'm'], gorra: ['la gorra', 'f'],
   lana: ['la lana', 'f'], manta: ['la manta', 'f'], pompones: ['los pompones', 'mp'], orejas: ['las orejas', 'fp'], nariz: ['la nariz', 'f'],
   cuernos: ['los cuernos', 'mp'], pelaje: ['el pelaje', 'm'], panza: ['la panza', 'f'], botones: ['los botones', 'mp'],
+  logo: ['el dibujito', 'm'], audifonos: ['los audífonos', 'mp'], cola: ['la cola', 'f'],
 };
-const PARTE_EMOJI = { vestido: '👗', falda: '👗', blusa: '👚', mangas: '🧥', guantes: '🧤', cinturon: '🎀', 'moño': '🎀', collar: '📿', capa: '🦸', pelo: '💇', piel: '🙂', zapatos: '👠', corona: '👑', chaqueta: '🧥', pantalon: '👖', gorra: '🧢', lana: '🧶', manta: '🟥', pompones: '🎈', orejas: '👂', nariz: '👃', cuernos: '🐂', pelaje: '🐾', panza: '⚪', botones: '🔘' };
+const PARTE_EMOJI = { vestido: '👗', falda: '👗', blusa: '👚', mangas: '🧥', guantes: '🧤', cinturon: '🎀', 'moño': '🎀', collar: '📿', capa: '🦸', pelo: '💇', piel: '🙂', zapatos: '👠', corona: '👑', chaqueta: '🧥', pantalon: '👖', gorra: '🧢', lana: '🧶', manta: '🟥', pompones: '🎈', orejas: '👂', nariz: '👃', cuernos: '🐂', pelaje: '🐾', panza: '⚪', botones: '🔘', logo: '⭐', audifonos: '🎧', cola: '🦊' };
 const PINTABLES = IDS.map(id => [id, (J.CHARS[id]?.emoji || '') + ' ' + (J.CHARS[id]?.name || id)]);
 
 const W = crearMundo($('#mundo'), { fog: null });

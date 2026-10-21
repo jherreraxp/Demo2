@@ -35,7 +35,7 @@
         'morado', 'morada', 'morados', 'moradas', 'rosado', 'rosada', 'rosados', 'rosadas', 'blanco', 'blanca', 'blancos', 'blancas', 'marrón', 'marrones',
         'negro', 'negra', 'negros', 'negras', 'dorado', 'dorada', 'dorados', 'doradas', 'plateado', 'plateada', 'plateados', 'plateadas', 'arcoíris', 'los botones',
         'el vestido', 'la falda', 'la blusa', 'las mangas', 'los guantes', 'el cinturón', 'el moño', 'el collar', 'la capa', 'el pelo', 'la piel', 'los zapatos', 'las botas', 'la corona',
-        'la chaqueta', 'el pantalón', 'la gorra', 'la lana', 'la manta', 'los pompones', 'las orejas', 'la nariz', 'los cuernos', 'el pelaje', 'la panza'].map(t => ({ texto: t })) },
+        'la chaqueta', 'el pantalón', 'la gorra', 'la lana', 'la manta', 'los pompones', 'las orejas', 'la nariz', 'los cuernos', 'el pelaje', 'la panza', 'el dibujito', 'los audífonos', 'la cola'].map(t => ({ texto: t })) },
     { id: 'cuento', nombre: 'Cuento', ayuda: 'Como si se lo leyeras antes de dormir.',
       items: ['Esta es Lola. Lola es una zorrita.', 'Lola mira la luna. ¡Qué linda es la luna!', 'Lola salta y salta. ¡Quiere tocar la luna!', 'Una nube baja. Lola sube a la nube.',
         'En el cielo hay un pato. —Hola, pato —dice Lola.', 'El pato y Lola van a la luna.', 'La luna sonríe: —Hola, Lola. Toma una estrella.',
