@@ -19,11 +19,28 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
 .figura .emo { font-size: clamp(54px, 11vh, 90px); line-height: 1; }
 .figura button { background: var(--purple); color: #fff; border-radius: 50%; width: 54px; height: 54px; font-size: 24px; box-shadow: 0 4px 0 var(--purple-dark); }
 .via { position: fixed; left: 0; right: 0; top: 52%; height: 14px; background: repeating-linear-gradient(90deg, #8a5a33 0 16px, transparent 16px 34px), linear-gradient(#777, #777) 0 10px / 100% 4px no-repeat; }
-.tren { position: fixed; top: calc(52% - 112px); left: 50%; display: flex; align-items: flex-end; gap: 6px; transform: translateX(-50%); transition: transform 2.2s cubic-bezier(.5, 0, .9, .6); z-index: 3; }
-.tren.sale { transform: translateX(-180vw); }
+.tren { position: fixed; top: calc(52% - 112px); left: 50%; display: flex; align-items: flex-end; gap: 6px; transform: translateX(-50%); transition: transform 3s cubic-bezier(.45, 0, .85, .5); z-index: 3; }
+.tren.sale { transform: translateX(-200vw); }
 .tren.llega { animation: llega 1.2s cubic-bezier(.2, .9, .3, 1); }
 @keyframes llega { from { transform: translateX(60vw); } to { transform: translateX(-50%); } }
-.loco { font-size: 104px; line-height: .9; transform: scaleX(-1); filter: drop-shadow(0 4px 0 rgba(0,0,0,.15)); }
+.loco { position: relative; font-size: 104px; line-height: .9; filter: drop-shadow(0 4px 0 rgba(0,0,0,.15)); display: inline-block; }
+/* carita feliz de la locomotora cuando se va */
+.loco .cara { position: absolute; left: 4%; top: 30%; width: 44%; aspect-ratio: 1; border-radius: 50%; background: #ffe4c4; border: 3px solid #23324a; transform: scale(0); transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.loco .cara i { position: absolute; top: 30%; width: 16%; height: 22%; border-radius: 50%; background: #23324a; animation: parpadeo 2.4s infinite; }
+.loco .cara i:nth-child(1) { left: 24%; } .loco .cara i:nth-child(2) { right: 24%; }
+.loco .cara b { position: absolute; left: 25%; right: 25%; top: 52%; height: 26%; border-radius: 0 0 40px 40px; background: #e8473c; border: 2px solid #23324a; border-top: 0; }
+.loco .cara s { position: absolute; top: 50%; width: 16%; height: 12%; border-radius: 50%; background: #ff9ab8; } .loco .cara s:nth-of-type(1) { left: 6%; } .loco .cara s:nth-of-type(2) { right: 6%; }
+@keyframes parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.tren.feliz .loco .cara { transform: scale(1); }
+.tren.feliz .loco { animation: saltito .42s ease-in-out infinite; }
+.tren.feliz .vagon { animation: saltito .42s ease-in-out infinite; }
+.tren.feliz .vagon:nth-child(odd) { animation-delay: .21s; }
+@keyframes saltito { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; rotate: -2deg; } }
+.vagon::before, .vagon::after { border-top-color: #fff !important; }
+.tren.feliz .vagon::before, .tren.feliz .vagon::after { animation: rueda .35s linear infinite; }
+@keyframes rueda { to { transform: rotate(-360deg); } }
+.humo { position: fixed; z-index: 5; font-size: 34px; pointer-events: none; animation: humo 1.6s ease-out forwards; }
+@keyframes humo { from { opacity: 1; transform: translate(-50%, 0) scale(.5); } to { opacity: 0; transform: translate(calc(-50% + 60px), -140px) scale(1.4) rotate(20deg); } }
 .vagon { position: relative; width: clamp(84px, 17vw, 122px); height: 92px; border-radius: 14px 14px 8px 8px; background: var(--c, #ef5b5b); box-shadow: inset 0 -10px 0 rgba(0,0,0,.15); display: grid; place-items: center; margin-bottom: 14px; }
 .vagon::before, .vagon::after { content: ''; position: absolute; bottom: -16px; width: 28px; height: 28px; border-radius: 50%; background: #333; border: 5px solid #bbb; box-sizing: border-box; }
 .vagon::before { left: 10px; } .vagon::after { right: 10px; }
@@ -104,7 +121,7 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
     state.usadas.push(w[0]); state.w = w; state.sils = sils(w); state.paso = 0;
     // tren con un vagón vacío por sílaba
     const tren = $('#tren'); tren.className = 'tren';
-    tren.innerHTML = '<span class="loco" aria-hidden="true">🚂</span>' + state.sils.map((_, i) => `<div class="vagon" style="--c:${COLS[i % COLS.length]}"><span class="hueco"></span></div>`).join('');
+    tren.innerHTML = '<span class="loco" aria-hidden="true">🚂<span class="cara"><i></i><i></i><b></b><s></s><s></s></span></span>' + state.sils.map((_, i) => `<div class="vagon" style="--c:${COLS[i % COLS.length]}"><span class="hueco"></span></div>`).join('');
     void tren.offsetWidth; tren.classList.add('llega');
     $('#emo').textContent = w[2] || '🔊';
     $('#figura').hidden = false;
@@ -138,23 +155,36 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
       J.say(['Escucha', state.w[0]]);
     }
   }
+  // humo de corazones y estrellitas que sale de la chimenea
+  function humo() {
+    const l = $('#tren .loco'); if (!l) return;
+    const r = l.getBoundingClientRect();
+    const h = document.createElement('span'); h.className = 'humo'; h.textContent = J.pick(['💖', '⭐', '💨', '🌟', '💗']);
+    h.style.left = (r.left + r.width * .25) + 'px'; h.style.top = (r.top - 10) + 'px';
+    document.body.appendChild(h); setTimeout(() => h.remove(), 1700);
+  }
   function completa() {
     state.jugando = false;
     state.hechas++;
     $('#metas').children[state.hechas - 1]?.classList.add('on');
     J.addStar(); updatePlayer();
     setTimeout(() => {
-      J.efecto('acierto');
+      // ¡el tren se pone feliz! sonríe, salta, y se va contento
+      const tren = $('#tren');
+      tren.classList.add('feliz');
+      J.efecto('acierto'); J.confetti(70);
       message('¡' + state.w[0] + '!');
       J.say([state.w[0], J.pick(J.PRAISES)]);
+      const hum = setInterval(humo, 220);
       setTimeout(() => {
         chuchu();
-        $('#tren').classList.add('sale');
+        tren.classList.add('sale');
         $('#opciones').innerHTML = '';
         setTimeout(() => {
+          clearInterval(hum);
           if (state.hechas >= NIVELES[state.nivel].meta) return nivelListo();
           J.nextTurn(() => { state.jugando = true; nuevaPalabra(); }, { onShow: updatePlayer });
-        }, 2300);
+        }, 3000);
       }, 1500);
     }, 400);
   }

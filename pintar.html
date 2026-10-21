@@ -108,6 +108,8 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
 
   let color = 'arcoiris', size = 18, tool = 'lapiz', stamp = null, shape = null, hue = 0, drawing = null;
   let last = null, start = null, mask = null, undo = [], dpr = 1;
+  // repetir: al arrastrar, el sellito (siempre) o la forma (con 🔁) se repite por el camino
+  let repetir = false, rep = null;
 
   // ---------- barras ----------
   $('#colores').innerHTML = COLORS.map(([id, c, name]) =>
@@ -118,6 +120,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
     SIZES.map(([s, n]) => `<button class="t ${s === size ? 'on' : ''}" data-size="${s}" aria-label="Lápiz ${n}"><span class="dot" style="--d:${Math.min(40, Math.max(6, s * .65))}px"></span></button>`).join('');
   $('#extras').innerHTML =
     SHAPES.map(([id, n, svg]) => `<button class="t" data-shape="${id}" aria-label="Forma: ${n}"><svg viewBox="0 0 40 40">${svg}</svg></button>`).join('') +
+    '<button class="t" data-repetir aria-pressed="false" aria-label="Repetir la forma al arrastrar">🔁</button>' +
     '<span class="sep"></span>' +
     STAMPS.map(s => `<button class="t" data-stamp="${s}" aria-label="Sellito ${s}">${s}</button>`).join('') +
     '<span class="sep"></span>' +
@@ -147,6 +150,9 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
       shape = shape === b.dataset.shape ? null : b.dataset.shape; stamp = null;
       select('data-shape', shape ? b : null); select('data-stamp', null); select('data-tool', shape ? null : document.querySelector(`[data-tool="${tool}"]`));
       if (shape) J.say(SHAPES.find(s => s[0] === shape)[1]);
+    } else if (b.dataset.repetir !== undefined) {
+      repetir = !repetir; b.classList.toggle('on', repetir); b.setAttribute('aria-pressed', String(repetir));
+      J.sfx('pop', .6);
     } else if (b.dataset.stamp) {
       stamp = stamp === b.dataset.stamp ? null : b.dataset.stamp; shape = null;
       select('data-stamp', stamp ? b : null); select('data-shape', null); select('data-tool', stamp ? null : document.querySelector(`[data-tool="${tool}"]`));
@@ -297,12 +303,11 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
     snapshot();
     if (stamp) {
       const s = Math.max(40, size * 3.2) * dpr;
-      p.font = `${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-      p.textAlign = 'center'; p.textBaseline = 'middle';
-      p.fillText(stamp, pt.x, pt.y);
-      J.sfx('pop', .7, 1 + Math.random() * .3);
+      rep = { last: pt, paso: s * .9, n: 0 };
+      sello(pt);
       return;
     }
+    if (shape && repetir) { const s = Math.max(30, size * 2.2) * dpr; rep = { last: pt, paso: s * 1.15, n: 0, s }; formita(pt); return; }
     if (shape) { start = pt; return; }
     if (tool === 'rociar') { sprayFill(pt); return; }
     if (tool === 'magico') { mask = regionMask(pt); if (!mask) { undo.pop(); return; } }
@@ -310,7 +315,36 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
     J.sparkle();
     if (mask) clippedSegment(pt, pt); else dot(pt);
   });
+  // sellito en un punto; repetido con arcoíris, cada uno cambia de color
+  function sello(pt) {
+    const s = Math.max(40, size * 3.2) * dpr;
+    p.save();
+    p.font = `${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    p.textAlign = 'center'; p.textBaseline = 'middle';
+    if (color === 'arcoiris' && rep && rep.n) p.filter = `hue-rotate(${(rep.n * 40) % 360}deg)`;
+    p.fillText(stamp, pt.x, pt.y);
+    p.restore();
+    if (rep) rep.n++;
+    J.sfx('pop', .5, 1 + Math.random() * .3);
+  }
+  // forma chiquita (contorno) que luego se puede colorear
+  function formita(pt) {
+    const h = rep.s / 2;
+    strokeShape(o, shape, [pt.x - h, pt.y - h, pt.x + h, pt.y + h]);
+    rep.n++;
+    J.sfx('pop2', .4, 1 + (rep.n % 5) * .08);
+  }
+  // reparte sellitos o formas a lo largo del camino del dedo
+  function repetirHasta(pt) {
+    let d = Math.hypot(pt.x - rep.last.x, pt.y - rep.last.y);
+    while (d >= rep.paso) {
+      const k = rep.paso / d, q = { x: rep.last.x + (pt.x - rep.last.x) * k, y: rep.last.y + (pt.y - rep.last.y) * k };
+      if (stamp) sello(q); else formita(q);
+      rep.last = q; d = Math.hypot(pt.x - q.x, pt.y - q.y);
+    }
+  }
   hoja.addEventListener('pointermove', e => {
+    if (rep) { (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(ev => repetirHasta(pos(ev))); return; }
     if (start) {
       v.clearRect(0, 0, vc.width, vc.height);
       v.setLineDash([12 * dpr, 10 * dpr]); strokeShape(v, shape, shapeBox(start, pos(e))); v.setLineDash([]);
@@ -335,7 +369,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
       strokeShape(o, shape, shapeBox(start, pos(e)));
       J.sfx('pop2', .7); start = null;
     }
-    last = null; mask = null;
+    last = null; mask = null; rep = null;
   };
   hoja.addEventListener('pointerup', end);
   hoja.addEventListener('pointercancel', end);
