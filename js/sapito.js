@@ -2,6 +2,7 @@
 // por los nenúfares. Si se cae al agua hace un gesto gracioso; si llega a la flor, ¡fiesta!
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './mundo3d.js';
+import { crearPersonaje, PERSONAJES, nombrePersonaje } from './personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -26,6 +27,40 @@ const NIVELES = [
 ];
 const DIRS = { arriba: [-1, 0, '⬆️'], abajo: [1, 0, '⬇️'], izquierda: [0, -1, '⬅️'], derecha: [0, 1, '➡️'] };
 const MAX_SLOTS = 12;
+// bloques divertidos: no mueven al personaje, solo hacen una gracia
+const GRACIAS = { pirueta: { emoji: '🌀', dice: 'pirueta' }, bailar: { emoji: '💃', dice: 'baila' }, cantar: { emoji: '🎤', dice: 'canta' } };
+const MAX_GRACIAS = 3;
+
+// cuántos bloques de movimiento necesita (como mínimo) cada nivel: así se dibujan sus cuadraditos
+function resolver(cfg) {
+  const mapa = cfg.mapa, rows = mapa.length, cols = Math.max(...mapa.map(r => r.length));
+  const cel = (r, c) => (r < 0 || c < 0 || r >= rows || c >= cols) ? '.' : (mapa[r][c] || '.');
+  let start = [0, 0];
+  mapa.forEach((row, r) => { const c = row.indexOf('S'); if (c >= 0) start = [r, c]; });
+  const saltos = cfg.bloques !== 'flechas' ? [false, true] : [false];
+  const reps = cfg.bloques === 'todo' ? 5 : 1;
+  const visto = new Set([start.join()]);
+  let frente = [start];
+  for (let k = 1; k <= 30 && frente.length; k++) {
+    const sig = [];
+    for (const [r0, c0] of frente) for (const [dr, dc] of Object.values(DIRS)) for (const salto of saltos) {
+      let r = r0, c = c0;
+      for (let n = 1; n <= reps; n++) {
+        const p = salto ? 2 : 1, nr = r + dr * p, nc = c + dc * p, x = cel(nr, nc);
+        // el salto que cuenta es el de la piedra (saltar el agua no es la idea del nivel)
+        if (salto && cel(r + dr, c + dc) !== 'R') break;
+        if (x === '.' || x === 'R') break;
+        if (x === 'M') return k;
+        r = nr; c = nc;
+        const key = r + ',' + c;
+        if (!visto.has(key)) { visto.add(key); sig.push([r, c]); }
+      }
+    }
+    frente = sig;
+  }
+  return MAX_SLOTS;
+}
+NIVELES.forEach(n => { n.pasos = resolver(n); });
 
 // ---------- mundo ----------
 const W = crearMundo($('#mundo'), { fog: null, fov: 45 });
@@ -87,7 +122,46 @@ function crearSapo() {
   root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return { root, body, ojos, pupilas, boca, bocaO, patas, mareo, pregunta };
 }
-const sapo = crearSapo(); sapo.root.scale.setScalar(1.25); scene.add(sapo.root);
+// el que salta: el sapito o cualquier personaje del juego (se recuerda en P.sapitoPj)
+let sapo = crearSapo(); sapo.root.scale.setScalar(1.25); scene.add(sapo.root);
+function adornosGesto(body, y) {
+  const mareo = new THREE.Group(); mareo.position.y = y; mareo.visible = false; body.add(mareo);
+  for (let i = 0; i < 4; i++) { const s = mesh(new THREE.OctahedronGeometry(.14), mat(0xffd23f, { emissive: 0x8a6a00, emissiveIntensity: .6 })); s.userData.a = i * Math.PI / 2; mareo.add(s); }
+  mareo.scale.setScalar(1.4);
+  const qc = document.createElement('canvas'); qc.width = qc.height = 128;
+  const qg = qc.getContext('2d'); qg.font = '800 110px "Baloo 2", sans-serif'; qg.textAlign = 'center'; qg.textBaseline = 'middle';
+  qg.fillStyle = '#fff'; qg.strokeStyle = '#9a6ee0'; qg.lineWidth = 12; qg.strokeText('?', 64, 70); qg.fillText('?', 64, 70);
+  const tq = new THREE.CanvasTexture(qc); tq.colorSpace = THREE.SRGBColorSpace;
+  const pregunta = new THREE.Sprite(new THREE.SpriteMaterial({ map: tq, depthTest: false })); pregunta.scale.set(.9, .9, 1); pregunta.position.y = y + .4; pregunta.visible = false; body.add(pregunta);
+  return { mareo, pregunta };
+}
+async function ponerActor(id) {
+  scene.remove(sapo.root);
+  if (!id || id === 'sapo') { sapo = crearSapo(); sapo.root.scale.setScalar(1.25); }
+  else {
+    const ch = await crearPersonaje(id);
+    const root = new THREE.Group(), body = new THREE.Group(); root.add(body); body.add(ch.group);
+    ch.group.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const { mareo, pregunta } = adornosGesto(body, 2.5);
+    const nada = new THREE.Object3D();
+    sapo = { root, body, ojos: [], pupilas: [], boca: nada, bocaO: nada, patas: [], mareo, pregunta, ch, pq: ch.group.position.y };
+    root.scale.setScalar(.6);
+  }
+  scene.add(sapo.root);
+  sapo.root.userData.id = id || 'sapo';
+  const q = document.querySelector('#m-quien'); if (q) q.textContent = !id || id === 'sapo' ? '🐸' : (J.CHARS[id]?.emoji || '⭐');
+  if (board) colocarSapo();
+}
+// notitas que salen cuando canta
+function notaSprite() {
+  const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
+  g.font = '800 80px "Baloo 2", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = J.pick(['#ff5dab', '#9a6ee0', '#3f8ee8', '#ffb703']); g.fillText(J.pick(['♪', '♫', '♬']), 48, 52);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true })); sp.scale.set(.45, .45, 1);
+  return sp;
+}
+const notas = [];
 
 // ---------- tablero ----------
 let board = null;
@@ -156,6 +230,7 @@ function colocarSapo() {
   sapo.root.rotation.set(0, state.dir, 0); sapo.body.rotation.set(0, 0, 0); sapo.body.position.set(0, 0, 0); sapo.body.scale.set(1, 1, 1);
   sapo.mareo.visible = false; sapo.pregunta.visible = false; sapo.boca.visible = true; sapo.bocaO.visible = false;
   sapo.pupilas.forEach(p => p.position.set(0, .03, .16));
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('feliz');
 }
 const ang = d => ({ abajo: 0, derecha: Math.PI / 2, arriba: Math.PI, izquierda: -Math.PI / 2 })[d];
 const narrow = () => innerWidth / innerHeight < .8;
@@ -179,31 +254,49 @@ addEventListener('resize', () => board && setTimeout(encuadre, 0));
 // ---------- programa ----------
 const prog = $('#programa'), paleta = $('#paleta');
 function cfgN() { return NIVELES[state.nivel]; }
-function maxBloques() { return cfgN().max || MAX_SLOTS; }
+// movimientos necesarios (los cuadraditos numerados); en niveles de 🔁 no caben más que esos
+function necesarios() { return cfgN().pasos; }
+function maxBloques() { return cfgN().max ? necesarios() : MAX_SLOTS; }
+const movs = () => state.programa.filter(b => b.d).length;
+const gracias = () => state.programa.filter(b => b.f).length;
 function renderPaleta() {
   const b = cfgN().bloques;
   const flechas = ['izquierda', 'arriba', 'abajo', 'derecha'].map(d => `<button class="bloque flecha" data-d="${d}" aria-label="${d}">${DIRS[d][2]}</button>`).join('');
   const salto = b !== 'flechas' ? `<button class="bloque especial ${state.salto ? 'on' : ''}" data-x="salto" aria-label="Saltar">🦘</button>` : '';
   const repite = b === 'todo' ? `<button class="bloque especial" data-x="repite" aria-label="Repetir">🔁</button>` : '';
-  paleta.innerHTML = flechas + salto + repite;
+  const fun = Object.entries(GRACIAS).map(([k, g]) => `<button class="bloque divertido" data-f="${k}" aria-label="${g.dice}">${g.emoji}</button>`).join('');
+  paleta.innerHTML = flechas + salto + repite + fun;
 }
 function renderPrograma() {
-  const max = maxBloques();
-  const slots = state.programa.map((b, i) => `<button class="slot lleno ${i === state.paso ? 'activo' : ''}" data-i="${i}" aria-label="Quitar bloque">${b.salto ? '<i class="mini">🦘</i>' : ''}${DIRS[b.d][2]}${b.n > 1 ? `<b class="veces">×${b.n}</b>` : ''}</button>`).join('');
-  const vacios = cfgN().max ? Array.from({ length: Math.max(0, max - state.programa.length) }, () => '<span class="slot"></span>').join('') : (state.programa.length < MAX_SLOTS ? '<span class="slot"></span>' : '');
+  const need = necesarios();
+  let k = 0;
+  const slots = state.programa.map((b, i) => {
+    const num = b.d ? ++k : 0;
+    const cara = b.f ? GRACIAS[b.f].emoji : DIRS[b.d][2];
+    return `<button class="slot lleno ${b.f ? 'gracia' : ''} ${num > need ? 'extra' : ''} ${i === state.paso ? 'activo' : ''}" data-i="${i}" aria-label="Quitar bloque">${b.salto ? '<i class="mini">🦘</i>' : ''}${cara}${b.n > 1 ? `<b class="veces">×${b.n}</b>` : ''}</button>`;
+  }).join('');
+  // un cuadradito numerado por cada movimiento que falta
+  const vacios = Array.from({ length: Math.max(0, need - k) }, (_, j) => `<span class="slot"><i class="num">${k + j + 1}</i></span>`).join('');
   prog.innerHTML = slots + vacios;
+  prog.dataset.need = need;
   $('#correr').disabled = !state.programa.length || state.corriendo;
 }
 paleta.addEventListener('click', e => {
   const b = e.target.closest('.bloque'); if (!b || state.corriendo) return;
   J.audio();
+  if (b.dataset.f) {
+    if (gracias() >= MAX_GRACIAS) { J.boing(); mensaje('¡Ya no caben más!', 1.2); return; }
+    state.programa.push({ f: b.dataset.f, n: 1 });
+    J.sfx('pop', .8, 1.3); J.say(GRACIAS[b.dataset.f].dice);
+    renderPrograma(); return;
+  }
   if (b.dataset.x === 'salto') { state.salto = !state.salto; J.sfx('pop'); J.say('salta'); renderPaleta(); return; }
   if (b.dataset.x === 'repite') {
     const last = state.programa[state.programa.length - 1];
     if (!last) { J.boing(); return; }
     last.n = last.n >= 5 ? 1 : last.n + 1; J.sfx('pop', .8, 1 + last.n * .1); J.say(['repite', ['', 'una vez', 'dos veces', 'tres veces', 'cuatro veces', 'cinco veces'][last.n]]); renderPrograma(); return;
   }
-  if (state.programa.length >= maxBloques()) { J.boing(); mensaje('¡Ya no caben más!', 1.2); return; }
+  if (movs() >= maxBloques()) { J.boing(); mensaje('¡Ya no caben más!', 1.2); return; }
   state.programa.push({ d: b.dataset.d, n: 1, salto: state.salto });
   J.sfx('pop', .8, 1 + state.programa.length * .05);
   J.say(state.salto ? ['salta', b.dataset.d] : b.dataset.d);
@@ -235,6 +328,7 @@ function siguiente() {
   const st = state.cola.shift();
   if (!st) { state.paso = -1; renderPrograma(); return confundido(); }
   state.paso = st.i; renderPrograma();
+  if (st.f) return gracia(st.f);
   const [dr, dc] = DIRS[st.d];
   const pasos = st.salto ? 2 : 1;
   const r2 = state.r + dr * pasos, c2 = state.c + dc * pasos;
@@ -257,6 +351,14 @@ function siguiente() {
       setTimeout(siguiente, 120);
     } };
   }
+}
+function gracia(f) {
+  state.gesto = f; state.gestoT = 0;
+  if (f === 'pirueta') { J.sfx('jump', .6, 1.3); J.tones([523, 659, 784, 1046], .09, 'triangle', .12); }
+  if (f === 'bailar') { J.efecto('festejo'); }
+  if (f === 'cantar') { J.tones([523, 523, 784, 784, 880, 880, 784], .18, 'sine', .14); }
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara(f === 'cantar' ? 'sorpresa' : 'feliz');
+  setTimeout(() => { if (state.gesto === f) { state.gesto = null; sapo.body.rotation.set(0, 0, 0); sapo.body.position.y = 0; if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('feliz'); } if (state.corriendo) siguiente(); }, 1400);
 }
 function splash(p) {
   const c = J.audio(); if (!c) return;
@@ -293,6 +395,7 @@ function caer() {
   J.boing();
   state.gesto = 'caer'; state.gestoT = 0;
   sapo.boca.visible = false; sapo.bocaO.visible = true;
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('sorpresa');
   mensaje('¡Uy! ¡Al agua! 💦', 1.6);
   J.say(['¡Uy, se cayó al agua!', 'Prueba otra vez']);
   setTimeout(() => burbujas(sapo.root.position.clone()), 500);
@@ -300,6 +403,7 @@ function caer() {
 function choque() {
   state.corriendo = false; state.paso = -1; renderPrograma();
   state.gesto = 'mareo'; state.gestoT = 0; sapo.mareo.visible = true;
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('llora');
   sapo.boca.visible = false; sapo.bocaO.visible = true;
   J.boing(); J.sfx('pop2', .6, .6);
   mensaje('¡Ay, una piedra! 🪨', 1.6);
@@ -308,6 +412,7 @@ function choque() {
 function confundido() {
   state.corriendo = false;
   state.gesto = 'duda'; state.gestoT = 0; sapo.pregunta.visible = true;
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('triste');
   J.tones([520, 440, 380], .14, 'triangle', .15);
   mensaje('¿Y ahora? 🤔', 1.6);
   J.say(['¿Y ahora?', 'Le faltan pasos.']);
@@ -315,6 +420,7 @@ function confundido() {
 function llegar() {
   state.corriendo = false; state.ganado = true; state.paso = -1; renderPrograma();
   state.gesto = 'fiesta'; state.gestoT = 0;
+  if (sapo.ch && sapo.ch.setCara) sapo.ch.setCara('feliz');
   J.cheer(true); J.confetti(110); J.addStar(); updatePlayer();
   fx.burst(sapo.root.position.clone().setY(1), 70, 1.2);
   mensaje('¡Llegó! 🌸', 2);
@@ -382,8 +488,22 @@ W.onFrame((dt, t) => {
       sapo.body.position.y = Math.abs(Math.sin(g * 8)) * .5; sapo.body.rotation.y = g * 6;
       if (Math.random() < .3) fx.burst(sapo.root.position.clone().setY(1.2), 3, .5);
       if (g > 2.5) { state.gesto = null; sapo.body.rotation.y = 0; sapo.body.position.y = 0; }
+    } else if (state.gesto === 'pirueta') {
+      sapo.body.rotation.y = Math.min(1, g / 1.1) * Math.PI * 4; sapo.body.position.y = Math.sin(Math.min(1, g / 1.1) * Math.PI) * .5;
+      if (Math.random() < .3) fx.burst(sapo.root.position.clone().setY(.6), 2, .4);
+    } else if (state.gesto === 'bailar') {
+      sapo.body.rotation.y = Math.sin(g * 8) * .7; sapo.body.rotation.z = Math.sin(g * 8) * .15; sapo.body.position.y = Math.abs(Math.sin(g * 8)) * .15;
+    } else if (state.gesto === 'cantar') {
+      sapo.body.rotation.z = Math.sin(g * 4) * .12; sapo.body.scale.set(1, 1 + Math.abs(Math.sin(g * 9)) * .06, 1);
+      if (Math.random() < dt * 5) { const n = notaSprite(); n.position.copy(sapo.root.position).add(new THREE.Vector3((Math.random() - .5) * .4, sapo.ch ? 1.3 : 1, 0)); n.userData.t = 0; scene.add(n); notas.push(n); }
     }
   }
+  if (sapo.ch) {
+    const g = state.gesto;
+    const mode = state.anim ? 'correr' : g === 'fiesta' || g === 'bailar' ? 'bailar' : g === 'pirueta' ? 'festejar' : g === 'cantar' ? 'saludar' : g === 'caer' || g === 'mareo' ? 'quieto' : 'quieto';
+    sapo.ch.update(dt, mode, 1);
+  }
+  for (const n of notas.slice()) { n.userData.t += dt; n.position.y += dt * .9; n.position.x += Math.sin(n.userData.t * 5) * dt * .3; n.material.opacity = Math.max(0, 1 - n.userData.t / 1.6); if (n.userData.t > 1.6) { scene.remove(n); notas.splice(notas.indexOf(n), 1); } }
   if (sapo.mareo.visible) sapo.mareo.children.forEach(s => { s.userData.a += dt * 6; s.position.set(Math.cos(s.userData.a) * .35, Math.sin(s.userData.a * 2) * .05, Math.sin(s.userData.a) * .35); s.rotation.y += dt * 5; });
   if (sapo.pregunta.visible) sapo.pregunta.position.y = 1.15 + Math.sin(t * 6) * .06;
   // gotas y burbujas
@@ -414,8 +534,23 @@ function start(i) {
   P.two ? J.showTurn(() => empezarNivel(i), { onShow: updatePlayer }) : empezarNivel(i);
 }
 
+// ¿quién salta? el sapito o un personaje
+function renderPjs() {
+  const cur = P.sapitoPj || 'sapo';
+  const ids = ['sapo', ...PERSONAJES];
+  $('#pjs').innerHTML = ids.map(id => `<button data-pj="${id}" class="${id === cur ? 'on' : ''}" title="${id === 'sapo' ? 'Sapito' : nombrePersonaje(id)}">${id === 'sapo' ? '🐸' : (J.CHARS[id]?.emoji || '⭐')}</button>`).join('');
+}
+$('#pjs').addEventListener('click', async e => {
+  const b = e.target.closest('[data-pj]'); if (!b) return;
+  P.sapitoPj = b.dataset.pj; J.save(); J.sfx('pop'); renderPjs();
+  J.say(b.dataset.pj === 'sapo' ? 'Sapito' : nombrePersonaje(b.dataset.pj));
+  await ponerActor(b.dataset.pj);
+});
+
 (async () => {
   await J.ready;
+  renderPjs();
+  if (P.sapitoPj && P.sapitoPj !== 'sapo') await ponerActor(P.sapitoPj);
   buildLevel(0); renderPaleta(); renderPrograma(); updatePlayer();
   W.start(); J.refreshMusic();
   const unlocked = Math.min(NIVELES.length, (P.level.sapito || 0) + 1);
@@ -431,7 +566,7 @@ function start(i) {
     window.__s = {
       state, NIVELES, start, empezarNivel, correr,
       programa(list) { state.programa = list.map(x => typeof x === 'string' ? { d: x, n: 1, salto: false } : { n: 1, salto: false, ...x }); renderPrograma(); },
-      sapo,
+      get sapo() { return sapo; }, ponerActor, necesarios, renderPrograma,
     };
     start(0);
   }

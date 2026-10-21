@@ -19,9 +19,8 @@ const NIVELES = [
   { speed: 8.0,  fila: 4, opts: 3, fade: .7,  meta: 16, tiempo: 90,  tipo: 'palabra',   nombre: 'Casi solo la palabra' },
   { speed: 9.0,  fila: 4, opts: 3, fade: 1,   meta: 18, tiempo: 85,  tipo: 'parecidas', nombre: 'Solo el texto: palabras parecidas' },
   { speed: 10,   fila: 4, opts: 3, fade: 1,   meta: 18, tiempo: 80,  tipo: 'silaba',    nombre: '¿Con qué empieza?' },
-  { speed: 11,   fila: 5, opts: 3, fade: 1,   meta: 20, tiempo: 80,  tipo: 'frase',     nombre: 'Frases cortas' },
+  { speed: 11,   fila: 5, opts: 3, fade: 1,   meta: 20, tiempo: 75,  tipo: 'parecidas', nombre: '¡Súper rápido! Solo la palabra' },
 ];
-const FRASES = [['el sol', 'sol'], ['la luna', 'luna'], ['mi gato', 'gato'], ['un pato', 'pato'], ['la casa', 'casa'], ['el oso', 'oso'], ['una palta', 'palta'], ['el choclo', 'choclo'], ['la llama', 'llama'], ['la nube', 'nube'], ['el perro', 'perro'], ['la vaca', 'vaca']];
 let EASY = [];   // [palabra, sílabas, dibujo, modelo] — se carga de la configuración (modo admin)
 const syl0 = w => J.strip(w[1].split('-')[0]);
 
@@ -161,15 +160,26 @@ function swapActor() {
 }
 
 // ---------- animalitos con globito de texto ----------
-function bubbleTex(text) {
-  const c = document.createElement('canvas'); c.width = 512; c.height = 300; const g = c.getContext('2d');
+// globito con el dibujito (que se va borrando con los niveles) y la palabra sin artículo
+function bubbleTex(text, emoji = '', alpha = 0) {
+  const pic = emoji && alpha > .02;
+  const c = document.createElement('canvas'); c.width = 512; c.height = pic ? 420 : 300; const g = c.getContext('2d');
+  const top = pic ? 14 : 14, h = pic ? 330 : 210;
   g.fillStyle = '#ffffff'; g.strokeStyle = '#9a6ee0'; g.lineWidth = 14;
-  g.beginPath(); g.roundRect(14, 14, 484, 210, 90); g.fill(); g.stroke();
-  g.beginPath(); g.moveTo(226, 220); g.lineTo(256, 288); g.lineTo(290, 220); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = '#ffffff'; g.fillRect(230, 206, 56, 18);
-  g.fillStyle = '#23324a'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `700 ${text.length > 7 ? 92 : 120}px Andika, "Century Gothic", sans-serif`; g.fillText(text, 256, 122);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  g.beginPath(); g.roundRect(14, top, 484, h, 90); g.fill(); g.stroke();
+  const tip = top + h - 4;
+  g.beginPath(); g.moveTo(226, tip); g.lineTo(256, tip + 68); g.lineTo(290, tip); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#ffffff'; g.fillRect(230, tip - 14, 56, 18);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (pic) {
+    g.globalAlpha = alpha;
+    g.font = '150px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    g.fillText(emoji, 256, top + 100);
+    g.globalAlpha = 1;
+  }
+  g.fillStyle = '#23324a';
+  g.font = `700 ${text.length > 7 ? 92 : 120}px Andika, "Century Gothic", sans-serif`; g.fillText(text, 256, pic ? top + 250 : 122);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.userData = { alto: c.height }; return t;
 }
 const texCache = {};
 function makeItem(item, fade) {
@@ -180,10 +190,11 @@ function makeItem(item, fade) {
   o.group.traverse(m => { if (m.material) { m.material = m.material.clone(); m.material.transparent = fade > 0; m.material.opacity = 1 - fade; m.castShadow = fade < .5; } });
   o.group.visible = fade < 1;
   g.add(o.group);
-  const tex = texCache[item.text] || (texCache[item.text] = bubbleTex(item.text));
+  const ck = item.text + '|' + (item.emoji || '') + '|' + fade;
+  const tex = texCache[ck] || (texCache[ck] = bubbleTex(item.text, item.emoji, 1 - fade));
   const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
-  const s = fade >= 1 ? 1.5 : 1.2;
-  sign.scale.set(s, s * 300 / 512, 1); sign.position.y = fade >= 1 ? 1.1 : 2.1;
+  const s = fade >= 1 ? 1.5 : 1.6;
+  sign.scale.set(s, s * tex.userData.alto / 512, 1); sign.position.y = fade >= 1 ? 1.1 : 2.3;
   g.add(sign);
   g.userData = { item, o, sign, baseY: sign.position.y };
   return g;
@@ -192,10 +203,6 @@ function makeItem(item, fade) {
 // ---------- preguntas según el nivel ----------
 function makeQuestion(cfg) {
   const asItem = w => ({ text: w[0], emoji: w[2], obj: w[3] || w[0], key: w[0] });
-  if (cfg.tipo === 'frase') {
-    const f = J.pick(FRASES), it = x => ({ text: x[0], obj: x[1], key: x[0], emoji: (J.WORDS.find(w => w[0] === x[1]) || [])[2] || '' });
-    return { target: it(f), pool: () => J.shuffle(FRASES.filter(x => x !== f)).slice(0, cfg.opts - 1).map(it), say: ['Atrapa', f[0]] };
-  }
   if (cfg.tipo === 'silaba') {
     const cand = EASY.filter(x => /^[^aeiou]?[aeiou]$/.test(syl0(x)));
     const w = J.pick(cand.length ? cand : EASY), t = asItem(w); t.syl = syl0(w);
@@ -413,5 +420,5 @@ function start(nivel) {
   const go = $('#empezar');
   go.disabled = false; go.textContent = '▶ ¡A correr!';
   go.onclick = () => start(sel);
-  if (TEST) { window.__c = state; start(0); }
+  if (TEST) { window.__c = state; window.__cStart = start; start(0); }
 })();

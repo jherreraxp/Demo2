@@ -25,6 +25,13 @@ body { background: linear-gradient(#ffd6ec, #c9b6ff 45%, #7fd3ff); }
 .bloque { width: 68px; height: 68px; border-radius: 20px; font-size: 36px; background: #fff; box-shadow: 0 6px 0 #9a6ee0; display: grid; place-items: center; }
 .bloque:active { transform: translateY(4px); box-shadow: 0 2px 0 #9a6ee0; }
 .bloque.especial { background: #ffe9f6; box-shadow: 0 6px 0 #ff5dab; }
+.bloque.divertido { background: #e8fff1; box-shadow: 0 6px 0 #4cb87a; }
+.slot .num { font-style: normal; font-weight: 800; font-size: 22px; color: rgba(255,255,255,.75); font-family: var(--font-display); }
+.slot.lleno.gracia { background: #e8fff1; box-shadow: 0 4px 0 #4cb87a; }
+.slot.lleno.extra { background: #ffe9f6; }
+.pjs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 520px; margin: 0 auto 8px; }
+.pjs button { width: 46px; height: 46px; border-radius: 14px; background: #f1ecff; font-size: 26px; box-shadow: 0 3px 0 var(--shadow); }
+.pjs button.on { background: var(--gold, #ffd23f); transform: translateY(-2px); }
 .bloque.especial.on { background: #ff5dab; box-shadow: 0 0 0 4px #fff, 0 6px 0 #b3246f; }
 .accion { height: 68px; border-radius: 999px; padding: 0 22px; font-size: 30px; font-weight: 800; color: #fff; }
 #correr { background: var(--go); box-shadow: 0 6px 0 var(--go-dark); }
@@ -32,8 +39,9 @@ body { background: linear-gradient(#ffd6ec, #c9b6ff 45%, #7fd3ff); }
 #borrar { background: #ef5b5b; box-shadow: 0 6px 0 #a83333; width: 68px; padding: 0; font-size: 30px; }
 @media (max-width: 520px) {
   .fila { flex-direction: column; gap: 8px; }
-  .paleta { gap: 6px; flex-wrap: nowrap; }
-  .bloque { width: 52px; height: 52px; font-size: 28px; border-radius: 16px; }
+  .paleta { gap: 6px; }
+  .paleta { flex-wrap: wrap; max-width: 380px; }
+  .bloque { width: 50px; height: 50px; font-size: 26px; border-radius: 16px; }
   .accion { height: 56px; font-size: 24px; padding: 0 16px; }
   #borrar { width: 56px; }
   .fila .accion-fila { display: flex; gap: 10px; }
@@ -60,7 +68,7 @@ body { background: linear-gradient(#ffd6ec, #c9b6ff 45%, #7fd3ff); }
   </div>
 </div>
 <div class="mision" id="mision" hidden>
-  <span class="pic">🐸</span>
+  <span class="pic" id="m-quien">🐸</span>
   <span class="word" id="m-word"></span>
   <span class="pic">🌸</span>
   <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
@@ -81,7 +89,9 @@ body { background: linear-gradient(#ffd6ec, #c9b6ff 45%, #7fd3ff); }
     <div style="font-size:64px;line-height:1">🐸➡️🌸</div>
     <h1>El Camino del Sapito</h1>
     <p>Arma el camino con <b>flechas</b> y toca <b>▶</b>. ¡El sapito salta por los nenúfares hasta la flor!</p>
-    <p style="font-size:16px">🦘 salta una piedra · 🔁 repite el último bloque</p>
+    <p style="font-size:16px">🦘 salta una piedra · 🔁 repite el último bloque · 🌀💃🎤 ¡gracias!</p>
+    <p style="font-size:16px;margin:4px 0 2px"><b>¿Quién salta?</b></p>
+    <div class="pjs" id="pjs" aria-label="Elige quién salta"></div>
     <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
     <div id="nivel-desc"></div>
     <button class="go" id="empezar" disabled>Cargando…</button>
