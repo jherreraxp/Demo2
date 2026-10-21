@@ -49,6 +49,8 @@
   }
   function save(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   const progress = load();
+  // personajes creados en el editor o con la IA: progress.personajesCustom = { c_xxx: { nombre, emoji, base, fig } }
+  Object.entries(progress.personajesCustom || {}).forEach(([id, c]) => { CHARS[id] = { name: c.nombre || id, emoji: c.emoji || '⭐' }; });
   const player = () => progress.players[progress.two ? progress.turn % 2 : 0];
   const childName = () => progress.players[0].name || 'Avelu';
   function addStar(n = 1) { player().stars += n; save(progress); return player().stars; }
