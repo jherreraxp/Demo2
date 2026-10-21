@@ -32,12 +32,15 @@
     estrella: { name: 'Estrella Pop', emoji: '🎤' }, zoe: { name: 'Zoe', emoji: '🎧' }, mira: { name: 'Mira', emoji: '💃' },
     llama: { name: 'Llamita Lula', emoji: '🦙' }, rojito: { name: 'Monstruito Rojo', emoji: '❤️' }, raton: { name: 'Ratoncito Pipo', emoji: '🐭' },
     zorro: { name: 'Zorrito', emoji: '🦊' }, lobo: { name: 'Lobito', emoji: '🐺' }, toro: { name: 'Torito', emoji: '🐂' },
+    amara: { name: 'Amara', emoji: '👧🏻' }, papa: { name: 'Papá', emoji: '👨' }, mama: { name: 'Mamá', emoji: '👩' },
   };
   function load() {
     let d;
     try { d = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { d = {}; }
     d = Object.assign({ level: {}, music: true, two: false, turn: 0, sessionMin: 15, rate: 0.8, colors: {} }, d);
-    if (!Array.isArray(d.players)) d.players = [{ name: 'Avelu', char: 'nieve', stars: d.stars || 0 }, { name: 'Mamá', char: 'estrella', stars: 0 }];
+    if (!Array.isArray(d.players)) d.players = [{ name: 'Avelu', char: 'nieve', stars: d.stars || 0 }, { name: 'Amara', char: 'estrella', stars: 0 }];
+    // el segundo jugador ahora se llama Amara (si nadie le cambió el nombre)
+    if (!d.migAmara) { d.migAmara = true; if (d.players[1] && d.players[1].name === 'Mamá') d.players[1].name = 'Amara'; }
     return d;
   }
   function save(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
