@@ -71,7 +71,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <main id="main" hidden>
   <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
   <nav class="indice" aria-label="Secciones">
-    <a href="#jugadores">Jugadores</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
   </nav>
 
   <section class="card" id="jugadores">
@@ -82,6 +82,14 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     <h2 style="margin-top:12px">Nombres de los personajes</h2>
     <p>Cámbialos como quieran; el juego los usa en todas partes.</p>
     <div id="nombres"></div>
+  </section>
+
+  <section class="card" id="tema">
+    <h2>🎨 Tema y foto de fondo</h2>
+    <p>Elige los colores del juego. También puedes poner una foto (de la familia, de papá…): se ve difuminada detrás del menú. La foto se guarda solo en este aparato.</p>
+    <div class="row"><label>Colores</label><span id="tema-opts" style="display:flex;gap:8px;flex-wrap:wrap"></span></div>
+    <div class="row"><label for="tema-foto">Foto de fondo</label><span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><img id="tema-ver" alt="" style="width:96px;height:64px;object-fit:cover;border-radius:10px;filter:blur(2px);display:none"><input type="file" id="tema-foto" accept="image/*"><button id="tema-quitar" type="button">Quitar foto</button></span></div>
+    <div class="row"><label for="tema-todos">Foto en todos los juegos</label><span><input type="checkbox" id="tema-todos"> también detrás de los juegos que no son 3D (lectura, memoria, lienzo…)</span></div>
   </section>
 
   <section class="card" id="canciones">
@@ -306,6 +314,25 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 
   // ---------- PIN ----------
   $('#guardar-pin').onclick = () => { const v = $('#pin1').value.trim(); if (!/^\d{4,6}$/.test(v)) { toast('El PIN debe tener de 4 a 6 números'); return; } P.pin = v; J.save(); $('#pin1').value = ''; toast('PIN cambiado'); };
+})();
+
+// ---------- tema ----------
+(() => {
+  const $t = s => document.querySelector(s);
+  const pintar = () => {
+    $t('#tema-opts').innerHTML = Object.entries(Tema.PALETAS).map(([k, p]) => `<button type="button" data-t="${k}" aria-pressed="${k === Tema.actual()}" style="border-radius:14px;padding:6px 12px;font-weight:700;border:3px solid ${k === Tema.actual() ? 'var(--ink)' : 'transparent'};background:linear-gradient(135deg, ${p.bg1}, ${p.bg2});cursor:pointer">${p.emoji} ${p.nombre}</button>`).join('');
+    const f = Tema.foto(); $t('#tema-ver').src = f || ''; $t('#tema-ver').style.display = f ? 'block' : 'none';
+    $t('#tema-quitar').disabled = !f; $t('#tema-todos').checked = Tema.fotoTodos();
+  };
+  $t('#tema-opts').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { Tema.set(b.dataset.t); pintar(); } });
+  $t('#tema-foto').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { await Tema.setFoto(f); pintar(); } catch (er) { alert(er.message); }
+    e.target.value = '';
+  });
+  $t('#tema-quitar').onclick = () => { Tema.quitarFoto(); pintar(); };
+  $t('#tema-todos').onchange = e => { Tema.setFotoTodos(e.target.checked); };
+  pintar();
 })();
 </script>
 </body>

@@ -77,3 +77,8 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-o
 .reloj i { display: block; height: 100%; width: 100%; background: #4cb87a; border-radius: 999px; transition: width .3s linear, background .5s; }
 /* fondo de parque difuminado (js/parque.js) */
 canvas.parque { position: fixed; inset: 0; width: 100%; height: 100%; display: block; filter: blur(5px) saturate(1.1); transform: scale(1.06); pointer-events: none; }
+
+/* Tema (js/tema.js): las portadas toman los colores de la paleta elegida */
+.portada-caja { border: 5px solid var(--tema-bloque-borde, #fff); background-image: linear-gradient(180deg, #fff 70%, color-mix(in srgb, var(--tema-bg1, #ffd6f0) 45%, #fff)); }
+.portada h1 { color: var(--tema-tinta, var(--ink)); }
+.niveles button.on { background: var(--tema-acento, var(--gold)); color: #fff; }

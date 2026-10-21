@@ -3,77 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>El Reino de las Letras</title>
+<title>Avelu y Amara</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
 <style>
-/* Layout: a storybook map — greeting with the 3D character on top, then five islands in learning order, each a row of colorful activity cards. Single bright theme by choice. */
+/* Layout: a game-portal wall — a logo tile and section chips on top, then a dense mosaic of colorful
+   tiles of three sizes (big 2×2, wide 2×1, square). Colors come from the chosen palette (js/tema.js). */
 :root {
-  --sky: #cfeaf7;
-  --sea: #a8dcf3;
   --ink: #23324a;
-  --red: #ef5b5b; --blue: #3f8ee8; --yellow: #f6c33b; --green: #4cb87a; --purple: #9a6ee0; --orange: #f39a3b; --pink: #ff7eb6;
   --paper: #ffffff;
-  --sand: #fff4d9;
-  --shadow: rgba(35, 50, 74, .25);
+  --shadow: rgba(35, 20, 70, .22);
+  --cell: 132px;
+  --gap: 14px;
   --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
   --font-letters: "Andika", "Century Gothic", system-ui, sans-serif;
   color-scheme: light;
 }
 [hidden] { display: none !important; }
 html, body { min-height: 100%; }
-body { margin: 0; background: radial-gradient(circle at 20% 0%, #e9f7ff, var(--sky) 40%, var(--sea)); color: var(--ink); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-#app { box-sizing: border-box; max-width: 860px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 32px; display: flex; flex-direction: column; gap: 18px; }
-button, a.card, a.btn { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; }
-button:focus-visible, a:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+body {
+  margin: 0; color: var(--tema-tinta, var(--ink)); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; overflow-x: hidden;
+  background:
+    linear-gradient(var(--tema-bloque, rgba(255,255,255,.2)) 2px, transparent 2px) 0 0 / 64px 64px,
+    linear-gradient(90deg, var(--tema-bloque, rgba(255,255,255,.2)) 2px, transparent 2px) 0 0 / 64px 64px,
+    linear-gradient(160deg, var(--tema-bg1, #ffd6f0), var(--tema-bg3, #c7b3ff) 55%, var(--tema-bg2, #c7b3ff));
+  background-attachment: fixed;
+}
+body.con-foto { background: transparent; }
+button, a.btn { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; }
+a.tile { font: inherit; color: #fff; border: 0; cursor: pointer; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 4px solid var(--tema-tinta, var(--ink)); outline-offset: 3px; }
+.wrap { box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 40px; display: flex; flex-direction: column; gap: var(--gap); }
 
-.bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.round-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--paper); box-shadow: 0 4px 0 var(--shadow); font-size: 25px; display: grid; place-items: center; flex: none; }
-.stars { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.star-pill { background: var(--paper); border-radius: 999px; padding: 4px 14px; font-size: 19px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* barra de arriba: tarjeta del logo + secciones */
+.top { display: flex; gap: var(--gap); align-items: stretch; }
+.logo { flex: none; width: calc(var(--cell) * 2 + var(--gap)); box-sizing: border-box; background: var(--paper); border-radius: 24px; box-shadow: 0 6px 0 var(--shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.marca { margin: 0; font-size: 30px; line-height: .95; font-weight: 800; letter-spacing: -.5px; }
+.marca .a1 { color: var(--tema-acento, #ff5dab); }
+.marca .a2 { color: var(--tema-acento2, #8a5cf0); }
+.marca .y { font-size: 20px; color: var(--tema-tinta); opacity: .6; }
+.jugadores { display: flex; gap: 6px; flex-wrap: wrap; }
+.jug { background: color-mix(in srgb, var(--tema-bg1, #ffd6f0) 55%, #fff); border-radius: 999px; padding: 1px 10px; font-size: 15px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.iconos { display: flex; gap: 6px; }
+.ico { width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--tema-bg2, #c7b3ff) 30%, #fff); font-size: 20px; display: grid; place-items: center; flex: none; box-shadow: 0 3px 0 var(--shadow); position: relative; overflow: hidden; }
+.ico.on { background: var(--tema-acento, #ff5dab); }
+.ico:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow); }
+.secciones { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px; font-size: 17px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; }
+.chip.on { background: var(--tema-acento, #ff5dab); color: #fff; }
+.chip .ahora { font-size: 14px; }
+.que { margin: 0; font-size: 17px; font-weight: 700; background: rgba(255,255,255,.6); border-radius: 14px; padding: 4px 12px; align-self: flex-start; text-wrap: pretty; }
 
-.hola { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px; align-items: center; background: var(--paper); border-radius: 30px; box-shadow: 0 8px 0 var(--shadow); padding: 12px 18px 12px 8px; }
-#preview { width: 170px; height: 190px; display: block; cursor: pointer; }
-.hola h1 { margin: 0; font-size: clamp(32px, 8vw, 54px); line-height: 1; text-wrap: balance; }
-.hola h1 .nombre { color: var(--purple); }
-.hola p { margin: 4px 0 10px; font-size: 18px; }
-.hola-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { background: #eef4ff; border-radius: 999px; padding: 6px 14px; font-size: 17px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); }
-.chip.on { background: var(--yellow); }
+/* mosaico */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cell), 1fr)); grid-auto-rows: var(--cell); grid-auto-flow: dense; gap: var(--gap); }
+.tile { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 6px 0 var(--shadow); display: grid; place-items: center; color: #fff; transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), box-shadow .18s; isolation: isolate; }
+.tile::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(rgba(255,255,255,.16) 2px, transparent 2px) 0 0 / 28px 28px, linear-gradient(90deg, rgba(255,255,255,.16) 2px, transparent 2px) 0 0 / 28px 28px; }
+.tile:hover, .tile:focus-visible { transform: scale(1.05) rotate(-.6deg); box-shadow: 0 10px 0 var(--shadow); z-index: 2; }
+.tile:active { transform: scale(.97); }
+.t-xl { grid-column: span 2; grid-row: span 2; }
+.t-l { grid-column: span 2; }
+.arte { font-size: calc(var(--cell) * .5); line-height: 1; filter: drop-shadow(0 4px 0 rgba(0,0,0,.18)); transition: transform .25s; }
+.t-xl .arte { font-size: calc(var(--cell) * 1.05); }
+.t-l .arte { font-size: calc(var(--cell) * .62); }
+.tile:hover .arte { transform: scale(1.08) translateY(-4px); }
+.arte.letras { font-family: var(--font-letters); font-weight: 700; font-size: calc(var(--cell) * .34); text-shadow: 0 3px 0 rgba(0,0,0,.2); filter: none; white-space: nowrap; }
+.t-xl .arte.letras { font-size: calc(var(--cell) * .6); }
+img.arte { position: absolute; inset: 4%; width: 92%; height: 92%; object-fit: contain; }
+.t-l img.arte { inset: 0; width: 100%; height: 100%; }
+.tit { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 8px; background: linear-gradient(transparent, rgba(30, 10, 60, .72)); display: flex; flex-direction: column; line-height: 1.05; text-align: left; opacity: 0; transform: translateY(8px); transition: opacity .18s, transform .18s; }
+.tit b { font-size: 17px; font-weight: 800; }
+.tit small { font-size: 13px; font-weight: 600; opacity: .9; }
+.t-xl .tit b { font-size: 24px; }
+.tile:hover .tit, .tile:focus-visible .tit { opacity: 1; transform: none; }
+.badges { position: absolute; left: 8px; top: 8px; display: flex; gap: 4px; }
+.badge { background: #fff; color: var(--tema-tinta, var(--ink)); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 800; line-height: 1.6; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.badge.nuevo { background: #ffe27a; }
+.estrellas { position: absolute; right: 8px; top: 8px; background: rgba(30, 10, 60, .55); border-radius: 999px; padding: 0 8px; font-size: 13px; font-weight: 800; line-height: 1.6; }
+.tile.ahora { outline: 5px solid #fff; outline-offset: -5px; animation: brilla 1.6s ease-in-out infinite alternate; }
+@keyframes brilla { to { box-shadow: 0 6px 0 var(--shadow), 0 0 0 6px color-mix(in srgb, var(--tema-acento, #ff5dab) 55%, transparent); } }
 
-.isla { background: var(--sand); border-radius: 30px; padding: 14px 14px 18px; box-shadow: 0 8px 0 rgba(160, 120, 40, .25); position: relative; }
-.isla header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.isla .num { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 22px; font-weight: 800; flex: none; }
-.isla h2 { margin: 0; font-size: 24px; line-height: 1.1; }
-.isla .que { font-size: 16px; opacity: .8; width: 100%; margin: 0; }
-.isla .estado { margin-left: auto; font-size: 15px; font-weight: 800; border-radius: 999px; padding: 2px 12px; background: #fff; }
-.isla.ahora { outline: 5px solid var(--yellow); }
-.isla.ahora .estado { background: var(--yellow); }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-.card { border-radius: 22px; padding: 12px 10px; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; box-shadow: 0 6px 0 var(--shadow); text-shadow: 0 2px 0 rgba(0,0,0,.18); min-height: 120px; justify-content: center; }
-.card:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--shadow); }
-.card .big { font-size: 40px; line-height: 1.15; font-family: var(--font-letters); font-weight: 700; }
-.card .name { font-size: 19px; font-weight: 800; line-height: 1.1; }
-.card .step { font-size: 14px; opacity: .95; }
-.card .tag { background: rgba(255,255,255,.9); color: var(--ink); text-shadow: none; border-radius: 999px; padding: 0 8px; font-size: 13px; font-weight: 800; }
-.red { background: var(--red); } .blue { background: var(--blue); } .green { background: var(--green); } .purple { background: var(--purple); } .orange { background: var(--orange); } .pink { background: var(--pink); }
-.yellow { background: var(--yellow); color: var(--ink); text-shadow: none; }
-.rainbow { background: linear-gradient(135deg, var(--red), var(--orange), var(--yellow), var(--green), var(--blue), var(--purple)); }
-.d3 { background: linear-gradient(160deg, #6fc7f0, #3f8ee8 60%, #2f6fc4); }
-.d3b { background: linear-gradient(160deg, #7ad08a, #3fa64f 60%, #2f7d38); }
+/* tarjeta de bienvenida con el personaje en 3D */
+.hola { background: linear-gradient(#8fd6f8, #dff4ff 62%, #7fd36a 62%, #57b84a); cursor: pointer; }
+.hola::before { background: linear-gradient(90deg, transparent 0 22px, rgba(0,0,0,.06) 22px 24px) 0 0 / 24px 100%; }
+.hola canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hola .saludo { position: absolute; left: 12px; right: 12px; top: 10px; color: #fff; -webkit-text-stroke: 0; text-shadow: 0 3px 0 var(--tema-acento2, #8a5cf0), 0 -1px 0 var(--tema-acento2, #8a5cf0), 2px 0 0 var(--tema-acento2, #8a5cf0), -2px 0 0 var(--tema-acento2, #8a5cf0); font-size: calc(var(--cell) * .24); font-weight: 800; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.2); }
+.hola .saludo span { display: block; font-size: .62em; opacity: .95; }
 
-.papas { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 15px; text-align: center; }
-.papas-btn { background: var(--paper); border-radius: 999px; padding: 10px 20px; font-family: var(--font-display); font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); position: relative; overflow: hidden; }
-.papas-btn .fill { position: absolute; inset: 0; width: 0; background: rgba(246, 195, 59, .55); }
-.papas p { margin: 0; max-width: 60ch; opacity: .85; text-wrap: pretty; }
-details.credits { font-family: system-ui, sans-serif; font-size: 14px; opacity: .85; }
-details.credits summary { cursor: pointer; text-align: center; }
-details.credits a { color: var(--ink); }
+.pie { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 15px; text-align: center; margin-top: 10px; }
+.pie p { margin: 0; max-width: 62ch; background: rgba(255,255,255,.6); border-radius: 16px; padding: 8px 14px; text-wrap: pretty; }
+details.credits { font-size: 14px; }
+details.credits summary { cursor: pointer; }
+details.credits a { color: inherit; }
+
+@media (hover: none) {
+  .tit { opacity: 1; transform: none; padding: 14px 8px 6px; }
+  .tit b { font-size: 13px; } .tit small { display: none; }
+  .t-xl .tit b { font-size: 18px; } .t-xl .tit small, .t-l .tit small { display: block; font-size: 12px; }
+}
+@media (max-width: 760px) {
+  .top { flex-direction: column; }
+  .logo { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+}
 @media (max-width: 520px) {
-  .hola { grid-template-columns: 120px minmax(0, 1fr); padding-right: 12px; }
-  #preview { width: 120px; height: 150px; }
-  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root { --gap: 9px; --cell: calc((100vw - 32px - 18px) / 3); }
+  .wrap { padding-inline: 16px; }
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .marca { font-size: 25px; }
+  .tile { border-radius: 18px; }
+  .chip { font-size: 15px; padding: 5px 12px; }
+  .que { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -82,38 +123,38 @@ details.credits a { color: var(--ink); }
 </script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/juegos.js"></script>
 </head>
-<body>
-<div id="app">
-  <div class="bar">
-    <button class="round-btn" data-musica aria-label="Música">🎵</button>
-    <div class="stars" id="stars"></div>
-  </div>
-
-  <section class="hola">
-    <canvas id="preview" aria-label="Tu personaje en 3D"></canvas>
-    <div>
-      <h1>¡Hola, <span class="nombre" id="nombre">Avelu</span>!</h1>
-      <p>Bienvenida al <b>Reino de las Letras</b></p>
-      <div class="hola-btns">
-        <a class="chip btn" href="personajes.html">👗 Mi personaje</a>
-        <button class="chip" id="dos">👩‍👧 Jugar de a 2</button>
+<body class="menu">
+<div class="wrap">
+  <header class="top">
+    <div class="logo">
+      <h1 class="marca"><span class="a1">Avelu</span> <span class="y">y</span> <span class="a2">Amara</span></h1>
+      <div class="jugadores" id="jugadores"></div>
+      <div class="iconos">
+        <button class="ico" data-musica aria-label="Música">🎵</button>
+        <button class="ico" id="colores" aria-label="Colores">🎨</button>
+        <a class="ico btn" href="personajes.html" aria-label="Mi personaje">👗</a>
+        <button class="ico" id="dos" aria-label="Jugar de a 2">👭</button>
+        <button class="ico" id="papas" aria-label="Para mamá y papá">🔒</button>
       </div>
     </div>
-  </section>
+    <div class="secciones">
+      <div class="chips" id="chips" role="tablist" aria-label="Secciones"></div>
+      <p class="que" id="que"></p>
+    </div>
+  </header>
 
-  <div id="islas"></div>
+  <main class="grid" id="grid" aria-label="Jueguitos"></main>
 
-  <section class="papas">
-    <button class="papas-btn" id="papas"><span class="fill" id="papas-fill"></span><span style="position:relative">🔒 Para mamá y papá · modo admin</span></button>
-    <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. Sigan las islas en orden; cada actividad sube de nivel sola.</p>
+  <footer class="pie">
+    <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. Sigan las secciones en orden (👉 marca por dónde seguir); cada actividad sube de nivel sola.</p>
     <details class="credits">
       <summary>Créditos</summary>
-      <p>Zorro 3D: PixelMannen (CC0), animación de tomkranis y conversión de @AsoboStudio y @scurest (CC-BY 4.0), vía <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Fox" target="_blank" rel="noopener">Khronos glTF Sample Assets</a>.
-      Casitas, árboles, nubes y sonidos: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0). Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Letras Andika y Baloo 2 (OFL).
-      Princesas, llamita, animalitos y música: diseños originales del juego.</p>
+      <p>Casitas, árboles, nubes y sonidos: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0). Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Letras Andika y Baloo 2 (OFL).
+      Personajes, animalitos y música: diseños originales del juego.</p>
     </details>
-  </section>
+  </footer>
 </div>
 
 <script>
@@ -122,108 +163,140 @@ details.credits a { color: var(--ink); }
   const $ = s => document.querySelector(s);
   const lv = k => L[k] || 0;
 
-  const ISLAS = [
-    { t: 'Isla de las Palabras', q: 'Conocer palabras jugando: escuchar, ver y buscar.', done: () => lv('carrera') >= 2 && lv('bosque') >= 1,
-      cards: [
-        ['memoria.html', 'orange', '🐶🃏', 'Memoria', 'Encuentra las parejas'],
-        ['carrera.html', 'd3', '🏃‍♀️', 'Carrera de Palabras', 'Atrapa las monedas', '3D'],
-        ['bosque.html', 'd3b', '🎁🐱', 'Bosque de las Palabras', 'Lee y busca', '3D'],
-        ['cuento.html', 'blue', '📖', 'Cuento', 'Lola y la luna'],
-      ] },
-    { t: 'Castillo de las Vocales', q: 'a e i o u — grandes o chiquitas, nunca juntas.', done: () => lv('letras') >= 2 && lv('globos') >= 1,
-      cards: [
-        ['lectura.html?modo=letras', 'red', 'a e i', 'Vocales y sonidos', 'Escucha y toca'],
-        ['globos.html', 'pink', '🎈', 'Revienta Globos', 'Toca la que oyes', '3D'],
-        ['gusanos.html', 'green', '🐛🔨', 'Aplasta Gusanos', '¡Pum! al que oyes', '3D'],
-      ] },
-    { t: 'Bosque de m · s · l · n', q: 'El sonido de cada letra y cómo se junta con la vocal: mmm + a = ma.', done: () => lv('junta') >= 2 && lv('silabas') >= 2,
-      cards: [
-        ['lectura.html?modo=letras', 'orange', 'mmm', 'Sonidos de letras', 'm, s, l, n…'],
-        ['lectura.html?modo=junta', 'blue', 'm+a', 'Junta los sonidos', 'mmm + a = ma'],
-        ['lectura.html?modo=silabas', 'purple', 'ma pa', 'Sílabas', '¿Cuál dice…?'],
-      ] },
-    { t: 'Pueblo de las Sílabas', q: 'Escuchar con qué empieza cada palabra y leer palabras de dos sílabas.', done: () => lv('empieza') >= 2 && lv('palabras') >= 2,
-      cards: [
-        ['lectura.html?modo=empieza', 'green', '🐺 lo', '¿Con qué sílaba empieza?', 'Mira el dibujo'],
-        ['lectura.html?modo=palabras', 'purple', 'gato', 'Palabras', '¡Ya leo!'],
-        ['bosque.html', 'd3b', '🎁🔍', 'Retos del bosque', 'Lee la cajita y busca', '3D'],
-        ['gusanos.html', 'green', '🐛', 'Gusanos de sílabas', 'Niveles 3 a 6', '3D'],
-        ['tren.html', 'red', '🚂', 'Tren de sílabas', 'Arma la palabra'],
-      ] },
-    { t: 'Escenario de las Frases', q: 'Leer frases cortas y cuentos.', done: () => lv('carrera') >= 6,
-      cards: [
-        ['carrera.html', 'd3', '💬', 'Carrera de frases', 'Niveles 5 y 6', '3D'],
-        ['cuento.html', 'blue', '📖', 'Lee el cuento', 'Toca cada palabra'],
-      ] },
-    { t: 'Rincón de los Regalos', q: 'Para crear y descansar.', regalos: true,
-      cards: [
-        ['princesa.html', 'pink', '👸🎨', 'Pinta tu personaje', 'Falda, guantes, corona…', '3D'],
-        ['pintar.html', 'rainbow', '🌈', 'Lienzo arcoíris', 'Pinta y colorea'],
-        ['ballet.html', 'purple', '🩰🦢', 'Escenario de Ballet', 'Lago de los cisnes y más', '3D'],
-        ['personajes.html', 'yellow', '🦙', 'Personajes', 'Elige el tuyo', '3D'],
-        ['cuidar.html', 'blue', '🛁🎀', 'Cuida a tu personaje', 'Báñalo, decóralo y juega', '3D'],
-      ] },
-  ];
+  // orden del programa: la primera sección sin terminar es la que toca ahora
+  const LISTA = {
+    palabras: () => lv('carrera') >= 2 && lv('bosque') >= 1,
+    vocales: () => lv('letras') >= 2 && lv('globos') >= 1,
+    letras: () => lv('junta') >= 2 && lv('silabas') >= 2,
+    silabas: () => lv('empieza') >= 2 && lv('palabras') >= 2,
+    frases: () => lv('carrera') >= 6,
+  };
+  const ahora = () => Object.keys(LISTA).find(k => !LISTA[k]());
+  let sel = (() => { try { return sessionStorage.getItem('bl-seccion') || 'todos'; } catch (e) { return 'todos'; } })();
+  if (!SECCIONES.some(s => s.id === sel)) sel = 'todos';
+
+  const soloEmoji = t => /^[\p{Extended_Pictographic}‍️\s]+$/u.test(t);
+  function arte(g) {
+    if (g.emoji.startsWith('pj:')) return `<img class="arte" data-pj="${g.emoji.slice(3)}" data-modo="${{ carrera: 'correr', cuidar: 'saludar' }[g.id] || 'bailar'}" alt="">`;
+    return `<span class="arte ${soloEmoji(g.emoji) ? '' : 'letras'}">${J.esc(g.emoji)}</span>`;
+  }
+  function tile(g, now) {
+    const n = lv(g.id), tags = g.etiquetas || [];
+    return `<a class="tile t-${g.tam || 'm'} ${g.seccion === now ? 'ahora' : ''}" href="${g.url}" style="--a:${g.fondo[0]};--b:${g.fondo[1]}" aria-label="${J.esc(g.titulo)}: ${J.esc(g.sub)}">
+      ${arte(g)}
+      ${tags.length ? `<span class="badges">${tags.map(t => `<span class="badge ${t}">${t === 'nuevo' ? '✨ Nuevo' : t}</span>`).join('')}</span>` : ''}
+      ${n ? `<span class="estrellas">⭐ ${n}</span>` : ''}
+      <span class="tit"><b>${J.esc(g.titulo)}</b><small>${J.esc(g.sub)}</small></span>
+    </a>`;
+  }
 
   function render() {
-    $('#nombre').textContent = J.childName();
-    $('#stars').innerHTML = (P.two ? P.players : [P.players[0]]).map(p => `<span class="star-pill">${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} ⭐ ${p.stars}</span>`).join('');
+    const now = ahora();
+    $('#jugadores').innerHTML = (P.two ? P.players : [P.players[0]]).map(p => `<span class="jug">${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} ⭐ ${p.stars}</span>`).join('');
     $('#dos').classList.toggle('on', !!P.two);
-    $('#dos').textContent = P.two ? `👩‍👧 De a 2: ${P.players[0].name} y ${P.players[1].name}` : '👩‍👧 Jugar de a 2';
-    const now = ISLAS.findIndex(i => !i.regalos && !i.done());
-    $('#islas').innerHTML = ISLAS.map((isla, k) => `
-      <section class="isla ${k === now ? 'ahora' : ''}" style="margin-bottom:18px">
-        <header>
-          <span class="num">${isla.regalos ? '🎁' : k + 1}</span>
-          <h2>${isla.t}</h2>
-          ${isla.regalos || !(isla.done() || k === now) ? '' : `<span class="estado">${isla.done() ? '✅ ¡Lista!' : '👉 ¡Sigue aquí!'}</span>`}
-          <p class="que">${isla.q}</p>
-        </header>
-        <div class="cards">
-          ${isla.cards.map(([href, col, big, name, step, tag]) => `
-            <a class="card ${col}" href="${href}">
-              ${tag ? `<span class="tag">${tag}</span>` : ''}
-              <span class="big">${big}</span><span class="name">${name}</span><span class="step">${step}</span>
-            </a>`).join('')}
-        </div>
-      </section>`).join('');
+    $('#dos').title = P.two ? `De a 2: ${P.players[0].name} y ${P.players[1].name}` : 'Jugar de a 2';
+    $('#chips').innerHTML = SECCIONES.map(s => `<button class="chip ${s.id === sel ? 'on' : ''}" role="tab" aria-selected="${s.id === sel}" data-s="${s.id}">${s.emoji} ${s.nombre}${s.id === now ? ' <span class="ahora">👉</span>' : ''}</button>`).join('');
+    const sec = SECCIONES.find(s => s.id === sel);
+    const nowSec = SECCIONES.find(s => s.id === now);
+    $('#que').textContent = sel === 'todos' ? (nowSec ? `👉 Ahora: ${nowSec.nombre} — ${nowSec.q}` : '¡Terminaste el camino! Juega lo que quieras.') : sec.q;
+    const lista = JUEGOS.filter(g => sel === 'todos' || g.seccion === sel);
+    $('#grid').innerHTML = `<div class="tile t-xl hola" id="hola" role="button" tabindex="0" aria-label="Tu personaje: tócalo">
+        <canvas id="preview" aria-hidden="true"></canvas>
+        <div class="saludo">¡Hola, ${J.esc(J.childName())}!<span>${P.two ? `y ${J.esc(P.players[1].name)}` : '¿A qué jugamos hoy?'}</span></div>
+      </div>` + lista.map(g => tile(g, now)).join('');
+    window.dispatchEvent(new Event('menu-render'));
     J.refreshMusic();
   }
+  $('#chips').addEventListener('click', e => {
+    const b = e.target.closest('[data-s]'); if (!b) return;
+    sel = b.dataset.s; try { sessionStorage.setItem('bl-seccion', sel); } catch (er) {}
+    J.sfx('pop'); render();
+  });
   $('#dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };
-  document.addEventListener('click', e => { if (e.target.closest('a.card')) J.sfx('pop'); });
-
+  $('#colores').onclick = e => { J.sfx('pop'); Tema.picker(e.currentTarget); };
+  document.addEventListener('click', e => { if (e.target.closest('a.tile')) J.sfx('pop'); });
   // botón de mamá y papá: pide el PIN (1234 al inicio; se cambia en el modo admin)
   $('#papas').addEventListener('click', () => J.pedirPin(() => { location.href = 'admin.html'; }));
+  window.__menu = { render };
 
   render();
   setTimeout(() => J.say(['¡Hola!', J.childName(), '¿A qué jugamos hoy?']), 900);
 })();
 </script>
 <script type="module">
-// personaje en 3D saludando
+// personajes en 3D: el de la bienvenida baila, y las tarjetas con 'pj:' muestran una fotito
 import * as THREE from 'three';
 import { crearPersonaje } from './js/personajes.js';
-const J = window.Juego;
-const canvas = document.getElementById('preview');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+const J = window.Juego, P = J.progress;
+const luz = sc => {
+  sc.add(new THREE.HemisphereLight(0xffffff, 0xe6d4ff, 2.2));
+  const d = new THREE.DirectionalLight(0xffffff, 1.6); d.position.set(2, 4, 5); sc.add(d);
+};
+const idDe = k => k === 'otro' ? (P.two ? P.players[1].char : (P.players[1]?.char !== P.players[0].char && P.players[1]?.char) || 'zoe') : P.players[0].char;
+
+// fotitos (un solo lienzo escondido para todas)
+const fotos = new Map();
+let foto = null;
+async function fotito(id, modo) {
+  const key = id + ':' + modo;
+  if (fotos.has(key)) return fotos.get(key);
+  if (!foto) {
+    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.setSize(320, 320); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
+    const sc = new THREE.Scene(); luz(sc);
+    const cam = new THREE.PerspectiveCamera(30, 1, .1, 50); cam.position.set(0, 1.2, 4.7); cam.lookAt(0, .95, 0);
+    foto = { r, sc, cam };
+  }
+  const p = (async () => {
+    const ch = await crearPersonaje(id);
+    foto.sc.add(ch.group);
+    for (let i = 0; i < 14; i++) ch.update(.03, modo);
+    ch.group.rotation.y = modo === 'correr' ? .7 : .25;
+    foto.r.render(foto.sc, foto.cam);
+    const url = foto.r.domElement.toDataURL();
+    foto.sc.remove(ch.group);
+    return url;
+  })();
+  fotos.set(key, p);
+  return p;
+}
+async function pintarFotos() {
+  for (const img of document.querySelectorAll('img[data-pj]')) {
+    try { img.src = await fotito(idDe(img.dataset.pj), img.dataset.modo); } catch (e) { img.replaceWith(Object.assign(document.createElement('span'), { className: 'arte', textContent: '🧒' })); }
+  }
+}
+
+// bienvenida que baila
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-const scene = new THREE.Scene();
-scene.add(new THREE.HemisphereLight(0xffffff, 0xbfd8ff, 2.2));
-const d = new THREE.DirectionalLight(0xffffff, 1.6); d.position.set(2, 4, 5); scene.add(d);
-const cam = new THREE.PerspectiveCamera(32, 1, .1, 50);
-cam.position.set(0, 1.4, 5.6); cam.lookAt(0, .95, 0);
-const ch = await crearPersonaje(J.progress.players[0].char);
-scene.add(ch.group);
-function size() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-addEventListener('resize', size); size();
+const scene = new THREE.Scene(); luz(scene);
+const cam = new THREE.PerspectiveCamera(30, 1, .1, 50);
+cam.position.set(0, 1.25, 5.6); cam.lookAt(0, .85, 0);
+let ch = null, chId = null;
 let mode = 'bailar', modeT = 0;
-canvas.addEventListener('click', () => { mode = 'festejar'; modeT = 1.5; J.cheer(); });
+async function montar() {
+  const holder = document.getElementById('preview');
+  if (!holder) return;
+  holder.replaceWith(renderer.domElement); renderer.domElement.id = 'preview';
+  const box = document.getElementById('hola');
+  const id = P.players[0].char;
+  if (id !== chId) { if (ch) scene.remove(ch.group); ch = await crearPersonaje(id); chId = id; ch.group.position.y = -.25; scene.add(ch.group); }
+  size();
+  box.onclick = () => { mode = 'festejar'; modeT = 1.5; J.cheer(); };
+  box.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); box.onclick(); } };
+}
+function size() {
+  const c = renderer.domElement, w = c.clientWidth || 280, h = c.clientHeight || 280;
+  renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+}
+addEventListener('resize', size);
+addEventListener('menu-render', () => { montar(); pintarFotos(); });
+await montar(); pintarFotos();
 const clock = new THREE.Clock();
 (function loop() {
   const dt = Math.min(clock.getDelta(), .05);
   modeT -= dt; if (modeT <= 0) mode = 'bailar';
-  ch.update(dt, mode);
-  renderer.render(scene, cam);
+  if (ch && document.body.contains(renderer.domElement)) { ch.update(dt, mode); renderer.render(scene, cam); }
   requestAnimationFrame(loop);
 })();
 </script>
