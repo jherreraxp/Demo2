@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Taller de Personajes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#ffe9f6, #e7dcff); overflow: hidden; }
+canvas.mundo { width: calc(100vw - min(46vw, 560px)); height: 100vh; }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(46vw, 560px); z-index: 6; background: rgba(255,255,255,.88); display: flex; flex-direction: column; box-shadow: -6px 0 24px rgba(90,60,140,.15); }
+.cab { display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 8px) 10px 6px; }
+.cab h1 { margin: 0; font-size: 24px; flex: 1; line-height: 1; }
+.quien { display: flex; gap: 6px; overflow-x: auto; padding: 4px 10px 8px; flex: none; }
+.quien button { flex: none; border-radius: 16px; padding: 4px 10px; background: #f3ecff; font-size: 14px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); white-space: nowrap; }
+.quien button span { font-size: 20px; margin-right: 3px; }
+.quien button.on { background: var(--gold); }
+.quien button.nuevo { background: #4cb87a; color: #fff; }
+.tabs { display: flex; gap: 4px; padding: 0 8px; flex: none; overflow-x: auto; }
+.tabs button { flex: 1 0 auto; border-radius: 14px 14px 0 0; padding: 6px 8px 4px; background: #eee6fb; font-size: 13px; font-weight: 800; display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 58px; }
+.tabs button b { font-size: 24px; }
+.tabs button.on { background: #fff; box-shadow: 0 -2px 8px rgba(90,60,140,.12); }
+.opciones { flex: 1; overflow-y: auto; background: #fff; padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; align-content: start; }
+.opciones h3 { grid-column: 1 / -1; margin: 4px 2px 0; font-size: 17px; color: #6b4fa8; }
+.op { border-radius: 18px; background: #f8f4ff; padding: 6px 4px 8px; box-shadow: 0 4px 0 var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 96px; justify-content: center; }
+.op .ico { font-size: 36px; line-height: 1.1; }
+.op.on { background: #ffe27a; transform: translateY(-2px); }
+.op .sw { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(35,50,74,.2); }
+.pal { font-family: Andika, sans-serif; font-weight: 700; font-size: 22px; line-height: 1.1; color: #23324a; letter-spacing: .02em; }
+.pal .s { transition: color .15s, background .15s; border-radius: 6px; padding: 0 1px; }
+.pal .s.lee { background: #ffd23f; color: #9a3412; }
+.pal .g { color: #c2b5dd; font-weight: 400; }
+.chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border-radius: 999px; padding: 4px 12px; background: #f3ecff; box-shadow: 0 3px 0 var(--shadow); }
+.chips button.on { background: #ffe27a; }
+.colores { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.colores button { width: 48px; height: 48px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 3px 0 var(--shadow), 0 0 0 2px rgba(35,50,74,.15); }
+.colores button.on { outline: 4px solid #23324a; }
+.nombre { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.nombre input { font: 700 30px Andika, sans-serif; padding: 8px 14px; border-radius: 16px; border: 3px solid #d7c9f5; width: 100%; box-sizing: border-box; }
+.emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+.emojis button { font-size: 30px; width: 54px; height: 54px; border-radius: 14px; background: #f8f4ff; box-shadow: 0 3px 0 var(--shadow); }
+.emojis button.on { background: #ffe27a; }
+.pie { display: flex; gap: 8px; padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 10px); flex: none; background: rgba(255,255,255,.95); }
+.pie button { flex: 1; border-radius: 18px; padding: 10px 6px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); background: #f3ecff; }
+.pie .guardar { background: #4cb87a; color: #fff; flex: 1.6; }
+.pie .borrar { background: #ffe0e0; flex: .8; }
+.palabra-grande { position: fixed; left: calc((100vw - min(46vw, 560px)) / 2); top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%); z-index: 7; pointer-events: none; font: 700 clamp(34px, 6vw, 64px) Andika, sans-serif; color: #fff; text-shadow: 0 4px 0 rgba(107,71,168,.45), 0 0 18px rgba(107,71,168,.35); white-space: nowrap; opacity: 0; transition: opacity .25s; }
+.palabra-grande.ver { opacity: 1; }
+.palabra-grande .s.lee { color: #ffd23f; }
+.palabra-grande .g { opacity: .6; }
+.girar { position: fixed; left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 6; display: flex; gap: 8px; }
+.girar button { width: 52px; height: 52px; border-radius: 50%; background: #fff; font-size: 24px; box-shadow: 0 4px 0 var(--shadow); }
+.aviso { position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%); z-index: 30; background: #fff; border-radius: 26px; padding: 18px 24px; text-align: center; font-size: 24px; font-weight: 800; box-shadow: 0 10px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.aviso button, .aviso a { border-radius: 16px; padding: 8px 16px; font-size: 18px; font-weight: 800; background: #4cb87a; color: #fff; text-decoration: none; box-shadow: 0 4px 0 var(--shadow); }
+@media (max-width: 760px), (max-aspect-ratio: 4/5) {
+  canvas.mundo { width: 100vw; height: 48vh; }
+  .panel { top: auto; left: 0; width: auto; height: 52vh; border-radius: 22px 22px 0 0; box-shadow: 0 -6px 24px rgba(90,60,140,.15); }
+  .cab { padding-top: 8px; } .cab h1 { font-size: 19px; }
+  .opciones { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; padding: 8px; }
+  .op { min-height: 82px; } .op .ico { font-size: 30px; } .pal { font-size: 18px; }
+  .palabra-grande { left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px); }
+  .girar { bottom: calc(52vh + 10px); }
+  .tabs button { min-width: 50px; font-size: 11px; } .tabs button b { font-size: 20px; }
+  .pie button { font-size: 15px; padding: 8px 4px; }
+}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Tu personaje en 3D"></canvas>
+<div class="hud">
+  <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
+</div>
+<div class="palabra-grande" id="grande" aria-live="polite"></div>
+<div class="girar"><button id="g-izq" aria-label="Girar a la izquierda">↺</button><button id="g-der" aria-label="Girar a la derecha">↻</button></div>
+<div class="panel">
+  <div class="cab"><h1>🧵 Taller de Personajes</h1><button class="round-btn" data-musica aria-label="Música">🎵</button></div>
+  <div class="quien" id="quien" aria-label="¿A quién vas a cambiar?"></div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="opciones" id="opciones"></div>
+  <div class="pie">
+    <button class="borrar" id="borrar" hidden>🗑️ Borrar</button>
+    <button id="deshacer">↶ Como era</button>
+    <button class="guardar" id="guardar">💾 Guardar</button>
+  </div>
+</div>
+<script type="module" src="js/editor.js"></script>
+</body>
+</html>

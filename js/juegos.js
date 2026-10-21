@@ -26,6 +26,7 @@
     { id: 'carrera', url: 'carrera.html', titulo: 'Carrera de Palabras', sub: 'Atrapa las monedas', emoji: 'pj:jugador', fondo: ['#ff7eb6', '#9a6ee0'], tam: 'xl', seccion: 'palabras', etiquetas: ['3D'] },
     { id: 'sapito', url: 'sapito.html', titulo: 'El Camino del Sapito', sub: 'Arma el camino con flechas', emoji: '🐸', fondo: ['#7be0a0', '#2fb3c9'], tam: 'l', seccion: 'pensar', etiquetas: ['nuevo'] },
     { id: 'construir', url: 'construir.html', titulo: 'Construye tu Mundo', sub: 'Casas, laberintos y más', emoji: '🧱', fondo: ['#ffb3de', '#7fd3ff'], tam: 'l', seccion: 'crear', etiquetas: ['3D', 'nuevo'] },
+    { id: 'editor', url: 'editor.html', titulo: 'Taller de Personajes', sub: 'Crea y cambia personajes', emoji: '🧵', fondo: ['#ffb3de', '#9a6ee0'], tam: 'l', seccion: 'crear', etiquetas: ['3D', 'nuevo'] },
     { id: 'bosque', url: 'bosque.html', titulo: 'Bosque de las Palabras', sub: 'Busca la cajita y lee', emoji: '🎁', fondo: ['#8fd46a', '#2e9e6b'], tam: 'm', seccion: 'palabras', etiquetas: ['3D'] },
     { id: 'memoria', url: 'memoria.html', titulo: 'Memoria', sub: 'Encuentra las parejas', emoji: '🃏', fondo: ['#ffb36b', '#ff6f91'], tam: 'm', seccion: 'vocales' },
     { id: 'ballet', url: 'ballet.html', titulo: 'Escenario de Ballet', sub: 'Baila y gana posiciones', emoji: '🩰', fondo: ['#c9a2ff', '#6b4fd8'], tam: 'l', seccion: 'crear', etiquetas: ['3D'] },

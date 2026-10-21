@@ -52,6 +52,7 @@ body { background: #bfe6ff; }
   <div class="acciones">
     <a class="btn" id="a-pintar" href="princesa.html">🎨 Pintar</a>
     <a class="btn" id="a-cuidar" href="cuidar.html">🛁 Cuidar y jugar</a>
+    <a class="btn" id="a-taller" href="editor.html">🧵 Crear y cambiar</a>
     <a class="go btn" href="index.html" id="listo">✔ ¡Listo!</a>
   </div>
 </div>
@@ -152,6 +153,7 @@ function render() {
   const id = P.players[editing].char;
   $('#a-pintar').href = 'princesa.html?p=' + id;
   $('#a-cuidar').href = 'cuidar.html?p=' + id;
+  $('#a-taller').href = 'editor.html?p=' + id;
   $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${info(id).emoji}</span>${info(id).name}</button>`).join('');
 }
 function pick(id) {
