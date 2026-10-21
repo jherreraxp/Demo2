@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Piano Mágico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: radial-gradient(circle at 50% 20%, #fff4fb, #ffc6e6 45%, #b79cff); }
+.escena { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 70px); height: 34vh; display: grid; place-items: center; pointer-events: none; }
+.bailarin { font-size: min(22vh, 170px); line-height: 1; transition: transform .12s; filter: drop-shadow(0 8px 0 rgba(107,71,168,.25)); }
+.bailarin.salta { animation: baile .45s ease-out; }
+@keyframes baile { 0% { transform: translateY(0) rotate(0) } 35% { transform: translateY(-38px) rotate(-12deg) scale(1.08) } 70% { transform: translateY(0) rotate(8deg) } 100% { transform: rotate(0) } }
+.nota-grande { position: absolute; font: 800 min(9vh, 64px) var(--font-display); color: #fff; text-shadow: 0 4px 0 #9a6ee0, 0 0 18px #ff5dab; animation: sube 1s ease-out forwards; }
+@keyframes sube { from { opacity: 1; transform: translateY(0) scale(.6) } to { opacity: 0; transform: translateY(-80px) scale(1.2) } }
+.modos { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; z-index: 6; padding: 0 10px; }
+.modos button { border-radius: 18px; padding: 6px 14px; font-size: 19px; font-weight: 800; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); }
+.modos button.on { background: var(--gold); }
+.teclado { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); height: 46vh; display: flex; gap: 8px; padding: 0 12px; justify-content: center; }
+.tecla { flex: 1; max-width: 130px; border-radius: 0 0 26px 26px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 14px; gap: 4px;
+  background: linear-gradient(var(--c), color-mix(in srgb, var(--c) 70%, #000)); box-shadow: 0 10px 0 color-mix(in srgb, var(--c) 55%, #000), inset 0 -8px 0 rgba(255,255,255,.25); border-top: 10px solid rgba(255,255,255,.45);
+  color: #fff; touch-action: none; transition: transform .06s; position: relative; overflow: hidden; }
+.tecla::before { content: ''; position: absolute; left: 12%; right: 12%; top: 6px; height: 30%; border-radius: 14px; background: rgba(255,255,255,.28); }
+.tecla .ico { font-size: min(6vh, 7.5vw, 52px); line-height: 1; }
+.tecla .nom { font: 800 min(3.2vh, 3.3vw, 28px) var(--font-letters); max-width: 100%; overflow-wrap: anywhere; line-height: 1; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+@media (max-width: 520px) { .tecla .nom { font-size: min(3vh, 2.9vw); } }
+.tecla.on { transform: translateY(8px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, #000); filter: brightness(1.15); }
+.tecla.guia { animation: guia .9s ease-in-out infinite; }
+@keyframes guia { 0%, 100% { box-shadow: 0 10px 0 color-mix(in srgb, var(--c) 55%, #000), 0 0 0 0 #fff; } 50% { box-shadow: 0 10px 0 color-mix(in srgb, var(--c) 55%, #000), 0 0 0 10px rgba(255,255,255,.9); } }
+.progreso { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 116px); display: flex; gap: 6px; z-index: 6; }
+.progreso i { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,.5); }
+.progreso i.on { background: #ffd23f; box-shadow: 0 0 8px #fff; }
+@media (max-width: 520px) { .escena { top: calc(env(safe-area-inset-top, 0px) + 150px); height: 26vh; } .bailarin { font-size: 18vh; } .tecla { border-radius: 0 0 18px 18px; } .teclado { gap: 5px; padding: 0 6px; } .modos button { font-size: 16px; padding: 5px 10px; } }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<div class="hud">
+  <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="modos" id="modos">
+  <button data-modo="notas" class="on">🎵 Notas</button>
+  <button data-modo="animales">🐶 Animales</button>
+  <button data-modo="vocales">a e i Vocales</button>
+  <button data-modo="melodia">⭐ Sigue la melodía</button>
+</div>
+<div class="progreso" id="progreso"></div>
+<div class="escena" id="escena"><div class="bailarin" id="bailarin">👸</div></div>
+<div class="teclado" id="teclado" aria-label="Teclado"></div>
+<div id="mensaje" aria-live="polite"></div>
+<script>
+(() => {
+  const J = window.Juego, P = J.progress;
+  const $ = s => document.querySelector(s);
+  const NOTAS = [
+    { n: 'do', f: 261.63, c: '#ff5d8f' }, { n: 're', f: 293.66, c: '#ff8a3d' }, { n: 'mi', f: 329.63, c: '#ffc23d' }, { n: 'fa', f: 349.23, c: '#4cd964' },
+    { n: 'sol', f: 392.0, c: '#2fc4c9' }, { n: 'la', f: 440.0, c: '#3f8ee8' }, { n: 'si', f: 493.88, c: '#9a6ee0' }, { n: 'do', f: 523.25, c: '#ff5dab' },
+  ];
+  // animalitos: dibujo, nombre y su sonido (lo dice la voz)
+  const ANIMALES = [['🐶', 'perro', '¡Guau!'], ['🐱', 'gato', '¡Miau!'], ['🐮', 'vaca', '¡Muuu!'], ['🦆', 'pato', '¡Cuac!'], ['🐸', 'sapo', '¡Croac!'], ['🐑', 'oveja', '¡Beee!'], ['🐷', 'chancho', '¡Oinc!'], ['🐔', 'gallina', '¡Coc, co!']];
+  const VOC = ['a', 'e', 'i', 'o', 'u'];
+  // Estrellita (canción tradicional): índices de NOTAS
+  const ESTRELLITA = [0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0];
+  const state = { modo: 'notas', melo: 0, esperando: false, aciertos: 0 };
+
+  function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; $('#bailarin').textContent = J.CHARS[p.char]?.emoji || '👸'; }
+  function message(text, secs = 1.4) {
+    const el = $('#mensaje'); el.textContent = text;
+    el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
+    clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
+  }
+  // sonido de piano: dos osciladores con golpe y caída suave
+  function piano(f, dur = 1.1) {
+    const c = J.audio(); if (!c) return;
+    const t = c.currentTime, g = c.createGain(), lp = c.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(f * 8, t); lp.frequency.exponentialRampToValueAtTime(f * 2, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.35, t + .01); g.gain.exponentialRampToValueAtTime(.12, t + .25); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    [[f, 'triangle', 1], [f * 2, 'sine', .3], [f * 3, 'sine', .08]].forEach(([fr, type, v]) => {
+      const o = c.createOscillator(), og = c.createGain(); o.type = type; o.frequency.value = fr; og.gain.value = v;
+      o.connect(og).connect(lp); o.start(t); o.stop(t + dur + .05);
+    });
+    lp.connect(g).connect(c.destination);
+  }
+  // sonidos de animalitos hechos con osciladores (y la voz dice cómo hacen)
+  function animal(i, f) {
+    const c = J.audio(); if (!c) return;
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    const forma = [[1.6, .7, 'square'], [2.2, 1.5, 'sawtooth'], [.5, .45, 'sawtooth'], [3, 2.2, 'square'], [.6, .9, 'square'], [1.4, 1.3, 'sawtooth'], [1.2, .8, 'square'], [2.4, 1.8, 'triangle']][i];
+    o.type = forma[2]; o.frequency.setValueAtTime(f * forma[0], t); o.frequency.exponentialRampToValueAtTime(f * forma[1], t + .25);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.12, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .32);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + .35);
+  }
+  function teclas() {
+    const n = state.modo === 'vocales' ? 5 : 8;
+    $('#teclado').innerHTML = NOTAS.slice(0, n).map((x, i) => {
+      const ico = state.modo === 'animales' ? ANIMALES[i][0] : state.modo === 'vocales' ? '' : '🎵';
+      const nom = state.modo === 'animales' ? ANIMALES[i][1] : state.modo === 'vocales' ? VOC[i] : x.n;
+      return `<button class="tecla" data-i="${i}" style="--c:${x.c}" aria-label="${nom}">${ico ? `<span class="ico">${ico}</span>` : ''}<span class="nom" style="${state.modo === 'vocales' ? 'font-size:min(8vh,14vw,72px)' : ''}">${nom}</span></button>`;
+    }).join('');
+  }
+  function bailar(texto, color) {
+    const b = $('#bailarin'); b.classList.remove('salta'); void b.offsetWidth; b.classList.add('salta');
+    const s = document.createElement('div'); s.className = 'nota-grande'; s.textContent = texto; s.style.color = color;
+    s.style.left = (30 + Math.random() * 40) + '%'; s.style.top = '40%';
+    $('#escena').appendChild(s); setTimeout(() => s.remove(), 1000);
+  }
+  function tocar(i) {
+    J.audio();
+    const x = NOTAS[i], el = $(`.tecla[data-i="${i}"]`);
+    if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 160); }
+    if (state.modo === 'notas' || state.modo === 'melodia') { piano(x.f); bailar(state.modo === 'notas' ? x.n : '♪', x.c); }
+    if (state.modo === 'animales') { animal(i, x.f); piano(x.f, .6); bailar(ANIMALES[i][0], x.c); J.say([ANIMALES[i][1], ANIMALES[i][2]]); }
+    if (state.modo === 'vocales') { piano(x.f, .8); bailar(VOC[i], x.c); J.say(VOC[i], { pitch: .8 + i * .2 }); }
+    if (state.modo === 'notas' && Math.random() < .25) J.say(x.n);
+    if (state.modo === 'melodia') revisar(i);
+  }
+  // ---------- sigue la melodía ----------
+  function progreso() { $('#progreso').innerHTML = state.modo === 'melodia' ? ESTRELLITA.map((_, k) => `<i class="${k < state.melo ? 'on' : ''}"></i>`).join('') : ''; }
+  function guia() {
+    document.querySelectorAll('.tecla.guia').forEach(t => t.classList.remove('guia'));
+    const el = $(`.tecla[data-i="${ESTRELLITA[state.melo]}"]`); if (el) el.classList.add('guia');
+  }
+  function revisar(i) {
+    if (!state.esperando) return;
+    if (i === ESTRELLITA[state.melo]) {
+      state.melo++; progreso();
+      if (state.melo >= ESTRELLITA.length) {
+        state.esperando = false; document.querySelectorAll('.tecla.guia').forEach(t => t.classList.remove('guia'));
+        setTimeout(() => { J.cheer(true); J.confetti(100); J.addStar(2); updatePlayer(); message('¡Tocaste Estrellita! ⭐', 2.2); J.say('¡Tocaste Estrellita!', { queue: true });
+          P.level.piano = Math.max(P.level.piano || 0, 1); J.save();
+          setTimeout(() => J.nextTurn(empezarMelodia, { onShow: updatePlayer }), 3200); }, 500);
+        return;
+      }
+      guia();
+    } else {
+      J.boing(); message('¡Casi! Toca la que brilla ✨', 1.2);
+    }
+  }
+  function empezarMelodia() {
+    state.melo = 0; state.esperando = false; progreso();
+    J.say(['Escucha', 'Ahora tú. Toca la que brilla.']);
+    // primero suena la canción completa, despacito
+    ESTRELLITA.forEach((k, j) => setTimeout(() => { piano(NOTAS[k].f, .5); const el = $(`.tecla[data-i="${k}"]`); if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 220); } }, 900 + j * 420));
+    setTimeout(() => { if (state.modo !== 'melodia') return; state.esperando = true; guia(); }, 900 + ESTRELLITA.length * 420 + 300);
+  }
+  function setModo(m) {
+    state.modo = m; state.esperando = false;
+    [...$('#modos').children].forEach(b => b.classList.toggle('on', b.dataset.modo === m));
+    teclas(); progreso(); J.sfx('pop');
+    if (m === 'melodia') { J.stopMusic(); empezarMelodia(); }
+    else J.say({ notas: 'do, re, mi', animales: '¿Cómo hacen los animales?', vocales: 'a, e, i, o, u' }[m]);
+  }
+  $('#modos').addEventListener('click', e => { const b = e.target.closest('[data-modo]'); if (b) setModo(b.dataset.modo); });
+  // varios dedos a la vez: cada dedo toca su tecla, y al deslizar se tocan las teclas por las que pasa
+  const dedos = new Map();
+  $('#teclado').addEventListener('pointerdown', e => { const t = e.target.closest('.tecla'); if (!t) return; e.preventDefault(); t.releasePointerCapture?.(e.pointerId); dedos.set(e.pointerId, t.dataset.i); tocar(+t.dataset.i); });
+  addEventListener('pointermove', e => {
+    if (!dedos.has(e.pointerId)) return;
+    const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tecla');
+    if (t && t.dataset.i !== dedos.get(e.pointerId)) { dedos.set(e.pointerId, t.dataset.i); tocar(+t.dataset.i); }
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => addEventListener(ev, e => dedos.delete(e.pointerId)));
+  // teclado de la compu: a s d f g h j k
+  addEventListener('keydown', e => { if (e.repeat) return; const i = 'asdfghjk'.indexOf(e.key.toLowerCase()); if (i >= 0 && i < document.querySelectorAll('.tecla').length) tocar(i); });
+
+  (async () => {
+    await J.ready;
+    updatePlayer(); teclas(); J.refreshMusic();
+    setTimeout(() => J.say('¡Toca el piano!'), 400);
+    if (location.hash === '#prueba') window.__p = { state, tocar, setModo, ESTRELLITA };
+  })();
+})();
+</script>
+</body>
+</html>

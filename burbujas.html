@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Burbujas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#8fe3ff, #c9b6ff 55%, #ffd6ec); }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+/* fondo de bloquecitos (tipo mundo de cubos) */
+.cubos { position: fixed; left: 0; right: 0; bottom: 0; height: 22vh; pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.18) 2px, transparent 2px) 0 0 / 44px 44px,
+    linear-gradient(rgba(255,255,255,.18) 2px, transparent 2px) 0 0 / 44px 44px,
+    linear-gradient(#ff9ad5, #c86bfa); }
+.cubos::before { content: ''; position: absolute; left: 0; right: 0; top: -44px; height: 44px;
+  background: repeating-linear-gradient(90deg, #ff9ad5 0 88px, transparent 88px 132px, #b18cf0 132px 176px, transparent 176px 264px); }
+#zona { position: fixed; inset: 0; overflow: hidden; }
+.burbuja { position: absolute; left: 0; top: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer; padding: 0;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0 8%, rgba(255,255,255,.25) 9% 30%, rgba(255,255,255,.08) 55%, rgba(255,255,255,.35) 72%, rgba(255,160,220,.55) 100%);
+  box-shadow: inset 0 0 18px rgba(255,255,255,.7), inset -6px -10px 22px rgba(154,110,224,.35), 0 6px 18px rgba(90,60,140,.18);
+  border: 2px solid rgba(255,255,255,.7); touch-action: none; will-change: transform; }
+.burbuja .dentro { font-size: calc(var(--d) * .46); line-height: 1; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+.burbuja .txt { font-family: var(--font-letters); font-weight: 700; color: #6b47a8; font-size: calc(var(--d) * .4); }
+.burbuja .txt.largo { font-size: calc(var(--d) * .24); }
+.gota { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.9); pointer-events: none; box-shadow: 0 0 6px #fff; }
+.pal { position: absolute; font: 800 38px var(--font-letters); color: #fff; text-shadow: 0 3px 0 #6b47a8, 0 0 4px #6b47a8, 0 0 14px #ff5dab; pointer-events: none; transform: translate(-50%, -50%); animation: sube 1s ease-out forwards; }
+@keyframes sube { from { opacity: 1; transform: translate(-50%, -50%) scale(.6); } to { opacity: 0; transform: translate(-50%, -140%) scale(1.3); } }
+.modos { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.modos button { border-radius: 20px; padding: 10px 16px; font-size: 20px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.modos button.on { background: var(--gold); }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<div class="cubos"></div>
+<div id="zona" aria-label="Burbujas para reventar"></div>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill" id="nivel-pill">Libre</div>
+    <div class="pill" aria-label="Burbujas">🫧 <span id="cuenta">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="mision" id="mision" hidden>
+  <span class="etq">Busca</span>
+  <span class="pic" id="m-pic"></span>
+  <span class="word" id="m-word"></span>
+  <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
+</div>
+<div id="mensaje" aria-live="polite"></div>
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:64px;line-height:1">🫧🐱🫧</div>
+    <h1>Burbujas</h1>
+    <p>Toca las burbujas para <b>reventarlas</b> y escucha lo que tienen adentro.</p>
+    <div class="modos" id="modos">
+      <button data-modo="libre" class="on">🫧 Libre</button>
+      <button data-modo="buscar">🔍 Busca</button>
+    </div>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel" hidden></div>
+    <div id="nivel-desc">Revienta todas las que quieras</div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script>
+(() => {
+  const J = window.Juego, P = J.progress;
+  const $ = s => document.querySelector(s);
+  const VOC = ['a', 'e', 'i', 'o', 'u'], LET = ['m', 's', 'l', 'p'];
+  // niveles del modo "Busca": vocales → letras → palabras con dibujo → palabras solas
+  const NIVELES = [
+    { tipo: 'vocal', meta: 5, nombre: 'Busca la vocal' },
+    { tipo: 'letra', meta: 5, nombre: 'Busca la letra (m, s, l, p)' },
+    { tipo: 'dibujo', meta: 6, nombre: 'Busca el dibujo' },
+    { tipo: 'palabra', meta: 6, nombre: 'Busca la palabra' },
+  ];
+  let WORDS = J.WORDS.filter(w => w[0].length <= 5);
+  const state = { modo: 'libre', nivel: 0, burbujas: [], jugando: false, cuenta: 0, buscados: 0, objetivo: null, t: 0, sig: 0, total: 0 };
+  const zona = $('#zona');
+
+  function updatePlayer() { const p = J.player(); $('#jugador').innerHTML = `${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} · ⭐ ${p.stars}`; }
+  function message(text, secs = 1.3) {
+    const el = $('#mensaje'); el.textContent = text;
+    el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
+    clearTimeout(message.t); message.t = setTimeout(() => el.classList.remove('ver'), secs * 1000);
+  }
+  // cada cosa: { id, emoji, texto, dice, sonido }
+  const vocal = v => ({ id: v, texto: v, dice: v });
+  const letra = l => ({ id: l, texto: l, dice: l, sonido: true });
+  const dibujo = w => ({ id: w[0], emoji: w[2], dice: w[0] });
+  const palabra = w => ({ id: w[0], texto: w[0], dice: w[0] });
+  function cosaAzar() {
+    const cfg = NIVELES[state.nivel];
+    if (state.modo === 'libre') {
+      const r = Math.random();
+      if (r < .3) return vocal(J.pick(VOC));
+      if (r < .45) return letra(J.pick(LET));
+      return dibujo(J.pick(WORDS.filter(w => w[2])));
+    }
+    // en "Busca" sale el buscado una de cada tres veces
+    if (state.objetivo && Math.random() < .34) return state.objetivo;
+    if (cfg.tipo === 'vocal') return vocal(J.pick(VOC));
+    if (cfg.tipo === 'letra') return letra(J.pick(LET.concat(['a', 'o'])));
+    const w = J.pick(WORDS.filter(x => x[2]));
+    return cfg.tipo === 'dibujo' ? dibujo(w) : palabra(w);
+  }
+  function decir(c) { if (c.sonido) J.sound(c.dice); else J.say(c.dice); }
+
+  function crear() {
+    const W = innerWidth, H = innerHeight;
+    const d = Math.round(Math.min(W, H) * (.17 + Math.random() * .08) + 40);
+    const c = cosaAzar();
+    const el = document.createElement('button');
+    el.className = 'burbuja'; el.style.width = el.style.height = d + 'px'; el.style.setProperty('--d', d + 'px');
+    el.setAttribute('aria-label', c.texto || c.dice);
+    el.innerHTML = c.emoji ? `<span class="dentro">${c.emoji}</span>` : `<span class="dentro txt ${c.texto.length > 3 ? 'largo' : ''}">${J.esc(c.texto)}</span>`;
+    const b = { el, c, d, x: Math.random() * (W - d), y: H + 10, vy: 38 + Math.random() * 30 + state.nivel * 4, fase: Math.random() * 6, amp: 18 + Math.random() * 26, vivo: true };
+    el.addEventListener('pointerdown', e => { e.preventDefault(); tocar(b); });
+    zona.appendChild(el); state.burbujas.push(b);
+  }
+  function reventar(b) {
+    b.vivo = false;
+    const cx = b.x + b.d / 2, cy = b.y + b.d / 2;
+    J.sfx('pop', .9, .8 + Math.random() * .6);
+    for (let k = 0; k < 12; k++) {
+      const g = document.createElement('div'); g.className = 'gota';
+      const a = k / 12 * Math.PI * 2, r = b.d * .55;
+      g.style.left = cx + 'px'; g.style.top = cy + 'px';
+      zona.appendChild(g);
+      g.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r}px)) scale(.3)`, opacity: 0 }], { duration: 420, easing: 'ease-out' }).onfinish = () => g.remove();
+    }
+    const t = document.createElement('div'); t.className = 'pal'; t.textContent = b.c.emoji ? b.c.dice : b.c.texto;
+    t.style.left = cx + 'px'; t.style.top = cy + 'px'; zona.appendChild(t); setTimeout(() => t.remove(), 1000);
+    b.el.animate([{ transform: b.el.style.transform + ' scale(1)', opacity: 1 }, { transform: b.el.style.transform + ' scale(1.35)', opacity: 0 }], { duration: 180 }).onfinish = () => b.el.remove();
+  }
+  function tocar(b) {
+    if (!b.vivo || !state.jugando) return;
+    J.audio();
+    if (state.modo === 'libre') {
+      reventar(b); decir(b.c);
+      state.cuenta++; $('#cuenta').textContent = state.cuenta;
+      if (state.cuenta % 15 === 0) { J.cheer(); J.addStar(); updatePlayer(); message(J.pick(['¡Bravo!', '¡Súper!', '¡Wiii!'])); }
+      return;
+    }
+    if (b.c.id === state.objetivo.id) {
+      reventar(b); J.efecto('acierto');
+      state.buscados++; state.cuenta++; $('#cuenta').textContent = `${state.buscados} / ${NIVELES[state.nivel].meta}`;
+      J.addStar(); updatePlayer();
+      J.say([b.c.dice, J.pick(J.PRAISES)]);
+      if (state.buscados >= NIVELES[state.nivel].meta) return nivelListo();
+      // con dos jugadores, se turnan después de cada acierto
+      if (P.two) { state.jugando = false; setTimeout(() => J.nextTurn(() => { state.jugando = true; nuevoObjetivo(); }, { onShow: updatePlayer }), 900); }
+      else if (state.buscados % 2 === 0) setTimeout(nuevoObjetivo, 900);
+    } else {
+      // la burbuja equivocada rebota y se escapa
+      J.boing(); b.vy += 90; b.amp += 30;
+      b.el.animate([{ filter: 'hue-rotate(0)' }, { filter: 'hue-rotate(160deg)' }, { filter: 'hue-rotate(0)' }], { duration: 400 });
+      decir(b.c);
+      setTimeout(() => { if (state.jugando) J.say(['Busca', state.objetivo.texto || state.objetivo.dice], { queue: true }); }, 700);
+    }
+  }
+  function nuevoObjetivo() {
+    const cfg = NIVELES[state.nivel];
+    const prev = state.objetivo && state.objetivo.id;
+    let o;
+    do {
+      if (cfg.tipo === 'vocal') o = vocal(J.pick(VOC));
+      else if (cfg.tipo === 'letra') o = letra(J.pick(LET));
+      else { const w = J.pick(WORDS.filter(x => x[2])); o = cfg.tipo === 'dibujo' ? dibujo(w) : palabra(w); }
+    } while (o.id === prev && Math.random() < .9);
+    state.objetivo = o;
+    $('#m-pic').textContent = o.emoji || '';
+    $('#m-word').textContent = o.emoji ? '' : o.texto;
+    const box = $('#mision'); box.hidden = false; box.classList.remove('nuevo'); void box.offsetWidth; box.classList.add('nuevo');
+    if (o.sonido) { J.say('Busca'); J.sound(o.dice); }
+    else J.say(['Busca', o.dice]);
+  }
+  $('#m-say').onclick = () => { const o = state.objetivo; if (!o) return; if (o.sonido) { J.say('Busca'); J.sound(o.dice); } else J.say(['Busca', o.dice]); };
+  function nivelListo() {
+    state.jugando = false;
+    J.cheer(true); J.confetti(100);
+    P.level.burbujas = Math.max(P.level.burbujas || 0, state.nivel + 1); J.save();
+    setTimeout(() => J.gift(() => { state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1); empezar(); }), 1200);
+  }
+  function limpiar() { state.burbujas.forEach(b => b.el.remove()); state.burbujas = []; }
+  function empezar() {
+    limpiar(); state.buscados = 0; state.cuenta = 0; state.objetivo = null;
+    $('#cuenta').textContent = state.modo === 'libre' ? '0' : `0 / ${NIVELES[state.nivel].meta}`;
+    $('#nivel-pill').textContent = state.modo === 'libre' ? 'Libre' : 'Nivel ' + (state.nivel + 1);
+    $('#mision').hidden = true;
+    updatePlayer();
+    // unas cuantas burbujas ya en el aire para empezar enseguida
+    for (let k = 0; k < 4; k++) { crear(); const b = state.burbujas[state.burbujas.length - 1]; b.y = innerHeight * (.25 + k * .15); }
+    const go = () => { state.jugando = true; if (state.modo === 'buscar') nuevoObjetivo(); else J.say('¡Revienta las burbujas!'); };
+    P.two && state.modo === 'buscar' ? J.showTurn(go, { onShow: updatePlayer }) : go();
+  }
+
+  // movimiento: suben despacito haciendo zigzag
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; state.t += dt;
+    if (state.jugando) {
+      state.sig -= dt;
+      const max = innerWidth < 600 ? 7 : 10;
+      if (state.sig <= 0 && state.burbujas.filter(b => b.vivo).length < max) { crear(); state.sig = .55 + Math.random() * .6; }
+    }
+    for (const b of state.burbujas.slice()) {
+      if (!b.vivo) { state.burbujas.splice(state.burbujas.indexOf(b), 1); continue; }
+      b.y -= b.vy * dt;
+      const x = b.x + Math.sin(state.t * 1.3 + b.fase) * b.amp;
+      const s = 1 + Math.sin(state.t * 3 + b.fase) * .03;
+      b.el.style.transform = `translate(${x}px, ${b.y}px) scale(${s}, ${2 - s})`;
+      if (b.y < -b.d - 20) { b.el.remove(); state.burbujas.splice(state.burbujas.indexOf(b), 1); }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function start() {
+    $('#portada').hidden = true;
+    J.audio(); J.startMusic();
+    empezar();
+  }
+
+  (async () => {
+    await J.ready;
+    const conf = J.palabras('globos'); if (conf.length >= 4) WORDS = conf;
+    updatePlayer(); J.refreshMusic();
+    const unlocked = Math.min(NIVELES.length, (P.level.burbujas || 0) + 1);
+    let sel = unlocked - 1;
+    const box = $('#niveles');
+    const pintar = () => {
+      box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
+      $('#nivel-desc').textContent = state.modo === 'libre' ? 'Revienta todas las que quieras' : NIVELES[sel].nombre;
+    };
+    pintar();
+    box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; pintar(); J.sfx('pop'); };
+    $('#modos').onclick = e => {
+      const b = e.target.closest('[data-modo]'); if (!b) return;
+      state.modo = b.dataset.modo; [...$('#modos').children].forEach(x => x.classList.toggle('on', x === b));
+      box.hidden = state.modo === 'libre'; pintar(); J.sfx('pop');
+    };
+    const go = $('#empezar'); go.disabled = false; go.textContent = '▶ ¡A jugar!';
+    go.onclick = () => { state.nivel = sel; start(); };
+    if (location.hash === '#prueba') { window.__u = { state, tocar, NIVELES, start, empezar }; start(); }
+  })();
+})();
+</script>
+</body>
+</html>

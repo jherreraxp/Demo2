@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>El Camino del Sapito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#ffd6ec, #c9b6ff 45%, #7fd3ff); }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.mision .word { font-family: var(--font-display); font-size: 26px; font-weight: 800; }
+.panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 10px; align-items: center;
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.55) 30%); }
+.programa { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 62px; max-width: 760px; padding: 8px 10px; border-radius: 22px; background: rgba(107, 71, 168, .82); box-shadow: inset 0 3px 0 rgba(0,0,0,.18), 0 5px 0 #4a2f7a; }
+.slot { position: relative; width: 52px; height: 52px; border-radius: 14px; border: 3px dashed rgba(255,255,255,.55); box-sizing: border-box; display: grid; place-items: center; font-size: 28px; background: none; padding: 0; }
+.slot.lleno { border: 0; background: #fff; box-shadow: 0 4px 0 #c9b6ff; animation: brinco .25s ease-out; }
+.slot.activo { background: #ffe27a; box-shadow: 0 0 0 4px #ff5dab, 0 4px 0 #c9b6ff; transform: translateY(-4px); }
+.slot .veces { position: absolute; right: -6px; bottom: -6px; background: #ff5dab; color: #fff; border-radius: 999px; font-size: 14px; padding: 0 6px; line-height: 20px; }
+.slot .mini { position: absolute; left: -6px; top: -8px; font-style: normal; font-size: 18px; }
+.fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.paleta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.bloque { width: 68px; height: 68px; border-radius: 20px; font-size: 36px; background: #fff; box-shadow: 0 6px 0 #9a6ee0; display: grid; place-items: center; }
+.bloque:active { transform: translateY(4px); box-shadow: 0 2px 0 #9a6ee0; }
+.bloque.especial { background: #ffe9f6; box-shadow: 0 6px 0 #ff5dab; }
+.bloque.especial.on { background: #ff5dab; box-shadow: 0 0 0 4px #fff, 0 6px 0 #b3246f; }
+.accion { height: 68px; border-radius: 999px; padding: 0 22px; font-size: 30px; font-weight: 800; color: #fff; }
+#correr { background: var(--go); box-shadow: 0 6px 0 var(--go-dark); }
+#correr:disabled { background: #a9b4c2; box-shadow: 0 6px 0 #7d8897; }
+#borrar { background: #ef5b5b; box-shadow: 0 6px 0 #a83333; width: 68px; padding: 0; font-size: 30px; }
+@media (max-width: 520px) {
+  .fila { flex-direction: column; gap: 8px; }
+  .paleta { gap: 6px; flex-wrap: nowrap; }
+  .bloque { width: 52px; height: 52px; font-size: 28px; border-radius: 16px; }
+  .accion { height: 56px; font-size: 24px; padding: 0 16px; }
+  #borrar { width: 56px; }
+  .fila .accion-fila { display: flex; gap: 10px; }
+  .slot { width: 44px; height: 44px; font-size: 24px; }
+  .mision .word { font-size: 20px; }
+}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Laguna con nenúfares y un sapito"></canvas>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="mision" id="mision" hidden>
+  <span class="pic">🐸</span>
+  <span class="word" id="m-word"></span>
+  <span class="pic">🌸</span>
+  <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
+</div>
+<div id="mensaje" aria-live="polite"></div>
+<div class="panel">
+  <div class="programa" id="programa" aria-label="Tu programa: toca un bloque para quitarlo"></div>
+  <div class="fila">
+    <div class="paleta" id="paleta" aria-label="Bloques"></div>
+    <div class="accion-fila" style="display:flex;gap:10px">
+      <button class="accion" id="borrar" aria-label="Borrar todo">🗑️</button>
+      <button class="accion" id="correr" disabled>▶ ¡Ve!</button>
+    </div>
+  </div>
+</div>
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:64px;line-height:1">🐸➡️🌸</div>
+    <h1>El Camino del Sapito</h1>
+    <p>Arma el camino con <b>flechas</b> y toca <b>▶</b>. ¡El sapito salta por los nenúfares hasta la flor!</p>
+    <p style="font-size:16px">🦘 salta una piedra · 🔁 repite el último bloque</p>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script type="module" src="js/sapito.js"></script>
+</body>
+</html>
