@@ -9,7 +9,9 @@ Sitio estático publicado con GitHub Pages desde la rama `gh-pages`.
   `gh-pages` (carpeta `assets/voz/` y `assets/voz/lista.json`) usando la API de GitHub.
 - Por eso, antes de empujar a `gh-pages`, **siempre** hay que traer y mezclar esa rama para no borrar
   sus voces: `git fetch origin gh-pages && git merge origin/gh-pages`, luego `git push origin HEAD:gh-pages`.
-- Nunca sobrescribir `assets/voz/lista.json` con una versión vacía.
+- Nunca sobrescribir `assets/voz/lista.json` ni `juegos-ia/lista.json` con una versión vacía (el Estudio Mágico
+  publica juegos creados con IA en `juegos-ia/`).
+- Nunca guardar llaves de IA (Claude/Gemini) ni tokens en el repositorio: se guardan solo en el navegador (admin).
 
 ## Estructura
 

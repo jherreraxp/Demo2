@@ -61,17 +61,21 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 70; }
 #toast.ver { opacity: 1; }
 @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+.aviso-llave { background: #fff7e6; border: 1px solid #f3d9a4; border-radius: 12px; padding: 10px 12px; color: #6b4a00 !important; }
+.llave { display: flex; gap: 8px; } .llave input { flex: 1; min-width: 0; }
+.mascara { color: var(--muted); font-family: ui-monospace, monospace; }
 </style>
 <script>window.SIN_MUSICA = true;</script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
 <script src="js/herramientas.js"></script>
+<script src="js/ia.js"></script>
 </head>
 <body>
 <main id="main" hidden>
   <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
   <nav class="indice" aria-label="Secciones">
-    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
   </nav>
 
   <section class="card" id="jugadores">
@@ -135,6 +139,27 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     <h2>🎙️ Voces de todo el juego</h2>
     <p>En el Estudio de voz grabas, una por una, todas las frases e instrucciones del juego. Lo que no esté grabado lo dice la voz del dispositivo.</p>
     <a class="primary" href="voces.html" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:12px">Abrir el Estudio de voz →</a>
+  </section>
+
+  <section class="card" id="ia">
+    <h2>🤖 Inteligencia artificial</h2>
+    <p>Con una llave de Claude o de Gemini, el <a href="ia.html">🪄 Estudio Mágico</a> inventa personajes y jueguitos con lo que la niña dicta por voz.</p>
+    <p class="aviso-llave">🔐 <b>Las llaves se guardan solo en este aparato</b> (en este navegador) y nunca se publican en la web. Ojo: cualquiera que sepa el PIN del admin en esta tablet podría usarlas. No las escribas en ningún otro lugar del juego. Si alguna vez compartiste una llave (por chat o correo), bórrala en la página de la IA y crea una nueva.</p>
+    <div class="row"><label for="ia-claude">Llave de Claude</label><span class="llave"><input type="password" id="ia-claude" autocomplete="off" placeholder="sk-ant-…"><button type="button" class="danger" data-borrar-llave="bl-ia-claude">Borrar llave</button></span></div>
+    <div class="row"><label></label><small class="mascara" id="ia-claude-ver"></small></div>
+    <div class="row"><label for="ia-claude-modelo">Modelo de Claude</label><select id="ia-claude-modelo"></select></div>
+    <div class="row"><label for="ia-gemini">Llave de Gemini</label><span class="llave"><input type="password" id="ia-gemini" autocomplete="off" placeholder="AIza…"><button type="button" class="danger" data-borrar-llave="bl-ia-gemini">Borrar llave</button></span></div>
+    <div class="row"><label></label><small class="mascara" id="ia-gemini-ver"></small></div>
+    <div class="row"><label for="ia-gemini-modelo">Modelo de Gemini</label><input type="text" id="ia-gemini-modelo" placeholder="gemini-2.5-flash" autocomplete="off"></div>
+    <div class="row"><label for="ia-prov">IA para el modo de la niña (voz)</label><select id="ia-prov"><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>
+    <div class="row"><label for="ia-limite">Creaciones por día</label><select id="ia-limite"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="0">Sin límite</option></select></div>
+    <div class="acciones"><button id="ia-probar">🧪 Probar la IA</button><span id="ia-estado" role="status"></span></div>
+
+    <h2 style="margin-top:16px">☁️ Google Drive (opcional)</h2>
+    <p>Guarda una copia del progreso, los personajes inventados, los mundos construidos y los jueguitos en <b>tu</b> Google Drive, con un Apps Script de tu cuenta. Los pasos están en <a href="gas/LEEME.md" target="_blank" rel="noopener">gas/LEEME.md</a> (y el código en <a href="gas/Code.gs" target="_blank" rel="noopener">gas/Code.gs</a>).</p>
+    <div class="row"><label for="gas-url">Dirección del Apps Script</label><input type="text" id="gas-url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></div>
+    <div class="row"><label for="gas-clave">Clave secreta del Apps Script</label><input type="password" id="gas-clave" autocomplete="off" placeholder="la misma que pusiste en el script"></div>
+    <div class="acciones"><button id="gas-probar">🧪 Probar</button><button class="primary" id="gas-guardar">☁️ Guardar copia en Drive</button><button id="gas-traer">⬇️ Traer copia de Drive</button><span id="gas-estado" role="status"></span></div>
   </section>
 
   <section class="card" id="publicar">
@@ -332,6 +357,50 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   });
   $t('#tema-quitar').onclick = () => { Tema.quitarFoto(); pintar(); };
   $t('#tema-todos').onchange = e => { Tema.setFotoTodos(e.target.checked); };
+  pintar();
+})();
+
+// ---------- inteligencia artificial y Google Drive ----------
+(() => {
+  const $i = s => document.querySelector(s), L = IA.LS;
+  const say = (el, html) => { $i(el).innerHTML = html; };
+  const pintar = () => {
+    const c = IA.config();
+    $i('#ia-claude').value = ''; $i('#ia-gemini').value = '';
+    $i('#ia-claude-ver').textContent = c.claude ? 'Guardada: ' + IA.enmascarar(c.claude) : 'Sin llave';
+    $i('#ia-gemini-ver').textContent = c.gemini ? 'Guardada: ' + IA.enmascarar(c.gemini) : 'Sin llave';
+    $i('#ia-claude').placeholder = c.claude ? 'Pega una nueva para cambiarla' : 'sk-ant-…';
+    $i('#ia-gemini').placeholder = c.gemini ? 'Pega una nueva para cambiarla' : 'AIza…';
+    $i('#ia-claude-modelo').innerHTML = IA.MODELOS_CLAUDE.map(m => `<option ${m === c.claudeModelo ? 'selected' : ''}>${m}</option>`).join('');
+    $i('#ia-gemini-modelo').value = c.geminiModelo;
+    $i('#ia-prov').value = c.proveedor; $i('#ia-limite').value = String(c.limite);
+    $i('#gas-url').value = c.gasUrl; $i('#gas-clave').value = c.gasClave;
+  };
+  const guardarLlave = (k, el) => { const v = $i(el).value.trim(); if (!v) return; L.set(k, v); pintar(); say('#ia-estado', '<span class="ok">Llave guardada en este aparato.</span>'); };
+  $i('#ia-claude').onchange = () => guardarLlave('bl-ia-claude', '#ia-claude');
+  $i('#ia-gemini').onchange = () => guardarLlave('bl-ia-gemini', '#ia-gemini');
+  document.querySelectorAll('[data-borrar-llave]').forEach(b => { b.onclick = () => { L.set(b.dataset.borrarLlave, ''); pintar(); say('#ia-estado', 'Llave borrada.'); }; });
+  $i('#ia-claude-modelo').onchange = e => L.set('bl-ia-claude-modelo', e.target.value);
+  $i('#ia-gemini-modelo').onchange = e => L.set('bl-ia-gemini-modelo', e.target.value.trim());
+  $i('#ia-prov').onchange = e => L.set('bl-ia-proveedor', e.target.value);
+  $i('#ia-limite').onchange = e => L.set('bl-ia-limite', e.target.value);
+  $i('#ia-probar').onclick = async () => {
+    const p = IA.proveedor($i('#ia-prov').value); if (!p) { say('#ia-estado', '<span class="err">Primero pega una llave.</span>'); return; }
+    say('#ia-estado', 'Probando…');
+    try { const t = await IA.llamar({ sistema: 'Contesta en español con una sola palabra alegre.', mensaje: 'Saluda a una niña.', maxTokens: 20, pref: p, contar: false }); say('#ia-estado', `<span class="ok">¡Funciona! (${p})</span> ${Juego.esc(t.slice(0, 40))}`); }
+    catch (er) { say('#ia-estado', `<span class="err">${Juego.esc(er.message)}</span>`); }
+  };
+  $i('#gas-url').onchange = e => L.set('bl-gas-url', e.target.value.trim());
+  $i('#gas-clave').onchange = e => L.set('bl-gas-clave', e.target.value.trim());
+  const conGas = async (btn, fn) => { L.set('bl-gas-url', $i('#gas-url').value.trim()); L.set('bl-gas-clave', $i('#gas-clave').value.trim()); btn.disabled = true; say('#gas-estado', 'Conectando…'); try { await fn(); } catch (er) { say('#gas-estado', `<span class="err">${Juego.esc(er.message)}</span>`); } btn.disabled = false; };
+  $i('#gas-probar').onclick = e => conGas(e.target, async () => { const r = await IA.probarDrive(); say('#gas-estado', `<span class="ok">¡Conectado!</span> ${r.ultima ? 'Última copia: ' + new Date(r.ultima).toLocaleString('es-PE') : 'Todavía no hay copias.'}`); });
+  $i('#gas-guardar').onclick = e => conGas(e.target, async () => { const r = await IA.guardarEnDrive(); say('#gas-estado', `<span class="ok">¡Copia guardada en Drive!</span> ${r.archivo ? Juego.esc(r.archivo) : ''}`); });
+  let armado = false;
+  $i('#gas-traer').onclick = e => {
+    if (!armado) { armado = true; e.target.textContent = '⚠️ Reemplaza lo de este aparato. Toca otra vez'; setTimeout(() => { armado = false; e.target.textContent = '⬇️ Traer copia de Drive'; }, 4000); return; }
+    armado = false; e.target.textContent = '⬇️ Traer copia de Drive';
+    conGas(e.target, async () => { const r = await IA.traerDeDrive(); say('#gas-estado', `<span class="ok">¡Copia traída!</span> (${r.fecha ? new Date(r.fecha).toLocaleString('es-PE') : ''}) Recargando…`); setTimeout(() => location.reload(), 1500); });
+  };
   pintar();
 })();
 </script>
