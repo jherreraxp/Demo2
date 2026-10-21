@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Construye tu Mundo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(#8fd8ff, #dff4ff 55%, #ffe3f3); overflow: hidden; }
+canvas.mundo { touch-action: none; }
+.titulo-pill { background: linear-gradient(90deg, #ff7eb6, #9a6ee0); }
+/* herramientas */
+.herramientas { position: fixed; left: 10px; top: calc(env(safe-area-inset-top, 0px) + 72px); z-index: 6; display: flex; flex-direction: column; gap: 7px; }
+.herr { width: 58px; height: 58px; border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); font-size: 28px; display: grid; place-items: center; position: relative; }
+.herr small { position: absolute; bottom: -1px; left: 0; right: 0; font-size: 10px; font-weight: 800; color: #5b4a8a; line-height: 1.1; }
+.herr.on { background: #ffe27a; outline: 3px solid #9a6ee0; }
+.herr:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
+.herr.sep { margin-top: 6px; }
+/* biblioteca */
+.biblio { position: fixed; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 72px); bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); width: 300px; z-index: 6; background: rgba(255,255,255,.94); border-radius: 26px; box-shadow: 0 6px 0 var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
+.biblio .asa { display: none; }
+.tabs { display: flex; gap: 4px; padding: 8px 8px 0; }
+.tabs button { flex: 1; border-radius: 16px 16px 0 0; padding: 6px 2px 4px; background: #efe7ff; font-size: 24px; line-height: 1; color: #4b3a7a; }
+.tabs button small { display: block; font-size: 11px; font-weight: 800; margin-top: 2px; }
+.tabs button.on { background: linear-gradient(#ffd6ec, #fff); }
+.lista { flex: 1; overflow-y: auto; padding: 10px; background: linear-gradient(#fff, #fff7fc); display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
+.lista h3 { margin: 0; font-size: 15px; color: #6b4fd8; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.colores { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.color { aspect-ratio: 1; border-radius: 12px; box-shadow: inset 0 -5px 0 rgba(0,0,0,.18), 0 3px 0 var(--shadow); position: relative; }
+.color.on { outline: 3px solid #23324a; outline-offset: 2px; }
+.color.on::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 18px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.item { border-radius: 16px; background: #f4efff; padding: 6px 2px 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 3px 0 var(--shadow); color: #23324a; min-height: 72px; justify-content: center; }
+.item span { font-size: 32px; line-height: 1.05; }
+.item b { font-size: 12px; line-height: 1.1; text-align: center; }
+.item.on { background: #ffe27a; outline: 3px solid #9a6ee0; }
+.item:active { transform: translateY(2px); }
+.pieza { width: 40px; height: 40px; }
+/* jugar */
+.jugar { position: fixed; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 7; background: var(--go); color: #fff; border-radius: 999px; padding: 10px 26px; font-size: 26px; font-weight: 800; box-shadow: 0 6px 0 var(--go-dark); }
+.jugar:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--go-dark); }
+body.juego .jugar { background: #9a6ee0; box-shadow: 0 6px 0 #6b4fd8; }
+.joy { position: fixed; left: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); width: 132px; height: 132px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 4px rgba(255,255,255,.8), 0 6px 0 var(--shadow); z-index: 6; touch-action: none; display: none; }
+.joy .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: var(--paper); box-shadow: 0 4px 0 var(--shadow); display: grid; place-items: center; font-size: 26px; }
+.saltar { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 6; width: 92px; height: 92px; border-radius: 50%; background: #fff; box-shadow: 0 6px 0 var(--shadow); font-size: 40px; display: none; touch-action: none; }
+.saltar:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--shadow); }
+body.juego .joy, body.juego .saltar { display: block; }
+body.juego .herramientas, body.juego .biblio, body.juego .ayuda-tap { display: none; }
+#estrellas-pill { display: none; }
+body.juego #estrellas-pill { display: flex; }
+.ayuda-tap { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); z-index: 5; background: rgba(35,50,74,.62); color: #fff; border-radius: 999px; padding: 6px 16px; font-size: 16px; font-weight: 700; white-space: nowrap; pointer-events: none; }
+/* ventanas de guardar/abrir */
+.modal { position: fixed; inset: 0; z-index: 30; background: rgba(35,50,74,.4); display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal .caja { background: #fff; border-radius: 28px; box-shadow: 0 8px 0 var(--shadow); padding: 18px; width: min(420px, 100%); max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.modal h2 { margin: 0; text-align: center; font-size: 28px; }
+.modal input { font: inherit; font-size: 20px; padding: 10px 14px; border-radius: 14px; border: 3px solid #d8ccff; }
+.modal .fila { display: flex; gap: 8px; align-items: center; }
+.modal .fila b { flex: 1; font-size: 19px; }
+.modal button.b { border-radius: 14px; padding: 8px 14px; font-size: 18px; font-weight: 800; background: #efe7ff; box-shadow: 0 3px 0 var(--shadow); }
+.modal button.b.si { background: var(--go); color: #fff; }
+.modal .vacio { text-align: center; color: #5b6b82; }
+@media (max-width: 760px) {
+  .herramientas { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 206px); left: 6px; right: 6px; flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+  .herr { width: 50px; height: 50px; font-size: 24px; flex: none; border-radius: 15px; }
+  .herr.sep { margin-top: 0; margin-left: 4px; }
+  .biblio { left: 0; right: 0; bottom: 0; top: auto; width: auto; height: 200px; border-radius: 26px 26px 0 0; transition: height .25s; }
+  .biblio.abierta { height: 58vh; }
+  .biblio .asa { display: block; width: 100%; padding: 4px 0 0; font-size: 13px; font-weight: 800; color: #6b4fd8; }
+  .biblio .asa i { display: block; width: 46px; height: 6px; border-radius: 3px; background: #d8ccff; margin: 0 auto 2px; }
+  .lista { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  .grid { grid-template-columns: repeat(4, 1fr); }
+  .colores { grid-template-columns: repeat(9, 1fr); gap: 5px; }
+  .jugar { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); right: 10px; padding: 6px 16px; font-size: 20px; }
+  .ayuda-tap { display: none; }
+  .titulo-pill { display: none; }
+}
+@media (max-width: 420px) { .joy { width: 116px; height: 116px; } .grid { grid-template-columns: repeat(3, 1fr); } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Mundo en 3D para construir"></canvas>
+
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill titulo-pill">🧱 Construye tu Mundo</div>
+    <div class="pill" id="estrellas-pill" aria-label="Estrellitas">⭐ <span id="estrellas">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+
+<div class="herramientas" id="herramientas" aria-label="Herramientas">
+  <button class="herr on" data-tool="poner" aria-label="Poner">➕<small>Poner</small></button>
+  <button class="herr" data-tool="borrar" aria-label="Borrar">🧽<small>Borrar</small></button>
+  <button class="herr" data-tool="pintar" aria-label="Pintar">🎨<small>Pintar</small></button>
+  <button class="herr" data-tool="girar" aria-label="Girar">↻<small>Girar</small></button>
+  <button class="herr sep" data-accion="deshacer" aria-label="Deshacer">↶<small>Atrás</small></button>
+  <button class="herr" data-accion="limpiar" aria-label="Limpiar todo">🗑️<small>Limpiar</small></button>
+  <button class="herr" data-accion="guardar" aria-label="Guardar mundo">💾<small>Guardar</small></button>
+  <button class="herr" data-accion="abrir" aria-label="Abrir mundo">📂<small>Abrir</small></button>
+</div>
+
+<div class="biblio" id="biblio" aria-label="Biblioteca">
+  <button class="asa" id="asa" aria-label="Abrir o cerrar la biblioteca"><i></i>Biblioteca</button>
+  <div class="tabs" id="tabs">
+    <button data-tab="bloques" class="on">🧱<small>Bloques</small></button>
+    <button data-tab="armados">🏠<small>Armados</small></button>
+    <button data-tab="objetos">🧸<small>Objetos</small></button>
+    <button data-tab="personajes">👧<small>Personajes</small></button>
+  </div>
+  <div class="lista" id="lista"></div>
+</div>
+<div class="ayuda-tap" id="ayuda-tap">Toca el pasto para poner · arrastra para girar · pellizca para acercar</div>
+
+<button class="jugar" id="jugar">▶ ¡Jugar!</button>
+<div class="joy" id="joy" aria-label="Joystick para caminar"><div class="knob" id="knob">👣</div></div>
+<button class="saltar" id="saltar" aria-label="Saltar">🦘</button>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="modal" id="modal" hidden><div class="caja" id="modal-caja"></div></div>
+
+<script type="module" src="js/construir.js"></script>
+</body>
+</html>
