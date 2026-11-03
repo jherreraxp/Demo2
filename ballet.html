@@ -20,7 +20,7 @@ body { background: #1d1440; }
 .cancion b { font-size: 15px; line-height: 1.1; }
 .cancion small { font-size: 12px; opacity: .7; }
 .cancion.on { background: #ffe27a; transform: translateY(-4px); }
-.posiciones { position: fixed; left: 10px; top: calc(env(safe-area-inset-top, 0px) + 130px); bottom: calc(env(safe-area-inset-bottom, 0px) + 130px); z-index: 5; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; width: 168px; padding-right: 4px; }
+.posiciones { position: fixed; left: 10px; top: calc(env(safe-area-inset-top, 0px) + 130px); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--canciones-alto, 150px)); z-index: 5; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; width: 168px; padding-right: 4px; }
 .pos { border: 0; border-radius: 14px; background: rgba(255,255,255,.9); padding: 4px 8px 4px 4px; font: inherit; font-size: 14px; font-weight: 800; text-align: left; box-shadow: 0 3px 0 rgba(0,0,0,.3); cursor: pointer; color: #23324a; display: flex; align-items: center; gap: 6px; line-height: 1.1; }
 .pos img { width: 44px; height: 54px; flex: none; border-radius: 10px; background: linear-gradient(#ffe9f6, #e7dcff); }
 .pos kbd { margin-left: auto; flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #23324a; color: #fff; font: 800 13px/1.4 system-ui, sans-serif; text-align: center; }
@@ -33,13 +33,13 @@ body { background: #1d1440; }
 .dpad button { border-radius: 14px; background: rgba(255,255,255,.85); font-size: 22px; box-shadow: 0 3px 0 rgba(0,0,0,.3); touch-action: none; }
 .dpad .arr { grid-area: 1 / 2; } .dpad .izq { grid-area: 2 / 1; } .dpad .sal { grid-area: 2 / 2; font-size: 16px; } .dpad .der { grid-area: 2 / 3; } .dpad .aba { grid-area: 3 / 2; }
 .teclas { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 112px); z-index: 5; background: rgba(35,50,74,.6); color: #fff; border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
-@media (max-width: 700px) { .caritas { top: auto; right: auto; left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 186px); flex-direction: row; gap: 4px; } .caritas button { width: 40px; height: 40px; font-size: 22px; border-radius: 12px; } .dpad { right: auto; left: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 236px); grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); } .teclas { display: none; } }
+@media (max-width: 700px) { .caritas { top: auto; right: auto; left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 186px); flex-direction: row; gap: 4px; } .caritas button { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; } .dpad { right: auto; left: 10px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 236px); grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); } .teclas { display: none; } }
 @media (hover: none) { .teclas, .pos kbd, .caritas kbd, .dpad kbd { display: none; } }
 .pos small { display: block; font-size: 12px; font-weight: 600; opacity: .7; }
 .pos.on { background: #ffe27a; }
 .pos:disabled { background: rgba(255,255,255,.45); cursor: default; }
 .nueva { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 30; background: #fff; border-radius: 26px; padding: 18px 24px; text-align: center; font-size: 26px; font-weight: 800; box-shadow: 0 10px 0 rgba(0,0,0,.3); color: #23324a; }
-@media (max-width: 700px) { .posiciones { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); left: 0; right: 0; width: auto; flex-direction: row; overflow-x: auto; padding: 0 10px; height: 54px; } .pos { flex: none; } .aplauso { bottom: calc(env(safe-area-inset-bottom, 0px) + 184px) !important; } }
+@media (max-width: 700px) { .posiciones { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); left: 0; right: 0; width: auto; flex-direction: row; overflow-x: auto; padding: 0 10px; height: 54px; } .pos { flex: none; } .aplauso { bottom: calc(env(safe-area-inset-bottom, 0px) + 240px) !important; } }
 .aplauso { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); z-index: 6; background: #fff; border-radius: 999px; padding: 10px 16px; font-size: 22px; font-weight: 800; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
 .aplauso:active { transform: translateY(4px); }
 </style>

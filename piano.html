@@ -16,8 +16,9 @@ body { background: radial-gradient(circle at 50% 20%, #fff4fb, #ffc6e6 45%, #b79
 @keyframes baile { 0% { transform: translateY(0) rotate(0) } 35% { transform: translateY(-38px) rotate(-12deg) scale(1.08) } 70% { transform: translateY(0) rotate(8deg) } 100% { transform: rotate(0) } }
 .nota-grande { position: absolute; font: 800 min(9vh, 64px) var(--font-display); color: #fff; text-shadow: 0 4px 0 #9a6ee0, 0 0 18px #ff5dab; animation: sube 1s ease-out forwards; }
 @keyframes sube { from { opacity: 1; transform: translateY(0) scale(.6) } to { opacity: 0; transform: translateY(-80px) scale(1.2) } }
-.modos { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; z-index: 6; padding: 0 10px; }
-.modos button { border-radius: 18px; padding: 6px 14px; font-size: 19px; font-weight: 800; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); }
+.modos { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); display: flex; gap: 8px; justify-content: safe center; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; z-index: 6; padding: 0 10px 6px; }
+.modos::-webkit-scrollbar { display: none; }
+.modos button { flex: none; min-height: 44px; border-radius: 18px; padding: 6px 14px; font-size: 19px; font-weight: 800; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); }
 .modos button.on { background: var(--gold); }
 .teclado { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); height: 46vh; display: flex; gap: 8px; padding: 0 12px; justify-content: center; }
 .tecla { flex: 1; max-width: 130px; border-radius: 0 0 26px 26px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 14px; gap: 4px;
@@ -50,8 +51,8 @@ body.canciones .teclado { height: 30vh; }
 .cancion-btn small { font-weight: 700; color: #7a6b93; font-size: 12px; }
 .lista-caja .cerrar { margin-top: 12px; border-radius: 16px; padding: 6px 16px; background: #eef6fb; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); }
 .btn-lista { display: none; }
-body.canciones .btn-lista { display: inline-block; }
-@media (max-width: 520px) { body.canciones .teclado { height: 27vh; } #pista { top: calc(env(safe-area-inset-top, 0px) + 196px); } body.canciones .progreso { top: calc(env(safe-area-inset-top, 0px) + 152px); white-space: nowrap; } body.canciones .progreso .pill { font-size: 14px; padding: 3px 10px; } }
+body.canciones .btn-lista { display: inline-block; min-height: 44px; }
+@media (max-width: 520px) { body.canciones .teclado { height: 27vh; } #pista { top: calc(env(safe-area-inset-top, 0px) + 196px); } body.canciones .progreso { top: calc(env(safe-area-inset-top, 0px) + 124px); white-space: nowrap; } body.canciones .progreso .pill { font-size: 14px; padding: 3px 10px; } body.canciones .progreso .btn-lista { min-height: 44px; } }
 @media (max-width: 520px) { .escena { top: calc(env(safe-area-inset-top, 0px) + 150px); height: 26vh; } .bailarin { font-size: 18vh; } .tecla { border-radius: 0 0 18px 18px; } .teclado { gap: 5px; padding: 0 6px; } .modos button { font-size: 16px; padding: 5px 10px; } }
 </style>
 <script src="js/comun.js"></script>
