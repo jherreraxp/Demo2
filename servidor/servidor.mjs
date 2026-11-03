@@ -178,7 +178,7 @@ ruta('POST', '/api/suscripcion/revisar', async (req) => {
 });
 ruta('POST', '/api/pagos/webhook', async (req, url) => {
   let cuerpo = {}; try { cuerpo = await leerJSON(req); } catch (e) {}
-  try { await webhook(url.searchParams, cuerpo); } catch (e) { log('webhook_error', { msg: e.message }); }
+  try { await webhook(url.searchParams, cuerpo, req.headers); } catch (e) { log('webhook_error', { msg: e.message }); }
   return { ok: true }; // siempre 200 para que el proveedor no reintente sin fin
 });
 

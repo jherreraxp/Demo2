@@ -6,7 +6,7 @@
 #   VM_LLAVE    llave privada SSH que entra a la VM (una llave nueva, solo para este despliegue)
 #   VM_DOMINIO  dominio del juego (abu.arcillita.com)
 # Opcionales (se escriben en /etc/avelu/avelu.env de la VM; nunca quedan en el repositorio):
-#   MP_ACCESS_TOKEN, MP_PLAN_PRECIO, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_PLAN_ID, PAYPAL_MODE,
+#   MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, MP_PLAN_PRECIO, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_PLAN_ID, PAYPAL_MODE,
 #   PAGOS_PROVEEDOR (mercadopago | paypal), PLAN_GRATIS_PARA,
 #   IA_PROVEEDOR, IA_API_KEY, IA_MODELO, IA_BASE_URL (cuentos con IA de cualquier proveedor; ANTHROPIC_API_KEY sigue sirviendo), GOOGLE_CLIENT_ID
 name: Desplegar en la VM
@@ -71,6 +71,7 @@ jobs:
           H: '${{ secrets.VM_HOST }}'
           U: '${{ secrets.VM_USUARIO }}'
           MP_ACCESS_TOKEN: '${{ secrets.MP_ACCESS_TOKEN }}'
+          MP_WEBHOOK_SECRET: '${{ secrets.MP_WEBHOOK_SECRET }}'
           MP_PLAN_PRECIO: '${{ secrets.MP_PLAN_PRECIO }}'
           PAYPAL_CLIENT_ID: '${{ secrets.PAYPAL_CLIENT_ID }}'
           PAYPAL_SECRET: '${{ secrets.PAYPAL_SECRET }}'
@@ -86,7 +87,7 @@ jobs:
           GOOGLE_CLIENT_ID: '${{ secrets.GOOGLE_CLIENT_ID }}'
         run: |
           {
-            for k in MP_ACCESS_TOKEN MP_PLAN_PRECIO PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_PLAN_ID PAYPAL_MODE ANTHROPIC_API_KEY IA_PROVEEDOR IA_API_KEY IA_MODELO IA_BASE_URL PLAN_GRATIS_PARA GOOGLE_CLIENT_ID; do printf '%s=%s\n' "$k" "${!k}"; done
+            for k in MP_ACCESS_TOKEN MP_WEBHOOK_SECRET MP_PLAN_PRECIO PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_PLAN_ID PAYPAL_MODE ANTHROPIC_API_KEY IA_PROVEEDOR IA_API_KEY IA_MODELO IA_BASE_URL PLAN_GRATIS_PARA GOOGLE_CLIENT_ID; do printf '%s=%s\n' "$k" "${!k}"; done
             # si hay token de Mercado Pago y no se eligió proveedor, se usa Mercado Pago
             P="$PAGOS_PROVEEDOR"; [ -z "$P" ] && [ -n "$MP_ACCESS_TOKEN" ] && P=mercadopago; [ -z "$P" ] && [ -n "$PAYPAL_PLAN_ID" ] && P=paypal
             printf 'PAGOS_PROVEEDOR=%s\n' "$P"

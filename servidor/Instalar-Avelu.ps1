@@ -40,7 +40,15 @@ bash servidor/instalar-junto-a-sigfe.sh "__DOM__" "__MAIL__"
     $precio = Read-Host "Precio mensual en soles (Enter = 19.90)"
     $gid = Read-Host "ID de cliente de Google para 'Entrar con Google' (termina en .apps.googleusercontent.com; Enter para omitir)"
     $lineas = @("PLAN_GRATIS_PARA=$Correo")
-    if ($mp) { $lineas += "MP_ACCESS_TOKEN=$mp"; $lineas += "PAGOS_PROVEEDOR=mercadopago" }
+    if ($mp) {
+      $lineas += "MP_ACCESS_TOKEN=$mp"; $lineas += "PAGOS_PROVEEDOR=mercadopago"
+      # Mercado Pago → Tus integraciones → Webhooks → Clave secreta (modo productivo o de prueba, la que corresponda al token)
+      $sec = (Pedir "Clave secreta de los Webhooks de Mercado Pago (no se mostrará; Enter para omitir)").Trim()
+      if ($sec) {
+        if ($sec -match '^[0-9a-fA-F]{32,128}$') { $lineas += "MP_WEBHOOK_SECRET=$sec"; Write-Host "Clave secreta de webhooks guardada (se comprobará la firma de cada aviso)." }
+        else { Write-Host "Esa clave no parece la de Webhooks (son letras a-f y números). No la guardé." -ForegroundColor Yellow }
+      }
+    }
     if ($precio) { $lineas += "MP_PLAN_PRECIO=$precio" }
     if ($gid) { $lineas += "GOOGLE_CLIENT_ID=$($gid.Trim())" }
     Guardar $lineas

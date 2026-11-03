@@ -19,6 +19,8 @@ export const config = {
     moneda: env.MP_MONEDA || 'PEN',
     backUrl: env.MP_BACK_URL || 'https://jherreraxp.github.io/Demo2/cuenta.html',
     api: env.MP_API || 'https://api.mercadopago.com',
+    // clave secreta de los webhooks (Mercado Pago → Tus integraciones → Webhooks); si está, se exige la firma
+    webhookSecret: env.MP_WEBHOOK_SECRET || '',
   },
   paypal: {
     clientId: env.PAYPAL_CLIENT_ID || '',

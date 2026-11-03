@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 // Suscripción mensual "familia" con Mercado Pago (preapproval) o PayPal (billing subscriptions).
 // Nunca se cree lo que dice el aviso (webhook): siempre se consulta el estado a la API del proveedor.
 import { config } from './config.mjs';
@@ -113,9 +114,27 @@ export async function cancelarSuscripcion(c) {
   if (c.proveedor === 'paypal') return ppCancelar(c);
   throw new ErrorUsuario('No tienes una suscripción activa.');
 }
-// aviso del proveedor: solo se toma el id y se verifica consultando su API
-export async function webhook(query, cuerpo) {
+// firma de Mercado Pago: x-signature "ts=...,v1=..." = HMAC-SHA256(clave, "id:<data.id>;request-id:<x-request-id>;ts:<ts>;")
+export function firmaMercadoPagoValida(cab, query, cuerpo, clave = config.mp.webhookSecret) {
+  if (!clave) return true;
+  const partes = Object.fromEntries(String(cab['x-signature'] || '').split(',').map(p => p.trim().split('=').map(x => (x || '').trim())));
+  const ts = partes.ts, v1 = partes.v1;
+  if (!ts || !v1 || !/^[0-9a-f]{64}$/i.test(v1)) return false;
+  let id = query.get('data.id') || cuerpo?.data?.id || '';
+  id = String(id); if (/^[a-z0-9]+$/i.test(id)) id = id.toLowerCase();
+  const rid = String(cab['x-request-id'] || '');
+  let manifiesto = '';
+  if (id) manifiesto += `id:${id};`;
+  if (rid) manifiesto += `request-id:${rid};`;
+  manifiesto += `ts:${ts};`;
+  const esperado = crypto.createHmac('sha256', clave).update(manifiesto).digest();
+  const recibido = Buffer.from(v1, 'hex');
+  return recibido.length === esperado.length && crypto.timingSafeEqual(recibido, esperado);
+}
+// aviso del proveedor: se revisa la firma (si hay clave) y luego se verifica consultando su API
+export async function webhook(query, cuerpo, cab = {}) {
   if (config.pagos === 'mercadopago') {
+    if (!firmaMercadoPagoValida(cab, query, cuerpo)) { log('webhook_firma_mala', {}); return; }
     const tipo = query.get('type') || query.get('topic') || cuerpo?.type || cuerpo?.topic || '';
     const id = query.get('data.id') || query.get('id') || cuerpo?.data?.id || cuerpo?.id;
     if (id && /preapproval|subscription/.test(tipo) && /^[\w-]{4,80}$/.test(String(id))) await mpVerificar(String(id));

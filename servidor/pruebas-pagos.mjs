@@ -49,5 +49,20 @@ await api('POST', '/api/suscripcion/cancelar', t);
 assert.equal(estados.pre1.status, 'cancelled');
 assert.equal((await api('GET', '/api/yo', t)).cuenta.plan, 'familia');
 console.log('✔ suscripción Mercado Pago: crear, verificar aviso, activar y cancelar');
+// ---------- firma de los webhooks (MP_WEBHOOK_SECRET) ----------
+{
+  const crypto = await import('node:crypto');
+  const { firmaMercadoPagoValida } = await import('./lib/pagos.mjs');
+  const clave = 'a'.repeat(64), q = new URLSearchParams('type=subscription_preapproval&data.id=ABC123');
+  const ts = '1704908010', rid = 'req-1';
+  const v1 = crypto.createHmac('sha256', clave).update(`id:abc123;request-id:${rid};ts:${ts};`).digest('hex');
+  assert.equal(firmaMercadoPagoValida({ 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': rid }, q, {}, clave), true);
+  assert.equal(firmaMercadoPagoValida({ 'x-signature': `ts=${ts},v1=${'0'.repeat(64)}`, 'x-request-id': rid }, q, {}, clave), false);
+  assert.equal(firmaMercadoPagoValida({}, q, {}, clave), false);
+  assert.equal(firmaMercadoPagoValida({}, q, {}, ''), true);
+  console.log('✔ firma de webhooks de Mercado Pago');
+}
+
 servidor.close(); mp.close(); fs.rmSync(dir, { recursive: true, force: true });
 process.exit(0);
+

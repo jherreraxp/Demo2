@@ -162,3 +162,12 @@ Para probar una llave a mano en la VM:
 
 Si no hay llave o el proveedor falla, la página de cuentos muestra «Los cuentos mágicos no están disponibles ahora»
 y el resto del juego sigue igual. A la IA solo se envían los apodos y el tema del cuento.
+
+### Clave secreta de los Webhooks de Mercado Pago
+
+En Mercado Pago → Tus integraciones → tu aplicación → Webhooks, además de la URL
+`https://abu.arcillita.com/api/pagos/webhook`, aparece una **Clave secreta**. Ponla en `MP_WEBHOOK_SECRET`
+(`Instalar-Avelu.ps1` la pide sin mostrarla). Con ella el servidor rechaza los avisos que no traen una firma
+`x-signature` válida, y además sigue consultando a Mercado Pago el estado real de cada suscripción.
+Usa la clave del mismo modo (prueba o productivo) que el Access Token. Si la clave se compartió por error,
+regénerala en Mercado Pago (botón 🔄) y vuelve a correr el instalador.
