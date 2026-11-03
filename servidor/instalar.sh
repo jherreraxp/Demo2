@@ -48,6 +48,8 @@ cd "$APP" && npm ci --omit=dev --no-audit --no-fund
 chown -R root:root "$APP"; chmod -R a+rX "$APP"
 chown -R avelu:avelu "$DATOS"; chmod 700 "$DATOS"
 if [[ ! -f "$ETC/avelu.env" ]]; then cp "$ORIGEN/avelu.env.ejemplo" "$ETC/avelu.env"; echo "   Creé $ETC/avelu.env (complétalo)."; fi
+# el juego servido desde el propio dominio también puede llamar a la API
+grep -q "https://$DOMINIO" "$ETC/avelu.env" || sed -i "s#^ORIGENES=\(.*\)#ORIGENES=\1,https://$DOMINIO#" "$ETC/avelu.env"
 chown root:avelu "$ETC/avelu.env"; chmod 640 "$ETC/avelu.env"
 
 echo "==> Servicio systemd"
@@ -81,16 +83,54 @@ MemoryMax=512M
 WantedBy=multi-user.target
 UNIT
 
-echo "==> Caddy para $DOMINIO"
-cat > /etc/caddy/Caddyfile <<CADDY
+echo "==> Revisando que no haya otro programa usando los puertos 80/443"
+OCUPA="$(ss -ltnp 2>/dev/null | awk '$4 ~ /:(80|443)$/' | grep -v caddy || true)"
+if [[ -n "$OCUPA" ]]; then
+  echo "✘ Otro programa ya usa el puerto 80 o 443 (por ejemplo nginx o apache):"; echo "$OCUPA"
+  echo "  No toco nada para no romper lo que ya funciona en esta VM. Avísame y lo configuramos juntos."
+  exit 1
+fi
+
+echo "==> El juego también se sirve desde esta VM (copia de la rama gh-pages, se actualiza cada 5 minutos)"
+SITIO=/var/www/avelu
+REPO_URL="${REPO_URL:-https://github.com/jherreraxp/Demo2.git}"
+command -v git >/dev/null || { [[ $PM == apt ]] && apt-get install -y git || dnf install -y git; }
+if [[ ! -d "$SITIO/.git" ]]; then git clone --depth 1 -b gh-pages "$REPO_URL" "$SITIO"; fi
+cat > /usr/local/bin/avelu-sitio <<'SYNC'
+#!/usr/bin/env bash
+# trae la última versión publicada del juego (incluye las voces que sube el Estudio de voz)
+cd /var/www/avelu && git fetch --depth 1 -q origin gh-pages && git reset -q --hard origin/gh-pages
+SYNC
+chmod 755 /usr/local/bin/avelu-sitio
+echo "*/5 * * * * root /usr/local/bin/avelu-sitio" > /etc/cron.d/avelu-sitio
+chmod -R a+rX "$SITIO"
+
+echo "==> Caddy para $DOMINIO (en su propio archivo, sin borrar otras configuraciones)"
+cat > /etc/caddy/avelu.caddy <<CADDY
 $DOMINIO {
 	encode gzip
 	request_body {
 		max_size 2MB
 	}
-	reverse_proxy 127.0.0.1:8787
+	@api path /api/* /ws
+	handle @api {
+		reverse_proxy 127.0.0.1:8787
+	}
+	@privado path /.git/* /servidor/* /gas/*
+	respond @privado 404
+	handle {
+		root * $SITIO
+		file_server
+	}
 }
 CADDY
+touch /etc/caddy/Caddyfile
+grep -q 'import /etc/caddy/avelu.caddy' /etc/caddy/Caddyfile || {
+  # el Caddyfile de ejemplo que trae el paquete ocupa el puerto 80 con una página de prueba: lo guardamos y lo quitamos
+  if grep -q '^:80' /etc/caddy/Caddyfile; then cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.original; : > /etc/caddy/Caddyfile; fi
+  echo 'import /etc/caddy/avelu.caddy' >> /etc/caddy/Caddyfile
+}
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
 echo "==> Firewall (puertos 80 y 443)"
 if command -v ufw >/dev/null && ufw status | grep -q active; then ufw allow 80/tcp; ufw allow 443/tcp; fi
@@ -122,5 +162,5 @@ Siguientes pasos:
  2. Tu dominio $DOMINIO debe apuntar a la IP pública de esta VM (registro A).
  3. Completa la configuración:  sudo nano $ETC/avelu.env   y luego   sudo systemctl restart avelu
  4. Prueba desde tu compu:  curl https://$DOMINIO/api/salud
- 5. En el juego (admin) pon la dirección del servidor: https://$DOMINIO
+ 5. Abre el juego en https://$DOMINIO (el servidor se detecta solo)
 FIN

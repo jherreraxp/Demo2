@@ -1,0 +1,43 @@
+# Instala o actualiza el servidor en la VM de Oracle.
+# Se ejecuta a mano (Actions → "Desplegar en la VM" → Run workflow) o al empujar cambios de servidor/ a la rama de trabajo.
+# Necesita estos secretos del repositorio (Settings → Secrets and variables → Actions):
+#   VM_HOST     IP pública de la VM (por ejemplo 146.181.18.35)
+#   VM_USUARIO  usuario SSH (ubuntu)
+#   VM_LLAVE    llave privada SSH que entra a la VM (una llave nueva, solo para este despliegue)
+#   VM_DOMINIO  dominio del juego (por ejemplo juego.midominio.com)
+name: Desplegar en la VM
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/reading-game-children-zpv3xw]
+    paths: ['servidor/**']
+concurrency: desplegar
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Revisar secretos
+        env: { H: '${{ secrets.VM_HOST }}', K: '${{ secrets.VM_LLAVE }}', D: '${{ secrets.VM_DOMINIO }}' }
+        run: |
+          if [ -z "$H" ] || [ -z "$K" ] || [ -z "$D" ]; then echo "Faltan los secretos VM_HOST, VM_LLAVE o VM_DOMINIO."; exit 1; fi
+      - name: Preparar SSH
+        env: { K: '${{ secrets.VM_LLAVE }}', H: '${{ secrets.VM_HOST }}' }
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$K" > ~/.ssh/vm && chmod 600 ~/.ssh/vm
+          ssh-keyscan -T 15 "$H" >> ~/.ssh/known_hosts
+      - name: Instalar o actualizar
+        env: { H: '${{ secrets.VM_HOST }}', U: '${{ secrets.VM_USUARIO }}', D: '${{ secrets.VM_DOMINIO }}', R: '${{ github.ref_name }}' }
+        run: |
+          ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" bash -s -- "$D" "$R" <<'REMOTO'
+          set -euo pipefail
+          D="$1"; R="$2"
+          command -v git >/dev/null || sudo apt-get install -y git
+          if [ ! -d ~/Demo2/.git ]; then git clone -b "$R" https://github.com/jherreraxp/Demo2.git ~/Demo2; fi
+          cd ~/Demo2 && git fetch -q origin "$R" && git checkout -q "$R" && git reset -q --hard "origin/$R"
+          sudo bash servidor/instalar.sh "$D"
+          curl -fsS http://127.0.0.1:8787/api/salud && echo
+          REMOTO
+      - name: Limpiar
+        if: always()
+        run: rm -f ~/.ssh/vm
