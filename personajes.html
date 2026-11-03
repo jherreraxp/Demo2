@@ -9,183 +9,270 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
 <link rel="stylesheet" href="css/juego3d.css">
 <style>
-body { background: #bfe6ff; }
-.acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.acciones .btn { font-size: 20px; padding: 8px 18px; border-radius: 999px; background: #fff; box-shadow: 0 4px 0 var(--shadow); font-weight: 800; text-decoration: none; color: inherit; }
-.titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); text-align: center; z-index: 5; pointer-events: none; }
-.titulo h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); line-height: 1.05; }
-.tabs { display: inline-flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
-.tabs button { background: rgba(255,255,255,.6); border-radius: 999px; padding: 4px 16px; font-size: 20px; font-weight: 800; }
-.tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
-.abajo { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; align-items: center; z-index: 5; }
-.nombres { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 5px; width: 100%; max-width: 1100px; max-height: 26vh; overflow-y: auto; padding: 2px 2px 6px; }
-.nombres button { background: rgba(255,255,255,.75); border-radius: 14px; padding: 3px 4px; font-size: 13px; font-weight: 800; line-height: 1.05; box-shadow: 0 3px 0 var(--shadow); display: flex; align-items: center; gap: 4px; text-align: left; }
-.nombres button span { display: block; font-size: 22px; flex: none; }
-.nombres button.on { background: var(--gold); }
-.estilos { display: inline-flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
-.estilos button { display: flex; flex-direction: column; align-items: center; gap: 0; background: rgba(255,255,255,.7); border-radius: 18px; padding: 4px 10px 6px; font-size: 15px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); min-width: 78px; }
-.estilos button img, .estilos button .ph { width: 52px; height: 62px; display: block; }
-.estilos button .ph { font-size: 34px; line-height: 62px; }
-.estilos button.on { background: var(--gold); transform: translateY(-2px); }
-@media (max-width: 520px) { .estilos button { min-width: 64px; padding: 3px 6px 5px; font-size: 13px; } .estilos button img, .estilos button .ph { width: 40px; height: 48px; } .estilos button .ph { line-height: 48px; font-size: 28px; } .nombres { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); max-height: 20vh; } .nombres button { font-size: 11px; } .nombres button span { font-size: 18px; } }
+body { background: #bfe6ff; overflow: hidden; }
+canvas.mundo { touch-action: none; }
+/* luz de escenario sobre el parque difuminado */
+.foco { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 34% 60% at 50% 58%, rgba(255,255,255,.0) 0, rgba(255,255,255,0) 60%, rgba(35,25,70,.28) 100%); }
+.arriba { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.arriba > * { pointer-events: auto; }
+.arriba h1 { margin: 0; font-size: clamp(22px, 5vw, 34px); line-height: 1; text-shadow: 0 2px 0 rgba(255,255,255,.7); pointer-events: none; }
+.quien { display: inline-flex; gap: 6px; background: rgba(255,255,255,.55); padding: 4px; border-radius: 999px; }
+.quien button { border-radius: 999px; padding: 4px 14px; font-size: 17px; font-weight: 800; background: transparent; }
+.quien button.on { background: #fff; box-shadow: 0 3px 0 var(--shadow); }
+.cats { display: flex; gap: 6px; overflow-x: auto; max-width: calc(100vw - 24px); padding: 2px 4px 6px; scrollbar-width: none; }
+.cats::-webkit-scrollbar { display: none; }
+.cats button { flex: none; border-radius: 999px; padding: 6px 14px; font-size: 16px; font-weight: 800; background: rgba(255,255,255,.62); box-shadow: 0 3px 0 rgba(0,0,0,.12); white-space: nowrap; }
+.cats button.on { background: #23324a; color: #fff; }
+.seg { display: inline-flex; background: rgba(255,255,255,.55); border-radius: 14px; padding: 3px; gap: 2px; }
+.seg button { border-radius: 11px; padding: 4px 10px; font-size: 14px; font-weight: 800; background: transparent; display: flex; align-items: center; gap: 4px; }
+.seg button.on { background: #fff; box-shadow: 0 2px 0 var(--shadow); }
+.flecha { position: fixed; top: 50%; transform: translateY(-50%); z-index: 6; width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,.88); font-size: 34px; font-weight: 800; box-shadow: 0 5px 0 var(--shadow); color: #23324a; }
+.flecha:active { transform: translateY(-46%); box-shadow: 0 2px 0 var(--shadow); }
+#prev { left: max(12px, env(safe-area-inset-left)); } #next { right: max(12px, env(safe-area-inset-right)); }
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 26px); pointer-events: none; }
+.abajo > * { pointer-events: auto; }
+.nombre { font-family: Andika, sans-serif; font-weight: 700; font-size: clamp(30px, 7vw, 54px); line-height: 1; color: #23324a; background: rgba(255,255,255,.9); padding: 6px 24px 8px; border-radius: 22px; box-shadow: 0 5px 0 var(--shadow); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.nombre small { font-size: .5em; }
+.puntos { display: flex; gap: 5px; }
+.puntos i { width: 8px; height: 8px; border-radius: 50%; background: rgba(35,50,74,.25); }
+.puntos i.on { background: #23324a; width: 20px; border-radius: 4px; }
+.elegir { font-size: 28px; padding: 12px 46px; border-radius: 999px; }
+.elegir.ya { background: #4cb87a; box-shadow: 0 6px 0 #2e8a55; }
+.secund { display: flex; gap: 10px; }
+.secund a { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); display: grid; place-items: center; font-size: 26px; text-decoration: none; position: relative; }
+.secund a span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 800; color: #23324a; white-space: nowrap; }
+.vacio { position: fixed; left: 50%; top: 48%; transform: translate(-50%, -50%); z-index: 5; background: #fff; border-radius: 20px; padding: 16px 22px; font-weight: 800; text-align: center; box-shadow: 0 6px 0 var(--shadow); }
+@media (max-width: 560px) { .arriba { top: calc(env(safe-area-inset-top, 0px) + 66px); } .arriba h1 { display: none; } .flecha { width: 54px; height: 54px; font-size: 26px; top: 46%; } .elegir { font-size: 24px; padding: 10px 36px; } .secund a { width: 50px; height: 50px; font-size: 22px; } .seg button { padding: 3px 7px; font-size: 12px; } .cats button { font-size: 14px; padding: 5px 11px; } }
+@media (max-height: 560px) { .arriba h1 { display: none; } .secund a span { display: none; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body>
 <canvas class="parque" id="parque" aria-hidden="true"></canvas>
-<canvas class="mundo" id="mundo" aria-label="Personajes en un escenario"></canvas>
+<div class="foco"></div>
+<canvas class="mundo" id="mundo" aria-label="Personaje elegido en el escenario"></canvas>
 <div class="hud">
   <div class="hud-side"><a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a></div>
   <div class="hud-side"><button class="round-btn" data-musica aria-label="Música">🎵</button></div>
 </div>
-<div class="titulo">
+<div class="arriba">
   <h1>Elige tu personaje</h1>
-  <div class="tabs" id="tabs" hidden></div>
-  <div><div class="estilos" id="estilos" aria-label="Estilo de los personajes"></div></div>
+  <div class="quien" id="quien" hidden></div>
+  <div class="cats" id="cats" role="tablist" aria-label="Grupos de personajes"></div>
+  <div class="seg" id="estilos" aria-label="Estilo de los personajes"></div>
 </div>
+<button class="flecha" id="prev" aria-label="Anterior">◀</button>
+<button class="flecha" id="next" aria-label="Siguiente">▶</button>
+<div class="vacio" id="vacio" hidden></div>
 <div class="abajo">
-  <div class="nombres" id="nombres"></div>
-  <div class="acciones">
-    <a class="btn" id="a-pintar" href="princesa.html">🎨 Pintar</a>
-    <a class="btn" id="a-cuidar" href="cuidar.html">🛁 Cuidar y jugar</a>
-    <a class="btn" id="a-taller" href="editor.html">🧵 Crear y cambiar</a>
-    <a class="go btn" href="index.html" id="listo">✔ ¡Listo!</a>
+  <div class="nombre" id="nombre" role="button" aria-live="polite"></div>
+  <div class="puntos" id="puntos" aria-hidden="true"></div>
+  <button class="go elegir" id="elegir">¡Elegir!</button>
+  <div class="secund">
+    <a id="a-pintar" href="princesa.html" aria-label="Pintar">🎨<span>Pintar</span></a>
+    <a id="a-cuidar" href="cuidar.html" aria-label="Cuidar y jugar">🛁<span>Cuidar</span></a>
+    <a id="a-taller" href="editor.html" aria-label="Crear y cambiar">🧵<span>Crear</span></a>
   </div>
 </div>
 
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual } from './js/personajes.js';
+import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual, esPropio } from './js/personajes.js';
 import { pintarParque } from './js/parque.js';
 pintarParque(document.querySelector('#parque'));
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
-// nombre y dibujito de cada personaje (los nuevos animalitos pueden no estar todavía en la lista del juego)
 const info = id => J.CHARS[id] || { name: nombrePersonaje(id), emoji: EMOJI[id] || '⭐' };
 const volver = new URLSearchParams(location.search).get('volver');
-if (volver && /^[a-z]+\.html$/.test(volver)) $('#listo').href = volver;
+const destino = volver && /^[a-z]+\.html$/.test(volver) ? volver : 'index.html';
 
+// grupos cortos, en vez de 22 botones
+const CHICAS = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara'], FAMILIA = ['amara', 'mama', 'papa'];
+const CATS = [
+  { id: 'todos', nombre: '⭐ Todos', f: () => true },
+  { id: 'chicas', nombre: '👸 Princesas y chicas', f: id => CHICAS.includes(id) },
+  { id: 'familia', nombre: '👨‍👩‍👧 Familia', f: id => FAMILIA.includes(id) },
+  { id: 'animales', nombre: '🐾 Animalitos', f: id => !FIGURAS[id] && !esPropio(id) || ['raton', 'rojito'].includes(id) },
+  { id: 'mios', nombre: '🧵 Mis creados', f: id => esPropio(id) },
+];
+let cat = 'todos', editing = 0, lista = [], idx = 0;
+
+// ---------- escena: un pedestal al centro con su foco ----------
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera } = W;
-W.fovFor = a => a < .8 ? 60 : 44;
-camera.position.set(0, 2.2, 7.5); camera.lookAt(0, 1.1, 0);
+W.fovFor = a => a < .8 ? 52 : 38;
 const fx = chispitas(scene);
-
-// escenario: piso redondo y focos
-const stage = new THREE.Mesh(new THREE.CylinderGeometry(9, 9.3, .4, 48), new THREE.MeshStandardMaterial({ color: 0x8fd46a, roughness: .8 }));
-stage.position.y = -.2; stage.receiveShadow = true; scene.add(stage);
-const cols = [0x8fd3f4, 0xffd23f, 0xb07de8, 0x4cb87a, 0xff4fa3, 0xffe3a8, 0xef5b5b, 0x9aa3ad, 0xff9a5a, 0xc9d1dc, 0xd8b48f];
-const chars = [];
-let editing = 0; // jugador que está eligiendo
-
 const narrow = () => innerWidth / innerHeight < .8;
-// escenario en filas: 8 por fila en pantallas anchas, 4 en el celular
-function layout() {
-  const n = narrow(), perRow = n ? 4 : 8, gap = n ? 1.7 : 1.8, rowGap = n ? 2.1 : 2.1;
-  const rows = Math.ceil(chars.length / perRow);
-  chars.forEach((c, i) => {
-    const r = Math.floor(i / perRow), inRow = Math.min(perRow, chars.length - r * perRow), k = i % perRow;
-    c.base.position.set((k - (inRow - 1) / 2) * gap + (r % 2 ? gap * .25 : 0), 0, (r - (rows - 1) / 2) * rowGap);
-  });
-  const far = n ? 9 + rows * 1.4 : 7 + rows * 1.5;
-  camera.position.set(0, n ? 4 + rows * 1.3 : 3.5 + rows * .9, far); camera.lookAt(0, n ? -.2 : .5, n ? 1.2 : .3);
-}
-addEventListener('resize', layout);
+function encuadre() { const n = narrow(); camera.position.set(0, n ? 2.0 : 1.75, n ? 8.6 : 7.4); camera.lookAt(0, n ? 1.05 : 1.15, 0); }
+encuadre(); addEventListener('resize', encuadre);
+const matPed = c => new THREE.MeshStandardMaterial({ color: c, roughness: .35, metalness: .1 });
+const pedCentro = new THREE.Group(); scene.add(pedCentro);
+const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.15, .28, 48), matPed(0xffffff)); p1.position.y = .14; p1.receiveShadow = true; pedCentro.add(p1);
+const anillo = new THREE.Mesh(new THREE.TorusGeometry(1.1, .05, 10, 64), new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xffb000, emissiveIntensity: .8 }));
+anillo.rotation.x = Math.PI / 2; anillo.position.y = .29; pedCentro.add(anillo);
+const luz = new THREE.SpotLight(0xffffff, 60, 14, .42, .6, 1.2); luz.position.set(0, 7, 2.5); luz.target.position.set(0, 0, 0); scene.add(luz, luz.target);
+const cono = new THREE.Mesh(new THREE.ConeGeometry(1.5, 6.5, 40, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff6cc, transparent: true, opacity: .1, depthWrite: false, side: THREE.DoubleSide }));
+cono.position.set(0, 3.4, 0); scene.add(cono);
+// pedestales de los vecinos (2 a cada lado)
+const LADO = [-2, -1, 1, 2];
+const posDe = o => ({ x: o * (narrow() ? 1.55 : 2.15), z: -Math.abs(o) * 1.1, s: o === 0 ? 1 : Math.abs(o) === 1 ? .62 : .45 });
+const pedVecinos = LADO.map(o => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.75, .82, .18, 36), matPed(0xe9ddff)); m.receiveShadow = true; scene.add(m); return { o, m }; });
 
-// arma (o vuelve a armar) a todos los personajes con el estilo elegido
-async function armar(soloHumanos = false) {
-  for (const [i, id] of PERSONAJES.entries()) {
-    let c = chars.find(x => x.id === id);
-    if (c && soloHumanos && !FIGURAS[id]) continue;
-    if (!c) {
-      const base = new THREE.Group(); scene.add(base);
-      const ped = new THREE.Mesh(new THREE.CylinderGeometry(.68, .72, .16, 32), new THREE.MeshStandardMaterial({ color: cols[i % cols.length], roughness: .4 }));
-      ped.position.y = .08; ped.receiveShadow = true; base.add(ped);
-      c = { id, base, ped }; chars.push(c);
-    }
-    if (c.ch) c.base.remove(c.ch.group);
-    c.ch = await crearPersonaje(id);
-    c.ch.group.scale.multiplyScalar(.9);
-    c.ch.group.position.y = .16; c.base.add(c.ch.group);
+// ---------- personajes: solo se arman los 5 que se ven ----------
+const cache = new Map(); // clave id|estilo → { ch, t }
+const visibles = new Map(); // offset → { id, g }
+let armando = 0;
+async function personaje(id) {
+  const k = id + '|' + estiloActual();
+  let c = cache.get(k);
+  if (!c) { const ch = await crearPersonaje(id); ch.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); c = { ch }; cache.set(k, c); }
+  c.t = performance.now();
+  // se liberan los que hace rato no se ven (quedan máx. 12)
+  if (cache.size > 12) {
+    const vivos = new Set([...visibles.values()].map(v => v.k));
+    [...cache.entries()].filter(([kk]) => !vivos.has(kk) && kk !== k).sort((a, b) => a[1].t - b[1].t).slice(0, cache.size - 12).forEach(([kk, v]) => {
+      v.ch.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); });
+      cache.delete(kk);
+    });
   }
-  layout();
+  return { ch: c.ch, k };
 }
-await armar();
-
-// botones de estilo con una fotito del personaje en cada estilo
-const fotosEstilo = {};
-async function hacerFotos() {
-  const id = FIGURAS[P.players[editing].char] ? P.players[editing].char : 'nieve';
-  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  r.setSize(104, 124); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
-  const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0xd8c8ff, 2.2));
-  const l = new THREE.DirectionalLight(0xffffff, 1.6); l.position.set(2, 4, 5); sc.add(l);
-  const cam = new THREE.PerspectiveCamera(30, 104 / 124, .1, 50); cam.position.set(0, 1.15, 4.6); cam.lookAt(0, 1.0, 0);
-  for (const est of Object.keys(ESTILOS)) {
-    const d = await crearPersonaje(id, '', { estilo: est }); sc.add(d.group);
-    for (let i = 0; i < 10; i++) d.update(.05, 'quieto');
-    r.render(sc, cam); fotosEstilo[est] = r.domElement.toDataURL(); sc.remove(d.group);
+async function colocar() {
+  const turno = ++armando;
+  const n = lista.length;
+  $('#vacio').hidden = !!n;
+  if (!n) { visibles.forEach(v => scene.remove(v.ch.group)); visibles.clear(); $('#vacio').innerHTML = 'Todavía no hay personajes creados.<br><a href="editor.html">🧵 ¡Crea uno!</a>'; return; }
+  const quieren = new Map();
+  for (const o of [0, -1, 1, -2, 2]) {
+    if (n < 2 && o) continue; if (n === 2 && o === -1) continue; if (n < 5 && Math.abs(o) === 2) continue;
+    quieren.set(o, lista[(idx + o + n * 10) % n]);
   }
-  r.dispose(); renderEstilos();
+  pedVecinos.forEach(p => { p.m.visible = quieren.has(p.o); });
+  for (const [o, id] of quieren) {
+    const r = await personaje(id); if (turno !== armando) return;
+    const prev = visibles.get(o);
+    if (prev && prev.k === r.k) continue;
+    if (prev) scene.remove(prev.ch.group);
+    // si ya estaba en otro lugar, viaja desde ahí (deslizamiento suave)
+    const antes = [...visibles.entries()].find(([oo, v]) => v.k === r.k && oo !== o);
+    if (antes) visibles.delete(antes[0]);
+    scene.add(r.ch.group);
+    if (!antes) { const p = posDe(o + (o >= 0 ? .6 : -.6)); r.ch.group.position.set(p.x, 0, p.z); }
+    visibles.set(o, { id, k: r.k, ch: r.ch, llego: o === 0 ? 1.6 : 0 });
+  }
+  for (const [o, v] of [...visibles]) if (!quieren.has(o)) { scene.remove(v.ch.group); visibles.delete(o); }
+}
+
+// ---------- interfaz ----------
+const elegido = () => P.players[editing].char;
+function renderCats() {
+  $('#cats').innerHTML = CATS.filter(c => c.id !== 'mios' || PERSONAJES.some(esPropio)).map(c => `<button role="tab" data-cat="${c.id}" class="${c.id === cat ? 'on' : ''}" aria-selected="${c.id === cat}">${c.nombre}</button>`).join('');
 }
 function renderEstilos() {
   const cur = estiloActual();
-  $('#estilos').innerHTML = Object.entries(ESTILOS).map(([k, e]) => `<button data-est="${k}" class="${k === cur ? 'on' : ''}" aria-label="Estilo ${e.nombre}">${fotosEstilo[k] ? `<img src="${fotosEstilo[k]}" alt="">` : `<span class="ph">${e.emoji}</span>`}${e.nombre}</button>`).join('');
+  $('#estilos').innerHTML = Object.entries(ESTILOS).map(([k, e]) => `<button data-est="${k}" class="${k === cur ? 'on' : ''}">${e.emoji} ${e.nombre}</button>`).join('');
 }
-renderEstilos(); hacerFotos().catch(() => {});
+function renderQuien() {
+  $('#quien').hidden = !P.two;
+  $('#quien').innerHTML = P.players.map((p, i) => `<button data-p="${i}" class="${i === editing ? 'on' : ''}">${J.esc(J.CHARS[p.char]?.emoji || '⭐')} ${J.esc(p.name)}</button>`).join('');
+}
+function renderInfo() {
+  const id = lista[idx]; if (!id) { $('#nombre').hidden = true; return; }
+  $('#nombre').hidden = false;
+  $('#nombre').innerHTML = `<small>${info(id).emoji}</small>${J.esc(info(id).name)}`;
+  const n = lista.length, MAX = 12;
+  $('#puntos').innerHTML = n <= MAX ? lista.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('') : `<span style="font-weight:800">${idx + 1} / ${n}</span>`;
+  const ya = elegido() === id;
+  $('#elegir').textContent = ya ? '✔ ¡Es tu personaje!' : '¡Elegir!';
+  $('#elegir').classList.toggle('ya', ya);
+  $('#a-pintar').href = 'princesa.html?p=' + id; $('#a-cuidar').href = 'cuidar.html?p=' + id; $('#a-taller').href = 'editor.html?p=' + id;
+  $('#prev').hidden = $('#next').hidden = n < 2;
+}
+let decirT = null;
+function mover(d, silencio = false) {
+  const n = lista.length; if (n < 2) return;
+  idx = (idx + d + n) % n;
+  J.sfx('pop', .5, 1 + d * .08);
+  renderInfo(); colocar();
+  clearTimeout(decirT); if (!silencio) decirT = setTimeout(() => J.say(info(lista[idx]).name), 280);
+}
+function usarCategoria(c, centrarEn) {
+  cat = c; const f = CATS.find(x => x.id === c).f;
+  lista = PERSONAJES.filter(id => f(id));
+  const i = lista.indexOf(centrarEn || elegido()); idx = i >= 0 ? i : 0;
+  renderCats(); renderInfo(); colocar();
+}
+function elegir() {
+  const id = lista[idx]; if (!id) return;
+  if (elegido() === id) { location.href = destino; return; }
+  P.players[editing].char = id; J.save();
+  fx.burst(new THREE.Vector3(0, 1.6, 0), 60, 1.2); J.cheer();
+  const v = visibles.get(0); if (v) v.llego = 2.2;
+  J.say([P.players[editing].name, 'es', info(id).name], { queue: true });
+  renderInfo(); renderQuien();
+}
+$('#prev').onclick = () => mover(-1);
+$('#next').onclick = () => mover(1);
+$('#elegir').onclick = elegir;
+$('#nombre').onclick = () => J.say(info(lista[idx]).name);
+$('#cats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b && b.dataset.cat !== cat) { J.sfx('pop'); usarCategoria(b.dataset.cat, lista[idx]); } });
+$('#quien').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (!b) return; editing = +b.dataset.p; J.sfx('pop'); renderQuien(); usarCategoria(cat); });
 $('#estilos').addEventListener('click', async e => {
   const b = e.target.closest('[data-est]'); if (!b || b.dataset.est === estiloActual()) return;
   P.estilo = b.dataset.est; J.save(); J.sfx('pop'); renderEstilos();
-  await armar(true);
-  fx.burst(new THREE.Vector3(0, 1.5, 0), 60, 2); J.sparkle();
+  visibles.forEach(v => scene.remove(v.ch.group)); visibles.clear();
+  await colocar(); fx.burst(new THREE.Vector3(0, 1.5, 0), 50, 1.5); J.sparkle();
 });
-
-function render() {
-  const two = P.two;
-  $('#tabs').hidden = !two;
-  $('#tabs').innerHTML = P.players.map((p, i) => `<button class="${i === editing ? 'on' : ''}" data-p="${i}">${J.esc(p.name)}</button>`).join('');
-  const id = P.players[editing].char;
-  $('#a-pintar').href = 'princesa.html?p=' + id;
-  $('#a-cuidar').href = 'cuidar.html?p=' + id;
-  $('#a-taller').href = 'editor.html?p=' + id;
-  $('#nombres').innerHTML = PERSONAJES.map(id => `<button data-id="${id}" class="${P.players[editing].char === id ? 'on' : ''}"><span>${info(id).emoji}</span>${info(id).name}</button>`).join('');
-}
-function pick(id) {
-  P.players[editing].char = id; J.save();
-  const c = chars.find(c => c.id === id);
-  fx.burst(c.base.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 40);
-  J.cheer(); J.say([P.players[editing].name, 'es', info(id).name], { queue: true });
-  if (FIGURAS[id]) hacerFotos().catch(() => {});
-  render();
-}
-$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) { editing = +b.dataset.p; J.sfx('pop'); render(); } });
-$('#nombres').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) pick(b.dataset.id); });
-
-const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
-$('#mundo').addEventListener('pointerdown', e => {
-  v2.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(v2, camera);
-  for (const c of chars) { if (ray.intersectObject(c.base, true).length) { pick(c.id); break; } }
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { e.preventDefault(); mover(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); mover(1); }
+  if (e.key === 'Enter' && document.activeElement === document.body) elegir();
 });
-
-W.onFrame((dt, t) => {
-  for (const c of chars) {
-    if (!c.ch) continue;
-    const mine = P.players[editing].char === c.id;
-    c.ch.update(dt, mine ? 'festejar' : 'bailar');
-    c.ped.material.emissive = new THREE.Color(mine ? 0x664400 : 0x000000);
-    c.base.rotation.y = mine ? 0 : Math.sin(t * .8 + c.base.position.x) * .3;
+// deslizar con el dedo (o arrastrar con el ratón); un toque en el del centro lo elige
+const cv = $('#mundo'); let ini = null;
+cv.addEventListener('pointerdown', e => { ini = { x: e.clientX, y: e.clientY, t: performance.now() }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointerup', e => {
+  if (!ini) return; const dx = e.clientX - ini.x, dy = e.clientY - ini.y; ini = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) mover(dx < 0 ? 1 : -1);
+  else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+    // ¿tocó a un vecino? se trae al centro
+    const fx2 = (e.clientX / innerWidth - .5) * 2;
+    if (Math.abs(fx2) > .32) mover(fx2 > 0 ? (fx2 > .7 && lista.length > 3 ? 2 : 1) : (fx2 < -.7 && lista.length > 3 ? -2 : -1));
+    else { const v = visibles.get(0); if (v) { v.llego = 1.2; J.say(info(lista[idx]).name); } }
   }
+});
+cv.addEventListener('pointercancel', () => { ini = null; });
+
+// ---------- animación ----------
+const tmp = new THREE.Vector3();
+W.onFrame((dt, t) => {
+  const k = Math.min(1, dt * 8);
+  pedVecinos.forEach(p => { const q = posDe(p.o); p.m.position.set(q.x, .09, q.z); });
+  for (const [o, v] of visibles) {
+    const q = posDe(o), g = v.ch.group;
+    tmp.set(q.x, o ? .18 : .28, q.z);
+    g.position.lerp(tmp, k);
+    const s = g.scale.x + ((o ? q.s * 1.05 : 1.25) - g.scale.x) * k; g.scale.setScalar(s);
+    g.rotation.y += ((o ? -o * .35 : Math.sin(t * .6) * .25) - g.rotation.y) * k;
+    if (o === 0 && v.llego > 0) { v.llego -= dt; v.ch.update(dt, v.llego > 1 ? 'festejar' : 'saludar'); }
+    else v.ch.update(dt, o === 0 ? 'quieto' : 'quieto');
+  }
+  anillo.material.emissiveIntensity = .6 + Math.sin(t * 3) * .3;
+  cono.material.opacity = .08 + Math.sin(t * 1.3) * .02;
   fx.update(dt);
 });
-render(); J.refreshMusic(); W.start();
+
+renderEstilos(); renderQuien(); usarCategoria('todos');
+J.refreshMusic(); W.start();
 setTimeout(() => J.say('¡Elige tu personaje!'), 400);
+if (location.hash === '#prueba') window.__pj = { get idx() { return idx; }, get lista() { return lista; }, mover, elegir, usarCategoria, visibles, cache };
 </script>
 </body>
 </html>
