@@ -36,17 +36,20 @@
   <!-- cuerpo con polo -->
   <path d="M188 246c18-14 42-20 68-20s50 6 68 20c10 30 12 76 4 116H184c-8-40-6-86 4-116z" fill="url(#polo)"/>
   <path d="M220 236c10 14 22 20 36 20s26-6 36-20" fill="none" stroke="#ffd166" stroke-width="14" stroke-linecap="round"/>
-  <!-- piernas cruzadas (loto): dos muslos que se cruzan y los piecitos -->
-  <path d="M116 360c26-22 72-30 118-24 30 4 52 18 58 36 4 14-6 26-22 30-46 10-104 8-142-4-24-8-30-24-12-38z" fill="url(#piernas)"/>
-  <path d="M396 360c-26-22-72-30-118-24-30 4-52 18-58 36-4 14 6 26 22 30 46 10 104 8 142-4 24-8 30-24 12-38z" fill="#f7b93a"/>
-  <path d="M220 372c10-8 26-12 36-12s26 4 36 12" fill="none" stroke="#e39a22" stroke-width="7" stroke-linecap="round" opacity=".7"/>
-  <ellipse cx="300" cy="364" rx="26" ry="13" fill="#ffd77a"/>
-  <ellipse cx="212" cy="390" rx="26" ry="13" fill="#ffd77a"/>
+  <!-- piernas cruzadas (loto): short, una canilla detrás y la otra cruzando por delante, con los piecitos -->
+  <path d="M186 336h140c12 0 20 12 16 24l-8 22H178l-8-22c-4-12 4-24 16-24z" fill="#b8b2d6"/>
+  <path d="M122 384C164 424 252 426 318 384" fill="none" stroke="#e9a028" stroke-width="62" stroke-linecap="round"/>
+  <path d="M390 384C350 430 262 436 194 398" fill="none" stroke="#ffc84a" stroke-width="62" stroke-linecap="round"/>
+  <path d="M390 384C350 430 262 436 194 398" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".18" transform="translate(0 -14)"/>
+  <ellipse cx="334" cy="364" rx="30" ry="17" transform="rotate(-24 334 364)" fill="#ffd77a"/>
+  <ellipse cx="180" cy="378" rx="30" ry="17" transform="rotate(22 180 378)" fill="#ffe08f"/>
+  <path d="M352 352c4 4 6 8 6 12M342 348c3 4 5 8 5 12" stroke="#e39a22" stroke-width="4" stroke-linecap="round" fill="none" opacity=".7"/>
+  <path d="M162 366c-4 4-6 8-6 12M172 362c-3 4-5 8-5 12" stroke="#e39a22" stroke-width="4" stroke-linecap="round" fill="none" opacity=".7"/>
   <!-- manos sobre las rodillas, haciendo el gesto de meditar -->
-  <circle cx="132" cy="368" r="22" fill="url(#piel)"/>
-  <circle cx="380" cy="368" r="22" fill="url(#piel)"/>
-  <circle cx="132" cy="368" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
-  <circle cx="380" cy="368" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
+  <circle cx="124" cy="376" r="22" fill="url(#piel)"/>
+  <circle cx="388" cy="376" r="22" fill="url(#piel)"/>
+  <circle cx="124" cy="376" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
+  <circle cx="388" cy="376" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
   <!-- cuello y cabeza -->
   <rect x="240" y="206" width="32" height="30" rx="12" fill="#f5b335"/>
   <circle cx="256" cy="156" r="66" fill="url(#piel)"/>
