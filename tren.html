@@ -25,7 +25,8 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
 .figura button { background: var(--purple); color: #fff; border-radius: 50%; width: 54px; height: 54px; font-size: 24px; box-shadow: 0 4px 0 var(--purple-dark); }
 .via { position: fixed; left: 0; right: 0; top: 52%; height: 14px; background: repeating-linear-gradient(90deg, #8a5a33 0 16px, transparent 16px 34px), linear-gradient(#777, #777) 0 10px / 100% 4px no-repeat; }
 .tren { position: fixed; top: calc(52% - 112px); left: 50%; display: flex; align-items: flex-end; gap: 6px; transform: translateX(-50%); transition: transform 3s cubic-bezier(.45, 0, .85, .5); z-index: 3; }
-.tren.sale { transform: translateX(-200vw); }
+.tren.sale, .tren.llega.sale { animation: tren-sale 3.4s cubic-bezier(.55, 0, .9, .45) forwards; }
+@keyframes tren-sale { 0% { transform: translateX(-50%); } 12% { transform: translateX(calc(-50% + 14px)); } 100% { transform: translateX(calc(-50% - 130vw)); } }
 .tren.llega { animation: llega 1.2s cubic-bezier(.2, .9, .3, 1); }
 @keyframes llega { from { transform: translateX(60vw); } to { transform: translateX(-50%); } }
 .loco { position: relative; font-size: 104px; line-height: .9; filter: drop-shadow(0 4px 0 rgba(0,0,0,.15)); display: inline-block; }
@@ -63,6 +64,13 @@ body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
 .vagon { position: relative; width: clamp(84px, 17vw, 122px); height: 92px; border-radius: 14px 14px 8px 8px; background: var(--c, #ef5b5b); box-shadow: inset 0 -10px 0 rgba(0,0,0,.15); display: grid; place-items: center; margin-bottom: 14px; }
 .vagon::before, .vagon::after { content: ''; position: absolute; bottom: -16px; width: 28px; height: 28px; border-radius: 50%; background: #333; border: 5px solid #bbb; box-sizing: border-box; }
 .vagon::before { left: 10px; } .vagon::after { right: 10px; }
+.vagon.grande { width: auto; height: auto; min-height: 104px; padding: 12px 14px 16px 74px; display: flex; align-items: center; gap: 10px; border-radius: 18px 18px 10px 10px; }
+.vagon.grande::before { left: 22px; } .vagon.grande::after { right: 22px; }
+.vagon.grande .techo { position: absolute; left: -6px; right: -6px; top: -14px; height: 16px; border-radius: 12px 12px 4px 4px; background: color-mix(in srgb, var(--c) 70%, #23324a); }
+.vagon.grande .frente { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 56px; height: 56px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 36px; box-shadow: 0 3px 0 rgba(0,0,0,.18); }
+.vagon .ventana { width: clamp(70px, 14vw, 104px); height: clamp(62px, 11vh, 84px); border-radius: 14px; background: #dff3ff; border: 4px dashed rgba(35,50,74,.35); display: grid; place-items: center; font-family: var(--font-letters); font-weight: 700; font-size: clamp(30px, 6vw, 46px); color: #23324a; box-shadow: inset 0 -6px 0 rgba(63,142,232,.18); }
+.vagon .ventana.llena { border-style: solid; border-color: #fff; background: #fff; animation: brinco .45s; }
+@media (max-width: 520px) { .tren .loco { font-size: 62px; } .vagon.grande { min-height: 78px; padding: 8px 8px 12px 50px; gap: 5px; } .vagon.grande::before, .vagon.grande::after { width: 22px; height: 22px; bottom: -12px; } .vagon.grande .frente { left: 6px; width: 40px; height: 40px; font-size: 24px; } .vagon .ventana { width: 54px; height: 56px; font-size: 26px; border-width: 3px; } }
 .vagon .hueco { width: 78%; height: 66%; border-radius: 10px; background: rgba(255,255,255,.85); border: 3px dashed rgba(35,50,74,.35); display: grid; place-items: center; font-family: var(--font-letters); font-weight: 700; font-size: clamp(32px, 6vw, 46px); color: #23324a; }
 .vagon.lleno .hueco { border-style: solid; border-color: #fff; background: #fff; animation: brinco .45s; }
 .opciones { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding: 0 12px; z-index: 4; }
@@ -116,6 +124,7 @@ body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
   const NIVELES = [
     { sil: [2], extra: 0, meta: 5, nombre: 'Palabras de 2 sílabas' },
     { sil: [2], extra: 2, meta: 5, nombre: 'Con sílabas que despistan' },
+    { sil: [3], extra: 0, meta: 5, facil: true, nombre: '3 sílabas fáciles (3 ventanitas)' },
     { sil: [3], extra: 1, meta: 5, nombre: 'Palabras de 3 sílabas' },
     { sil: [2, 3], extra: 3, meta: 6, nombre: 'Tren largo' },
   ];
@@ -134,14 +143,26 @@ body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
 
   function nuevaPalabra() {
     const cfg = NIVELES[state.nivel];
-    let pool = PALABRAS.filter(w => cfg.sil.includes(sils(w).length) && w[2]);
+    // fáciles: cada sílaba es consonante + vocal (pe-lo-ta, to-ma-te), sin tildes
+    const facil = w => sils(w).every(x => /^[bcdfgjlmnprstvz]?[aeiou]$/.test(x));
+    let pool = PALABRAS.filter(w => cfg.sil.includes(sils(w).length) && w[2] && (!cfg.facil || facil(w)));
+    if (cfg.facil && pool.length < 6) {
+      // palabras fáciles de 3 sílabas de repuesto (si la lista configurada tiene pocas)
+      const EXTRA = [['pelota', 'pe-lo-ta', '⚽'], ['tomate', 'to-ma-te', '🍅'], ['conejo', 'co-ne-jo', '🐰'], ['paloma', 'pa-lo-ma', '🕊️'], ['camisa', 'ca-mi-sa', '👕'],
+        ['zapato', 'za-pa-to', '👟'], ['banana', 'ba-na-na', '🍌'], ['patito', 'pa-ti-to', '🐥'], ['pepino', 'pe-pi-no', '🥒'], ['cometa', 'co-me-ta', '🪁'],
+        ['corona', 'co-ro-na', '👑'], ['gusano', 'gu-sa-no', '🐛'], ['sirena', 'si-re-na', '🧜‍♀️'], ['casita', 'ca-si-ta', '🏠']];
+      pool = [...pool, ...EXTRA.filter(e => !pool.some(w => w[0] === e[0]))];
+    }
     if (!pool.length) pool = PALABRAS.filter(w => sils(w).length >= 2);
     const fresh = pool.filter(w => !state.usadas.includes(w[0]));
     const w = J.pick(fresh.length ? fresh : pool);
     state.usadas.push(w[0]); state.w = w; state.sils = sils(w); state.paso = 0;
     // tren con un vagón vacío por sílaba
     const tren = $('#tren'); tren.className = 'tren';
-    tren.innerHTML = '<span class="loco" aria-hidden="true">🚂<span class="cara"><i></i><i></i><b></b><s></s><s></s></span></span>' + state.sils.map((_, i) => `<div class="vagon" style="--c:${COLS[i % COLS.length]}"><span class="hueco"></span></div>`).join('');
+    // un solo vagón por palabra: adelante el dibujo de lo que se busca y una ventanita por sílaba
+    const color = COLS[state.hechas % COLS.length];
+    tren.innerHTML = '<span class="loco" aria-hidden="true">🚂<span class="cara"><i></i><i></i><b></b><s></s><s></s></span></span>' +
+      `<div class="vagon grande" style="--c:${color}"><span class="techo"></span><span class="frente" aria-hidden="true">${w[2] || '🔊'}</span>${state.sils.map(() => '<span class="ventana"></span>').join('')}</div>`;
     void tren.offsetWidth; tren.classList.add('llega');
     $('#emo').textContent = w[2] || '🔊';
     $('#figura').hidden = false;
@@ -163,8 +184,8 @@ body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
     const s = b.dataset.s, need = state.sils[state.paso];
     if (s === need) {
       b.classList.add('usada');
-      const v = $('#tren').querySelectorAll('.vagon')[state.paso];
-      v.classList.add('lleno'); v.querySelector('.hueco').textContent = s;
+      const v = $('#tren').querySelectorAll('.ventana')[state.paso];
+      v.classList.add('llena'); v.textContent = s;
       J.sfx('pop', .8, 1 + state.paso * .12);
       J.say(s);
       state.paso++;
@@ -228,7 +249,7 @@ body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
         // 2) arranca de verdad hacia adelante, con rayitas de velocidad
         chuchu(); globoChu();
         const ray = setInterval(rayas, 140);
-        tren.classList.add('sale');
+        tren.classList.remove('llega'); void tren.offsetWidth; tren.classList.add('sale');
         setTimeout(() => { clearInterval(ray); clearInterval(bol); clearInterval(ritmo); document.body.classList.remove('viaje'); }, 2400);
         $('#opciones').innerHTML = '';
         setTimeout(() => {
