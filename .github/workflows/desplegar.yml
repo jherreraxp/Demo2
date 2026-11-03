@@ -11,9 +11,12 @@
 name: Desplegar en la VM
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/reading-game-children-zpv3xw]
-    paths: ['servidor/**']
+    inputs:
+      accion:
+        description: 'revisar = solo mira qué hay en la VM (no cambia nada); instalar = instala o actualiza'
+        default: revisar
+        type: choice
+        options: [revisar, instalar]
 concurrency: desplegar
 jobs:
   desplegar:
@@ -32,8 +35,24 @@ jobs:
         run: |
           mkdir -p ~/.ssh && printf '%s\n' "$K" > ~/.ssh/vm && chmod 600 ~/.ssh/vm
           ssh-keyscan -T 15 "$H" >> ~/.ssh/known_hosts
-      - name: Instalar o actualizar
+      - name: Revisar la VM (solo lectura)
         if: steps.s.outputs.listo == 'si'
+        env: { H: '${{ secrets.VM_HOST }}', U: '${{ secrets.VM_USUARIO }}' }
+        run: |
+          ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" bash -s <<'REMOTO'
+          echo "== Sistema"; . /etc/os-release; echo "$PRETTY_NAME $(uname -m)"; uptime
+          echo "== Memoria y disco"; free -h | head -2; df -h / | tail -1
+          echo "== Puertos escuchando"; sudo ss -ltnp | awk 'NR==1 || /LISTEN/'
+          echo "== Servicios web"; for s in nginx apache2 httpd caddy traefik haproxy docker avelu; do systemctl is-active --quiet $s && echo "ACTIVO: $s"; done; true
+          echo "== Docker"; command -v docker >/dev/null && sudo docker ps --format '{{.Names}}  {{.Image}}  {{.Ports}}' || echo "sin docker"
+          echo "== Sitios nginx"; ls /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null; sudo grep -h "server_name\|listen" /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf 2>/dev/null | sort -u | head -40
+          echo "== Caddy"; sudo cat /etc/caddy/Caddyfile 2>/dev/null | head -40
+          echo "== Node"; command -v node && node --version || echo "sin node"
+          echo "== Firewall"; sudo iptables -S INPUT 2>/dev/null | head -20; sudo ufw status 2>/dev/null | head -5
+          echo "== Servicios systemd propios"; systemctl list-units --type=service --state=running --no-pager --no-legend | awk '{print $1}' | grep -vE '^(systemd|dbus|cron|ssh|snap|polkit|rsyslog|unattended|multipathd|networkd|udisks|ModemManager|getty|serial|irqbalance|chrony|oracle|iscsid|qemu|packagekit|accounts|user@)' | head -30
+          REMOTO
+      - name: Instalar o actualizar
+        if: steps.s.outputs.listo == 'si' && (github.event_name == 'push' || inputs.accion == 'instalar')
         env: { H: '${{ secrets.VM_HOST }}', U: '${{ secrets.VM_USUARIO }}', D: '${{ secrets.VM_DOMINIO }}', R: '${{ github.ref_name }}' }
         run: |
           ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" bash -s -- "$D" "$R" <<'REMOTO'
@@ -46,7 +65,7 @@ jobs:
           curl -fsS http://127.0.0.1:8787/api/salud && echo
           REMOTO
       - name: Configurar pagos e IA
-        if: steps.s.outputs.listo == 'si'
+        if: steps.s.outputs.listo == 'si' && (github.event_name == 'push' || inputs.accion == 'instalar')
         env:
           H: '${{ secrets.VM_HOST }}'
           U: '${{ secrets.VM_USUARIO }}'
@@ -67,7 +86,7 @@ jobs:
             printf 'PAGOS_PROVEEDOR=%s\n' "$P"
           } | ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" 'sudo install -m 600 /dev/stdin /etc/avelu/secretos.tmp && sudo bash ~/Demo2/servidor/configurar.sh && sleep 2 && curl -fsS http://127.0.0.1:8787/api/salud && echo'
       - name: Probar desde internet
-        if: steps.s.outputs.listo == 'si'
+        if: steps.s.outputs.listo == 'si' && (github.event_name == 'push' || inputs.accion == 'instalar')
         env: { D: '${{ secrets.VM_DOMINIO }}' }
         run: |
           for i in 1 2 3 4 5 6; do curl -fsS "https://$D/api/salud" && echo && curl -fsS -o /dev/null -w "Juego: %{http_code}\n" "https://$D/" && exit 0; sleep 20; done
