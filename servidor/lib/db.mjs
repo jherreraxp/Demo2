@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS pagos_eventos (
 // columnas que se agregaron después (bases ya creadas)
 if (!db.prepare('PRAGMA table_info(cuentas)').all().some(c => c.name === 'google_sub')) db.exec('ALTER TABLE cuentas ADD COLUMN google_sub TEXT');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_cuentas_google ON cuentas(google_sub) WHERE google_sub IS NOT NULL');
+if (!db.prepare('PRAGMA table_info(cuentas)').all().some(c => c.name === 'foto')) db.exec("ALTER TABLE cuentas ADD COLUMN foto TEXT DEFAULT ''");
+export const ponerFoto = (id, foto) => db.prepare('UPDATE cuentas SET foto = ? WHERE id = ?').run(foto || '', id);
 
 const ahoraISO = () => new Date().toISOString();
 export function nuevaCuenta({ email, nombre, sal, hash }) {
@@ -86,7 +88,7 @@ export function planDe(c) {
 }
 export function cuentaPublica(c) {
   const p = planDe(c);
-  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta, google: !!c.google_sub, conClave: c.hash !== '!' };
+  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta, google: !!c.google_sub, conClave: c.hash !== '!', foto: c.foto || '' };
 }
 export function guardarPlan(id, { plan, hasta, proveedor, suscripcionId, estado }) {
   const c = cuentaPorId(id); if (!c) return;

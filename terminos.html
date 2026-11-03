@@ -3,33 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Términos de uso</title>
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Términos y condiciones · Avelu y Amara</title>
+<meta name="description" content="Condiciones de uso de Avelu y Amara y del plan Familia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Andika:wght@700&display=swap">
 <style>
-:root { color-scheme: light; --ink: #23324a; --muted: #5b6b82; --accent: #6b47a8; }
-body { margin: 0; background: #faf8ff; color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { box-sizing: border-box; max-width: 72ch; margin: 0 auto; padding: 20px 16px 60px; }
-h1 { font-size: 28px; line-height: 1.15; } h2 { font-size: 20px; margin-top: 28px; }
+/* Página legal para adultos: el mismo estilo de la cuenta (degradado del tema, tarjeta blanca, títulos Baloo). */
+:root {
+  --bg1: var(--tema-bg1, #ffe3f3); --bg2: var(--tema-bg2, #e3dcff); --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #e4e0f0;
+  --accent: var(--tema-acento, #9a6ee0); --accent2: var(--tema-acento2, #ff7eb6);
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, var(--bg1), var(--bg2)); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+main { box-sizing: border-box; max-width: 820px; margin: 0 auto; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 40px; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top a.casa { text-decoration: none; font-size: 22px; background: var(--card); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 3px 0 rgba(35,50,74,.15); flex: none; }
+h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; }
+.card { background: var(--card); border-radius: 22px; padding: 22px clamp(18px, 4vw, 34px); box-shadow: 0 4px 0 rgba(35,50,74,.08), 0 6px 18px rgba(35,50,74,.06); }
+h2 { font-family: var(--font-display); font-size: 21px; margin: 26px 0 6px; line-height: 1.2; color: var(--ink); }
+h2:first-of-type { margin-top: 6px; }
+h3 { font-size: 16px; margin: 14px 0 4px; }
+p, li { color: #34435c; }
+ul { padding-left: 22px; } li { margin-bottom: 6px; }
 a { color: var(--accent); font-weight: 600; }
-.nota { color: var(--muted); font-size: 15px; }
-li { margin-bottom: 6px; }
+.nota { color: var(--muted); font-size: 14px; margin: 0; }
+.resumen { background: linear-gradient(135deg, #fff4fb, #f1ecff); border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; }
+.resumen p { margin: 4px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+th { font-weight: 700; color: var(--ink); background: #faf8ff; }
+.tabla { overflow-x: auto; }
+.pie { text-align: center; color: var(--muted); font-size: 14px; }
+@media (max-width: 520px) { th, td { padding: 6px; font-size: 14px; } }
 </style>
+<script src="js/tema.js"></script>
 </head>
 <body>
 <main>
-<p><a href="cuenta.html">← Volver a la cuenta</a></p>
-<h1>Términos de uso</h1>
-<p class="nota">Avelu y Amara · Última actualización: noviembre de 2026</p>
-<ol>
-<li><b>Para familias.</b> La cuenta la crea y la administra una persona mayor de edad, que es responsable de su uso por los niños.</li>
-<li><b>Gratis y plan Familia.</b> Los juegos para aprender a leer son gratis. El plan Familia es una suscripción mensual que agrega voces propias en la nube, más cuentos y cuentos con inteligencia artificial con los nombres de la familia.</li>
-<li><b>Pagos y cancelación.</b> El plan se cobra cada mes por la empresa de pagos. Puedes cancelarlo cuando quieras desde la página de la cuenta; seguirás teniendo el plan hasta el final del mes ya pagado. No hay permanencia mínima.</li>
-<li><b>Contenido de la familia.</b> Las voces y los cuentos que creas son tuyos. Solo los guardamos para mostrártelos a ti.</li>
-<li><b>Cuentos con IA.</b> Se crean automáticamente; revísalos antes de leerlos con los niños. Si alguno no es adecuado, bórralo.</li>
-<li><b>Jugar en línea.</b> Comparte el código de una sala solo con personas de confianza. Las salas se borran solas cuando todos salen.</li>
-<li><b>Uso correcto.</b> No está permitido usar el juego para molestar a otras personas ni intentar dañar el servidor. Podemos cerrar cuentas que lo hagan.</li>
-<li><b>Sin garantía.</b> Hacemos lo posible para que el juego funcione siempre, pero puede haber cortes o errores.</li>
-<li><b>Privacidad.</b> Tus datos se tratan según la <a href="privacidad.html">política de privacidad</a>.</li>
-</ol>
+  <div class="top"><a class="casa" href="index.html" aria-label="Volver al inicio">🏠</a><h1>📜 Términos y condiciones</h1></div>
+  <article class="card">
+
+    <p class="nota">Vigentes desde noviembre de 2026 · Sitio: https://abu.arcillita.com</p>
+    <div class="resumen">
+      <p><b>En resumen:</b> Avelu y Amara es un juego educativo para aprender a leer. Las cuentas las crea un adulto. Existe un plan gratuito y un plan Familia de pago mensual, que se renueva automáticamente a través de Mercado Pago y puede cancelarse en cualquier momento.</p>
+    </div>
+
+    <h2>1. Objeto</h2>
+    <p>Estos términos regulan el acceso y uso de <b>Avelu y Amara</b> (en adelante, «la aplicación» o «el servicio»), disponible en https://abu.arcillita.com. Al crear una cuenta o utilizar el servicio, la persona usuaria declara haber leído y aceptado estos términos y la <a href="privacidad.html">Política de privacidad</a>.</p>
+
+    <h2>2. Cuentas</h2>
+    <ul>
+      <li>Las cuentas solo pueden ser creadas por personas <b>mayores de edad</b>, que son responsables del uso que hagan los menores a su cargo.</li>
+      <li>El titular de la cuenta debe proporcionar un correo válido y mantener la confidencialidad de su contraseña y de la clave de papás de la aplicación.</li>
+      <li>Puede iniciarse sesión con correo y contraseña o con una cuenta de Google.</li>
+      <li>El titular puede eliminar su cuenta en cualquier momento desde la sección «Cuenta de la familia».</li>
+    </ul>
+
+    <h2>3. Planes</h2>
+    <h3>Plan gratuito</h3>
+    <p>Permite jugar con los contenidos generales. Las funciones de personalización (grabar voces, crear o pintar personajes, temas y fotos, entre otras) pueden probarse en <b>modo demostración</b>, sin que los cambios se guarden.</p>
+    <h3>Plan Familia</h3>
+    <p>Suscripción mensual que permite guardar las voces propias de la familia en su cuenta, conservar la personalización, acceder a cuentos adicionales y crear cuentos con inteligencia artificial con los nombres de la familia, dentro de los límites de uso indicados en la aplicación. El precio vigente se informa en la aplicación antes de suscribirse e incluye los impuestos que correspondan.</p>
+
+    <h2>4. Pagos, renovación y cancelación</h2>
+    <ul>
+      <li>Los pagos se realizan a través de <b>Mercado Pago</b>, que procesa los datos de pago conforme a sus propias condiciones. La aplicación no almacena datos de tarjetas.</li>
+      <li>La suscripción se <b>renueva automáticamente cada mes</b> hasta que sea cancelada.</li>
+      <li>Puede cancelarse en cualquier momento desde «Cuenta de la familia» o desde Mercado Pago. Al cancelar, el plan Familia se mantiene hasta el final del periodo ya pagado y no se realizan nuevos cobros.</li>
+      <li>Si un cobro no puede realizarse, la cuenta vuelve al plan gratuito al terminar el periodo pagado, sin perder la cuenta ni el progreso.</li>
+      <li>Lo dispuesto en este apartado no limita los derechos que el Código de Protección y Defensa del Consumidor (Ley N.° 29571) reconoce a los consumidores.</li>
+    </ul>
+
+    <h2>5. Uso adecuado</h2>
+    <p>La persona usuaria se compromete a utilizar el servicio con fines personales, familiares y educativos, y a no:</p>
+    <ul>
+      <li>Grabar, subir o crear contenidos ofensivos, violentos, que vulneren derechos de terceros o que no sean apropiados para niños.</li>
+      <li>Usar nombres o datos de otras personas sin su autorización.</li>
+      <li>Intentar acceder a cuentas ajenas, alterar el funcionamiento del servicio o eludir sus medidas de seguridad.</li>
+      <li>Compartir códigos de sala del juego en línea con personas desconocidas para los menores.</li>
+    </ul>
+
+    <h2>6. Contenidos de la familia</h2>
+    <p>Las grabaciones de voz, los personajes, los mundos y demás contenidos creados por la familia le pertenecen. La familia autoriza al servicio únicamente a almacenarlos y mostrarlos dentro de su propia cuenta para prestar las funciones contratadas. Estos contenidos se eliminan al borrar la cuenta.</p>
+
+    <h2>7. Inteligencia artificial</h2>
+    <p>Los cuentos y juegos creados con inteligencia artificial se generan automáticamente y pueden contener errores. Recomendamos que un adulto los revise antes de compartirlos con los niños. El servicio aplica instrucciones para que el contenido sea apropiado para la edad, pero no puede garantizar un resultado perfecto en todos los casos.</p>
+
+    <h2>8. Propiedad intelectual</h2>
+    <p>El diseño, los personajes originales, el código y los contenidos propios de la aplicación pertenecen a su titular o se usan con las licencias correspondientes, detalladas en la sección de créditos. Las fábulas tradicionales incluidas son versiones propias de relatos de dominio público.</p>
+
+    <h2>9. Disponibilidad y responsabilidad</h2>
+    <p>Procuramos que el servicio funcione de forma continua y segura, pero puede haber interrupciones por mantenimiento, fallas técnicas o causas ajenas. El servicio se ofrece como una herramienta educativa de apoyo y no sustituye el acompañamiento de la familia ni de docentes. En la medida permitida por la ley, el titular no será responsable por daños derivados del uso indebido de la aplicación o de causas fuera de su control.</p>
+
+    <h2>10. Cambios en los términos</h2>
+    <p>Estos términos pueden actualizarse. La versión vigente estará publicada en esta página con su fecha. Si los cambios afectan al plan Familia, se informarán con anticipación dentro de la aplicación, y la persona usuaria podrá cancelar la suscripción si no está de acuerdo.</p>
+
+    <h2>11. Ley aplicable</h2>
+    <p>Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia se someterá a las autoridades competentes del Perú, sin perjuicio de los derechos que la normativa de protección al consumidor reconoce.</p>
+
+    <h2>12. Contacto y reclamos</h2>
+    <p>Para consultas, solicitudes o reclamos relacionados con el servicio o con el plan Familia: <a href="mailto:jherreraq@gmail.com">jherreraq@gmail.com</a>.</p>
+  </article>
+  <p class="pie"><a href="privacidad.html">Política de privacidad</a> · <a href="terminos.html">Términos y condiciones</a> · <a href="cuenta.html">Cuenta</a><br>Contacto: <a href="mailto:jherreraq@gmail.com">jherreraq@gmail.com</a></p>
 </main>
 </body>
 </html>

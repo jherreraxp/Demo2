@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícono de Avelu y Amara: niña meditando en posición de loto, pelo morado con colita (diseño propio) -->
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd6ec"/><stop offset="1" stop-color="#d9c6ff"/>
+    </linearGradient>
+    <linearGradient id="piel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#f5b335"/>
+    </linearGradient>
+    <linearGradient id="pelo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b98cff"/><stop offset=".55" stop-color="#8a4fe0"/><stop offset="1" stop-color="#6a33c2"/>
+    </linearGradient>
+    <linearGradient id="polo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9b7bea"/><stop offset="1" stop-color="#7a58d6"/>
+    </linearGradient>
+    <linearGradient id="piernas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffcf5a"/><stop offset="1" stop-color="#f2a92c"/>
+    </linearGradient>
+    <radialGradient id="brillo" cx=".35" cy=".3" r=".7">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#fondo)"/>
+  <!-- chispitas -->
+  <g fill="#fff" opacity=".9">
+    <path d="M92 118l7 17 17 7-17 7-7 17-7-17-17-7 17-7z"/>
+    <path d="M420 96l5 12 12 5-12 5-5 12-5-12-12-5 12-5z"/>
+    <path d="M430 300l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+  </g>
+  <!-- colita (detrás de la cabeza), alta y larga -->
+  <path d="M318 88c40-6 70 22 66 64-3 34-26 58-30 92-3 26 8 46 20 62-34-8-58-36-58-74 0-30 18-52 16-80-1-24-10-40-14-64z" fill="url(#pelo)"/>
+  <circle cx="316" cy="96" r="16" fill="#ff7eb6"/>
+  <!-- brazos -->
+  <path d="M176 262c-34 18-56 56-62 96-2 14 12 22 24 14l14-10c6-30 20-56 42-72z" fill="url(#piel)"/>
+  <path d="M336 262c34 18 56 56 62 96 2 14-12 22-24 14l-14-10c-6-30-20-56-42-72z" fill="url(#piel)"/>
+  <!-- cuerpo con polo -->
+  <path d="M188 246c18-14 42-20 68-20s50 6 68 20c10 30 12 76 4 116H184c-8-40-6-86 4-116z" fill="url(#polo)"/>
+  <path d="M220 236c10 14 22 20 36 20s26-6 36-20" fill="none" stroke="#ffd166" stroke-width="14" stroke-linecap="round"/>
+  <!-- piernas cruzadas (loto): dos muslos que se cruzan y los piecitos -->
+  <path d="M116 360c26-22 72-30 118-24 30 4 52 18 58 36 4 14-6 26-22 30-46 10-104 8-142-4-24-8-30-24-12-38z" fill="url(#piernas)"/>
+  <path d="M396 360c-26-22-72-30-118-24-30 4-52 18-58 36-4 14 6 26 22 30 46 10 104 8 142-4 24-8 30-24 12-38z" fill="#f7b93a"/>
+  <path d="M220 372c10-8 26-12 36-12s26 4 36 12" fill="none" stroke="#e39a22" stroke-width="7" stroke-linecap="round" opacity=".7"/>
+  <ellipse cx="300" cy="364" rx="26" ry="13" fill="#ffd77a"/>
+  <ellipse cx="212" cy="390" rx="26" ry="13" fill="#ffd77a"/>
+  <!-- manos sobre las rodillas, haciendo el gesto de meditar -->
+  <circle cx="132" cy="368" r="22" fill="url(#piel)"/>
+  <circle cx="380" cy="368" r="22" fill="url(#piel)"/>
+  <circle cx="132" cy="368" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
+  <circle cx="380" cy="368" r="7" fill="none" stroke="#e39a22" stroke-width="5"/>
+  <!-- cuello y cabeza -->
+  <rect x="240" y="206" width="32" height="30" rx="12" fill="#f5b335"/>
+  <circle cx="256" cy="156" r="66" fill="url(#piel)"/>
+  <!-- pelo: flequillo y laterales -->
+  <path d="M188 160c-4-50 28-86 70-88 44-2 76 30 74 82-14-26-38-40-66-42-6 16-20 28-40 34-14 4-28 8-38 14z" fill="url(#pelo)"/>
+  <path d="M190 150c-8 22-6 46 4 64-12-4-20-22-18-42 2-10 6-18 14-22z" fill="url(#pelo)"/>
+  <path d="M322 150c8 22 6 46-4 64 12-4 20-22 18-42-2-10-6-18-14-22z" fill="url(#pelo)"/>
+  <!-- cara tranquila: ojos cerrados, sonrisa y mejillas -->
+  <path d="M220 168c8 8 20 8 28 0" fill="none" stroke="#5a3a12" stroke-width="7" stroke-linecap="round"/>
+  <path d="M264 168c8 8 20 8 28 0" fill="none" stroke="#5a3a12" stroke-width="7" stroke-linecap="round"/>
+  <path d="M240 194c10 9 22 9 32 0" fill="none" stroke="#b2452c" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="212" cy="186" rx="13" ry="8" fill="#ff8fab" opacity=".6"/>
+  <ellipse cx="300" cy="186" rx="13" ry="8" fill="#ff8fab" opacity=".6"/>
+  <circle cx="256" cy="156" r="66" fill="url(#brillo)"/>
+</svg>

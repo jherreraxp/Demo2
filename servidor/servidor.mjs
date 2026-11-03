@@ -6,7 +6,7 @@ import path from 'node:path';
 import { config, VERSION } from './lib/config.mjs';
 import {
   db, nuevaCuenta, cuentaPorEmail, cuentaPorId, crearSesion, cuentaDeToken, borrarSesion, limpiarSesionesVencidas,
-  cuentaPublica, planDe, borrarCuenta, cuentaPorGoogle, unirGoogle, nuevaCuentaGoogle,
+  cuentaPublica, planDe, borrarCuenta, cuentaPorGoogle, unirGoogle, nuevaCuentaGoogle, ponerFoto,
 } from './lib/db.mjs';
 import { verificarGoogle } from './lib/google.mjs';
 import { ErrorUsuario, log, hashClave, claveCorrecta, limitar, emailValido, textoCorto, aleatorio } from './lib/util.mjs';
@@ -115,6 +115,8 @@ ruta('POST', '/api/google', async (req) => {
       c = cuentaPorId(id); log('registro_google', { cuenta: id });
     }
   }
+  // la foto de Google se actualiza en cada ingreso (si la persona la cambió en Google)
+  if ((g.foto || '') !== (c.foto || '')) { ponerFoto(c.id, g.foto); c = cuentaPorId(c.id); }
   return { ok: true, token: crearSesion(c.id), cuenta: cuentaPublica(c) };
 });
 

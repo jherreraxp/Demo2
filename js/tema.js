@@ -100,6 +100,26 @@
 
   window.Tema = { PALETAS, aplicar, actual, set, setFoto, quitarFoto, foto, fotoTodos, setFotoTodos, picker };
   aplicar();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicar); else aplicar();
+  // ---------- enlaces legales en el pie de página ----------
+  // Páginas con contenido normal: un pie al final. Juegos a pantalla completa: los enlaces van en la
+  // pantalla de inicio del juego (portada), para no tapar los controles mientras se juega.
+  function pieLegal() {
+    if (document.querySelector('[data-pie-legal], a[href="privacidad.html"]')) return;
+    const html = '<a href="privacidad.html">Política de privacidad</a> · <a href="terminos.html">Términos y condiciones</a>';
+    const css = 'font:500 13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#5b6b82;text-align:center;';
+    const portada = document.querySelector('.portada-caja');
+    const pantallaCompleta = document.querySelector('canvas.mundo, canvas#mundo, .tablero, .teclado') || getComputedStyle(document.body).overflow === 'hidden';
+    const el = document.createElement(portada ? 'p' : 'footer');
+    el.setAttribute('data-pie-legal', ''); el.innerHTML = html;
+    if (portada) { el.style.cssText = css + 'margin:10px 0 0;font-size:12px;'; portada.appendChild(el); return; }
+    // pantallas completas con un panel que se desplaza (hub del cuaderno, estudio mágico): el pie va dentro
+    const panel = pantallaCompleta && document.querySelector('#hub, main');
+    if (pantallaCompleta && !panel) return;
+    el.style.cssText = css + 'padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 18px);';
+    (panel || document.querySelector('main') || document.body).appendChild(el);
+    el.querySelectorAll('a').forEach(a => { a.style.color = 'var(--tema-acento, #6b47a8)'; a.style.fontWeight = '600'; });
+  }
+  function iniciar() { aplicar(); try { pieLegal(); } catch (e) {} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
   addEventListener('storage', e => { if ([K_TEMA, K_FOTO, K_TODOS].includes(e.key)) aplicar(); });
 })();

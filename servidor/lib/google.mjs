@@ -37,5 +37,7 @@ export async function verificarGoogle(credencial) {
   if (typeof datos.iat === 'number' && datos.iat > ahora + 300) throw malo();
   if (!datos.sub || !datos.email) throw malo();
   if (datos.email_verified !== true && datos.email_verified !== 'true') throw new ErrorUsuario('Tu correo de Google no está verificado.', 401);
-  return { sub: String(datos.sub), email: String(datos.email).toLowerCase(), nombre: String(datos.given_name || datos.name || '').slice(0, 60) };
+  // foto de perfil de Google (solo la dirección, y solo si es de Google)
+  const foto = typeof datos.picture === 'string' && /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com\//i.test(datos.picture) ? datos.picture.slice(0, 500) : '';
+  return { sub: String(datos.sub), email: String(datos.email).toLowerCase(), nombre: String(datos.given_name || datos.name || '').slice(0, 60), foto };
 }
