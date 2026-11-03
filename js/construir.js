@@ -77,15 +77,19 @@ const COLORES = {
   vidrio:   { nombre: 'Vidrio', css: 'linear-gradient(135deg, #e6fbff, #9fe6ff)', hex: 0xbdf1ff, vidrio: true },
 };
 const mats = {};
+// plano que "corta" techos y pisos de arriba cuando la niña entra a una casa (como mirar una casita de muñecas)
+const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), 999);
+renderer.localClippingEnabled = true;
 function matDe(color) {
   if (mats[color]) return mats[color];
   const c = COLORES[color] || COLORES.rosa;
   const m = c.vidrio
     ? new THREE.MeshStandardMaterial({ color: c.hex, transparent: true, opacity: .45, roughness: .05, metalness: .1, depthWrite: false })
     : new THREE.MeshStandardMaterial({ color: c.tex ? 0xffffff : c.hex, map: c.tex || texBloque, roughness: .55 });
+  m.clippingPlanes = [corte]; m.clipShadows = true;
   return (mats[color] = m);
 }
-const matMarco = new THREE.MeshStandardMaterial({ color: 0xffffff, map: texBloque, roughness: .5 });
+const matMarco = new THREE.MeshStandardMaterial({ color: 0xffffff, map: texBloque, roughness: .5, clippingPlanes: [corte], clipShadows: true });
 const matManija = new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: .5, roughness: .3 });
 
 // ---------- formas de las piezas (cada una ocupa un cuadrito; base en y=0) ----------
@@ -107,8 +111,8 @@ const PIEZAS = {
   escalera: { nombre: 'Escalera', emoji: '🪜', alto: 1, rampa: true, partes: [{ geo: merge([caja(1, .5, 1), caja(1, .5, .5, 0, .5, -.25)]) }] },
   puerta:   { nombre: 'Puerta', emoji: '🚪', alto: 2, pasa: true, partes: [
     { geo: merge([caja(.14, 2, .3, -.43), caja(.14, 2, .3, .43), caja(1, .16, .3, 0, 1.84)]), mat: 'marco' },
-    { geo: caja(.72, 1.84, .1) },
-    { geo: new THREE.SphereGeometry(.07, 10, 8).translate(.22, .95, .08), mat: 'manija' },
+    { geo: caja(.72, 1.84, .1), hoja: true },
+    { geo: new THREE.SphereGeometry(.07, 10, 8).translate(.22, .95, .08), mat: 'manija', hoja: true },
   ] },
   ventana:  { nombre: 'Ventana', emoji: '🪟', alto: 1, partes: [
     { geo: merge([caja(1, .14, 1), caja(1, .14, 1, 0, .86), caja(.14, .72, 1, -.43, .14), caja(.14, .72, 1, .43, .14), caja(.08, .72, .2, 0, .14)]) },
@@ -137,12 +141,37 @@ const grupoBloques = new THREE.Group(); scene.add(grupoBloques);
 const grupoCosas = new THREE.Group(); scene.add(grupoCosas);
 let mallas = [];
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(1, 1, 1), tmpP = new THREE.Vector3(), EJE_Y = new THREE.Vector3(0, 1, 0);
+// hojas de las puertas: cada una gira sobre su bisagra y se abre sola al acercarse
+const grupoPuertas = new THREE.Group(); scene.add(grupoPuertas);
+const puertas = []; // { it, pivote, ang, abierta }
+const geoHoja = caja(.72, 1.84, .1).translate(.36, 0, 0), geoManija = new THREE.SphereGeometry(.07, 10, 8).translate(.58, .95, .08);
+function dibujarPuertas() {
+  grupoPuertas.clear(); puertas.length = 0;
+  items.forEach(it => {
+    if (it.t !== 'b' || it.k !== 'puerta') return;
+    const base = new THREE.Group(); base.position.set(it.x, it.y, it.z); base.rotation.y = -(it.r || 0) * Math.PI / 2;
+    const pivote = new THREE.Group(); pivote.position.x = -.36; base.add(pivote);
+    const hoja = new THREE.Mesh(geoHoja, matDe(it.c)); hoja.castShadow = true; hoja.userData.item = it; pivote.add(hoja);
+    const man = new THREE.Mesh(geoManija, matManija); man.userData.item = it; pivote.add(man);
+    grupoPuertas.add(base); puertas.push({ it, pivote, ang: 0, abierta: false });
+  });
+}
+function moverPuertas(dt) {
+  for (const p of puertas) {
+    const cerca = state.modo === 'jugar' && Math.hypot(p.it.x - jug.pos.x, p.it.z - jug.pos.z) < 1.7 && Math.abs(p.it.y - jug.pos.y) < 1.5;
+    if (cerca !== p.abierta) { p.abierta = cerca; J.efecto(cerca ? 'abrir' : 'pop'); }
+    p.ang += ((cerca ? -1.75 : 0) - p.ang) * Math.min(1, dt * 7);
+    p.pivote.rotation.y = p.ang;
+  }
+}
 function dibujarBloques() {
   mallas.forEach(m => { grupoBloques.remove(m); m.dispose(); }); mallas = [];
+  dibujarPuertas();
   const grupos = new Map();
   items.forEach(it => {
     if (it.t !== 'b') return;
     PIEZAS[it.k].partes.forEach((parte, pi) => {
+      if (parte.hoja) return;
       const k = it.k + '|' + pi + '|' + (parte.mat || it.c);
       if (!grupos.has(k)) grupos.set(k, { parte, color: it.c, lista: [] });
       grupos.get(k).lista.push(it);
@@ -503,7 +532,7 @@ ghost.visible = false; scene.add(ghost);
 function apuntar(cx, cy) {
   v2.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(v2, camera);
-  const hits = ray.intersectObjects([...mallas, ...grupoCosas.children, suelo], true);
+  const hits = ray.intersectObjects([...mallas, ...grupoPuertas.children, ...grupoCosas.children, suelo], true);
   for (const h of hits) {
     if (h.object === suelo) {
       if (h.point.y < -.05) continue;
@@ -569,13 +598,13 @@ canvas.addEventListener('pointermove', e => {
   if (gesto.tipo === 'dos' && punteros.size >= 2) {
     const [a, b] = [...punteros.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    if (gesto.d0) { cam.r *= gesto.d0 / Math.max(10, d); pan(mx - gesto.mx, my - gesto.my); aplicarCamara(); }
+    if (gesto.d0) { if (state.modo === 'jugar') { jcam.r *= gesto.d0 / Math.max(10, d); jcam.toque = 2; } else { cam.r *= gesto.d0 / Math.max(10, d); pan(mx - gesto.mx, my - gesto.my); aplicarCamara(); } }
     gesto.d0 = d; gesto.mx = mx; gesto.my = my;
     return;
   }
   gesto.mov += Math.abs(dx) + Math.abs(dy);
   if (gesto.mov > 10) {
-    if (state.modo === 'jugar') { cam.theta -= dx * .008; return; }
+    if (state.modo === 'jugar') { cam.theta -= dx * .008; jcam.phi -= dy * .006; jcam.toque = 2.5; return; }
     if (gesto.boton === 2 || gesto.shift) pan(dx, dy); else { cam.theta -= dx * .008; cam.phi -= dy * .006; }
     aplicarCamara(); ghost.visible = false;
   }
@@ -589,10 +618,33 @@ function soltar(e) {
 canvas.addEventListener('pointerup', soltar);
 canvas.addEventListener('pointercancel', e => { punteros.delete(e.pointerId); if (!punteros.size) gesto = null; });
 canvas.addEventListener('pointerleave', () => { if (!punteros.size) ghost.visible = false; });
-canvas.addEventListener('wheel', e => { e.preventDefault(); cam.r *= 1 + Math.sign(e.deltaY) * .1; aplicarCamara(); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (state.modo === 'jugar') { jcam.r *= 1 + Math.sign(e.deltaY) * .1; return; } cam.r *= 1 + Math.sign(e.deltaY) * .1; aplicarCamara(); }, { passive: false });
 
 // ---------- modo jugar ----------
 let heroe = null;
+// cámara del juego: se puede girar arrastrando, acercar con dos dedos o la rueda, y cambiar de vista con 🎥
+const VISTAS = {
+  atras: { nombre: '🎥 Detrás', r: 7, phi: 1.12 },
+  arriba: { nombre: '🦅 Desde arriba', r: 13, phi: .32 },
+  lejos: { nombre: '🔭 De lejos', r: 15, phi: .95 },
+  ojos: { nombre: '👀 Con sus ojos', r: 0, phi: 1.5 },
+};
+const jcam = { vista: 'atras', r: 7, phi: 1.12, toque: 0 };
+function cambiarVista(v) {
+  const ks = Object.keys(VISTAS);
+  jcam.vista = v || ks[(ks.indexOf(jcam.vista) + 1) % ks.length];
+  const d = VISTAS[jcam.vista]; jcam.r = d.r; jcam.phi = d.phi;
+  if (jcam.vista === 'ojos') cam.theta = jug.dir + Math.PI;
+  $('#vista').textContent = d.nombre.split(' ')[0]; message(d.nombre, 1.2); J.sfx('pop');
+}
+$('#vista').onclick = () => cambiarVista();
+const rayoCam = new THREE.Raycaster(), dirCam = new THREE.Vector3(), cabeza = new THREE.Vector3();
+function adentro() {
+  // ¿hay techo encima? (está dentro de una casa, debajo de un puente…)
+  const x = Math.round(jug.pos.x), z = Math.round(jug.pos.z);
+  for (let y = Math.floor(jug.pos.y + 1.4); y < ALTO; y++) { const it = celdas.get(key(x, y, z)); if (it && it.t === 'b' && !PIEZAS[it.k].pasa) return true; }
+  return false;
+}
 const jug = { pos: new THREE.Vector3(), vy: 0, dir: 0, suelo: true, joy: new THREE.Vector2(), keys: {}, mov: false, fiesta: 0 };
 const RADIO = .28, ALTO_PJ = 1.3, PASO = 1.05;
 function topeEn(x, z, pie) {
@@ -629,13 +681,14 @@ async function empezarJuego() {
   jug.pos.set(ini[0], 0, ini[1]); jug.vy = 0; jug.dir = Math.PI; jug.suelo = true;
   state.estrellas = 0; state.metaOk = false; $('#estrellas').textContent = '0';
   items.forEach(it => { if (it.t === 's' && vivos.get(it)) vivos.get(it).group.visible = true; });
-  cam.theta = 0; cam.phi = 1.05; cam.r = 9;
+  cam.theta = 0; cambiarVista('atras');
   J.say('¡A jugar!');
 }
 function volverAConstruir() {
   state.modo = 'construir'; document.body.classList.remove('juego');
   $('#jugar').textContent = '▶ ¡Jugar!';
   if (heroe) heroe.group.visible = false;
+  corte.constant = 999; moverPuertas(1);
   items.forEach(it => { if (vivos.get(it)) vivos.get(it).group.visible = true; });
   cam.target.set(jug.pos.x, 0, jug.pos.z); cam.r = narrow() ? 30 : 24; cam.phi = 1.0; aplicarCamara();
   J.say('¡A construir!');
@@ -710,11 +763,35 @@ function pasoJuego(dt, t) {
       message('¡Llegaste! 🏁', 2.4); J.say('¡Llegaste a la meta!'); J.addStar(); updatePlayer();
     }
   }
-  // cámara que sigue detrás
-  const cr = 9, cp = 1.05;
-  tmp.set(jug.pos.x + cr * Math.sin(cp) * Math.sin(cam.theta), jug.pos.y + 1 + cr * Math.cos(cp), jug.pos.z + cr * Math.sin(cp) * Math.cos(cam.theta));
-  camera.position.lerp(tmp, Math.min(1, dt * 5));
-  camera.lookAt(jug.pos.x, jug.pos.y + .8, jug.pos.z);
+  // cámara: sigue a la niña; dentro de una casa se "corta" el techo para que se vea dónde está
+  const dentro = adentro();
+  const corteT = dentro ? Math.floor(jug.pos.y + .01) + 2.02 : 999;
+  corte.constant = corteT;
+  jcam.toque -= dt;
+  jcam.r = Math.max(2.5, Math.min(22, jcam.r)); jcam.phi = Math.max(.2, Math.min(1.5, jcam.phi));
+  // en la vista "detrás", la cámara se acomoda sola detrás de ella cuando camina
+  if (jcam.vista === 'atras' && jug.mov && jcam.toque <= 0) { let d = jug.dir + Math.PI - cam.theta; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.theta += d * Math.min(1, dt * 1.6); }
+  cabeza.set(jug.pos.x, jug.pos.y + 1.05, jug.pos.z);
+  if (jcam.vista === 'ojos') {
+    heroe.group.visible = false;
+    if (jug.mov) cam.theta = jug.dir + Math.PI;
+    camera.position.copy(cabeza).add(tmp.set(0, .1, 0));
+    camera.lookAt(cabeza.x - Math.sin(cam.theta) * 5, cabeza.y - .3 + (1.1 - jcam.phi) * 3, cabeza.z - Math.cos(cam.theta) * 5);
+  } else {
+    heroe.group.visible = true;
+    // dentro de la casa la cámara mira más desde arriba, como a una casita de muñecas
+    const phi = dentro ? Math.min(jcam.phi, .6) : jcam.phi;
+    let r = jcam.r;
+    dirCam.set(Math.sin(phi) * Math.sin(cam.theta), Math.cos(phi), Math.sin(phi) * Math.cos(cam.theta));
+    // si una pared tapa, la cámara se acerca (sin atravesar paredes)
+    rayoCam.set(cabeza, dirCam); rayoCam.far = r;
+    const choque = rayoCam.intersectObjects(mallas, false).find(h => h.point.y < corteT - .15);
+    if (choque) r = Math.max(1.2, choque.distance - .3);
+    tmp.copy(cabeza).addScaledVector(dirCam, r);
+    camera.position.lerp(tmp, Math.min(1, dt * (choque ? 12 : 5)));
+    camera.lookAt(cabeza.x, cabeza.y - .2, cabeza.z);
+  }
+  moverPuertas(dt);
   sun.position.set(jug.pos.x + 8, 18, jug.pos.z + 8); sun.target.position.copy(jug.pos);
 }
 function topeEnPie() {

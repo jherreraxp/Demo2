@@ -47,7 +47,8 @@ body.juego .jugar { background: #9a6ee0; box-shadow: 0 6px 0 #6b4fd8; }
 .joy .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: var(--paper); box-shadow: 0 4px 0 var(--shadow); display: grid; place-items: center; font-size: 26px; }
 .saltar { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 6; width: 92px; height: 92px; border-radius: 50%; background: #fff; box-shadow: 0 6px 0 var(--shadow); font-size: 40px; display: none; touch-action: none; }
 .saltar:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--shadow); }
-body.juego .joy, body.juego .saltar { display: block; }
+body.juego .joy, body.juego .saltar, body.juego .vista { display: block; }
+.vista { position: fixed; right: 124px; bottom: calc(env(safe-area-inset-bottom, 0px) + 100px); z-index: 6; width: 68px; height: 68px; border-radius: 50%; background: #fff; box-shadow: 0 5px 0 var(--shadow); font-size: 32px; display: none; }
 body.juego .herramientas, body.juego .biblio, body.juego .ayuda-tap { display: none; }
 #estrellas-pill { display: none; }
 body.juego #estrellas-pill { display: flex; }
@@ -127,6 +128,7 @@ body.juego #estrellas-pill { display: flex; }
 <button class="jugar" id="jugar">▶ ¡Jugar!</button>
 <div class="joy" id="joy" aria-label="Joystick para caminar"><div class="knob" id="knob">👣</div></div>
 <button class="saltar" id="saltar" aria-label="Saltar">🦘</button>
+<button class="vista" id="vista" aria-label="Cambiar la cámara">🎥</button>
 <div id="mensaje" aria-live="polite"></div>
 
 <div class="modal" id="modal" hidden><div class="caja" id="modal-caja"></div></div>
