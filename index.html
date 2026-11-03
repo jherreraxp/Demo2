@@ -54,6 +54,11 @@ button:focus-visible, a:focus-visible { outline: 4px solid var(--tema-tinta, var
 .chip { background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px; font-size: 17px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; }
 .chip.on { background: var(--tema-acento, #ff5dab); color: #fff; }
 .chip .ahora { font-size: 14px; }
+.edades .chip { font-size: 15px; padding: 4px 12px; background: rgba(255,255,255,.7); }
+.edades .chip.on { background: #23324a; color: #fff; }
+.edades label { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; background: rgba(255,255,255,.7); border-radius: 999px; padding: 2px 4px 2px 12px; white-space: nowrap; box-shadow: 0 4px 0 var(--shadow); }
+.edades select { font: inherit; border: 0; border-radius: 999px; padding: 4px 8px; background: #fff; }
+.vacio { grid-column: 1 / -1; background: rgba(255,255,255,.8); border-radius: 20px; padding: 18px; text-align: center; font-weight: 800; }
 .que { margin: 0; font-size: 17px; font-weight: 700; background: rgba(255,255,255,.6); border-radius: 14px; padding: 4px 12px; align-self: flex-start; text-wrap: pretty; }
 
 /* mosaico */
@@ -138,12 +143,14 @@ details.credits a { color: inherit; }
         <button class="ico" id="colores" aria-label="Colores">🎨</button>
         <a class="ico btn" href="personajes.html" aria-label="Mi personaje">👗</a>
         <button class="ico" id="dos" aria-label="Jugar de a 2">👭</button>
+        <button class="ico" id="tiempo-btn" aria-label="Control de tiempo" onclick="Juego.pedirPin(() => location.href = 'tiempo.html')">⏰</button>
         <button class="ico" id="papas" aria-label="Para mamá y papá">🔒</button>
         <button class="ico" id="cuenta" aria-label="Cuenta de la familia" hidden>👤</button>
       </div>
     </div>
     <div class="secciones">
       <div class="chips" id="chips" role="tablist" aria-label="Secciones"></div>
+      <div class="chips edades" id="edades" aria-label="Edades"></div>
       <p class="que" id="que"></p>
     </div>
   </header>
@@ -177,6 +184,12 @@ details.credits a { color: inherit; }
   const ahora = () => Object.keys(LISTA).find(k => !LISTA[k]());
   let sel = (() => { try { return sessionStorage.getItem('bl-seccion') || 'todos'; } catch (e) { return 'todos'; } })();
   if (!SECCIONES.some(s => s.id === sel)) sel = 'todos';
+  // filtro por edades: se guarda en este aparato; si no hay, se usa la edad de la niña
+  const EDADES = [{ id: 'todas', n: 'Todas' }, { id: '3-4', n: '3–4 años', r: [3, 4] }, { id: '4-5', n: '4–5', r: [4, 5] }, { id: '5-6', n: '5–6', r: [5, 6] }, { id: '6+', n: '6+', r: [6, 99] }];
+  const deEdad = a => a ? (a <= 3 ? '3-4' : a === 4 ? '4-5' : a === 5 ? '5-6' : '6+') : 'todas';
+  let edadSel = (() => { try { return localStorage.getItem('bl-edad') || deEdad(P.edad); } catch (e) { return deEdad(P.edad); } })();
+  if (!EDADES.some(x => x.id === edadSel)) edadSel = 'todas';
+  const paraEdad = g => { const r = (EDADES.find(x => x.id === edadSel) || {}).r; if (!r || !g.edad) return true; return g.edad[0] <= r[1] && g.edad[1] >= r[0]; };
 
   const soloEmoji = t => /^[\p{Extended_Pictographic}‍️\s]+$/u.test(t);
   function arte(g) {
@@ -202,17 +215,30 @@ details.credits a { color: inherit; }
     const sec = SECCIONES.find(s => s.id === sel);
     const nowSec = SECCIONES.find(s => s.id === now);
     $('#que').textContent = sel === 'todos' ? (nowSec ? `👉 Ahora: ${nowSec.nombre} — ${nowSec.q}` : '¡Terminaste el camino! Juega lo que quieras.') : sec.q;
-    const lista = JUEGOS.filter(g => sel === 'todos' || g.seccion === sel);
+    $('#edades').innerHTML = EDADES.map(x => `<button class="chip ${x.id === edadSel ? 'on' : ''}" data-e="${x.id}">${x.id === 'todas' ? '🎂 ' : ''}${x.n}</button>`).join('')
+      + `<label>Edad de ${J.esc(J.childName())}<select id="edad-nina" aria-label="Edad de ${J.esc(J.childName())}"><option value="">–</option>${[3, 4, 5, 6, 7, 8].map(a => `<option ${P.edad === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>`;
+    const lista = JUEGOS.filter(g => (sel === 'todos' || g.seccion === sel) && paraEdad(g));
     $('#grid').innerHTML = `<div class="tile t-xl hola" id="hola" role="button" tabindex="0" aria-label="Tu personaje: tócalo">
         <canvas id="preview" aria-hidden="true"></canvas>
         <div class="saludo">¡Hola, ${J.esc(J.childName())}!<span>${P.two ? `y ${J.esc(P.players[1].name)}` : '¿A qué jugamos hoy?'}</span></div>
-      </div>` + lista.map(g => tile(g, now)).join('');
+      </div>` + lista.map(g => tile(g, now)).join('') + (lista.length ? '' : '<p class="vacio">No hay juegos de esta sección para esa edad. Prueba con «Todas». 🙂</p>');
     window.dispatchEvent(new Event('menu-render'));
     J.refreshMusic();
   }
   $('#chips').addEventListener('click', e => {
     const b = e.target.closest('[data-s]'); if (!b) return;
     sel = b.dataset.s; try { sessionStorage.setItem('bl-seccion', sel); } catch (er) {}
+    J.sfx('pop'); render();
+  });
+  $('#edades').addEventListener('click', e => {
+    const b = e.target.closest('[data-e]'); if (!b) return;
+    edadSel = b.dataset.e; try { localStorage.setItem('bl-edad', edadSel); } catch (er) {}
+    J.sfx('pop'); render();
+  });
+  $('#edades').addEventListener('change', e => {
+    if (e.target.id !== 'edad-nina') return;
+    P.edad = +e.target.value || undefined; J.save();
+    edadSel = deEdad(P.edad); try { localStorage.setItem('bl-edad', edadSel); } catch (er) {}
     J.sfx('pop'); render();
   });
   $('#dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };

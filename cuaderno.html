@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Mi Cuaderno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+body { background: linear-gradient(160deg, #ffd6ec, #e6d4ff 55%, #cfe0ff); min-height: 100vh; margin: 0; }
+.wrap { max-width: 980px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 40px; box-sizing: border-box; }
+.barra { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.barra h1 { margin: 0; font-size: clamp(24px, 5vw, 36px); line-height: 1.05; }
+.barra p { margin: 2px 0 0; font-size: 15px; opacity: .8; }
+.barra .crece { flex: 1; min-width: 0; }
+#progreso { font-size: 18px; letter-spacing: 1px; word-break: break-all; margin: 0 0 12px; }
+.semana { background: #fff; border-radius: 24px; box-shadow: 0 6px 0 var(--shadow); margin-bottom: 16px; overflow: hidden; }
+.semana header { background: var(--c); color: #fff; display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.semana header .num { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
+.semana header .se-emo { font-size: 30px; }
+.semana header h2 { margin: 0; font-size: 21px; line-height: 1.1; }
+.semana header small { opacity: .85; }
+.semana header div { flex: 1; }
+.medalla { font-size: 34px; filter: grayscale(1) opacity(.6); }
+.medalla.on { filter: none; animation: brinca .8s ease-out; }
+.dias { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; }
+.dia { background: #f6f7fb; border-radius: 18px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 120px; box-shadow: 0 3px 0 var(--shadow); text-align: center; }
+.dia .n { font-size: 12px; font-weight: 800; color: var(--c); }
+.dia .e { font-size: 34px; line-height: 1.1; }
+.dia b { font-size: 13.5px; line-height: 1.15; }
+.dia .est { font-size: 22px; color: #c3c8d6; margin-top: auto; }
+.dia.ok { background: #fff6d6; }
+.dia.ok .est { color: inherit; }
+.dia:disabled { opacity: .45; }
+.extras { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 12px; }
+.extra { background: #f2eefe; border-radius: 999px; padding: 8px 14px; font-size: 15px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); display: flex; align-items: center; gap: 6px; }
+.extra.taller { background: #fff1e0; }
+.extra.ok { background: #fff6d6; }
+.extra:disabled { opacity: .45; }
+.extra.grande { font-size: 19px; padding: 12px 20px; }
+#cierre { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 8px 0 14px; }
+.para-lupe { text-align: center; }
+.para-lupe button { background: rgba(255,255,255,.8); border-radius: 999px; padding: 8px 16px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); }
+
+/* actividad */
+#act { max-width: 980px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 30px; box-sizing: border-box; }
+.a-barra { display: flex; align-items: center; gap: 10px; }
+.a-barra h1 { flex: 1; margin: 0; font-size: clamp(20px, 4.6vw, 30px); line-height: 1.1; }
+#a-puntos { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
+#a-puntos i { width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px #c9bfe8; }
+#a-puntos i.ok { background: var(--gold); box-shadow: none; }
+#a-puntos i.ahora { background: #9a6ee0; box-shadow: none; }
+#a-consigna { background: #fff; border: 3px dashed #c9cfe0; border-radius: 20px; padding: 10px 14px; margin: 0; font-weight: 800; font-size: clamp(15px, 3.4vw, 19px); letter-spacing: .3px; }
+#a-lupe { background: #fff8d8; border-radius: 14px; padding: 8px 12px; margin: 8px 0 0; font-size: 14.5px; }
+#escena { margin-top: 14px; background: #fff; border-radius: 26px; box-shadow: 0 6px 0 var(--shadow); padding: 16px; min-height: 52vh; display: flex; flex-direction: column; align-items: center; gap: 14px; box-sizing: border-box; }
+.dibus { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.dibus .d, .memfila .d { font-size: clamp(44px, 11vw, 74px); line-height: 1; background: #f6f7fb; border-radius: 18px; padding: 8px 12px; min-width: 1.2em; text-align: center; font-family: var(--font-letters); font-weight: 700; }
+.frase { font-family: var(--font-letters); font-weight: 700; font-size: clamp(24px, 6vw, 40px); margin: 0; text-align: center; letter-spacing: 1px; }
+.pal { padding: 0 6px; border-radius: 10px; transition: background .2s; }
+.pal.on { background: #ffe27a; }
+.cuadritos { display: flex; gap: 8px; }
+.cuadritos i { width: clamp(34px, 8vw, 52px); height: clamp(34px, 8vw, 52px); border: 4px solid #2b2f45; border-radius: 12px; background: #fff; transition: background .2s; }
+.cuadritos i.ok { background: #ff7eb6; border-color: #d94d8f; }
+.tambor { background: linear-gradient(#ffd23f, #ff9f3b); border-radius: 50%; width: 150px; height: 150px; font-size: 64px; box-shadow: 0 8px 0 #c97a17; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; touch-action: manipulation; }
+.tambor small { font-size: 16px; font-weight: 800; color: #6a3d00; margin-top: 4px; }
+.tambor:active { transform: translateY(6px); box-shadow: 0 2px 0 #c97a17; }
+.numeros, .caritas, .silops { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.numeros button, .silops button { min-width: 84px; height: 84px; border-radius: 50%; border: 4px solid #2b2f45; background: #fff; font: 800 clamp(30px, 7vw, 40px) var(--font-letters); box-shadow: 0 4px 0 var(--shadow); padding: 0 10px; }
+.silops.palabras button { border-radius: 18px; min-width: 0; height: auto; padding: 12px 18px; font-size: clamp(22px, 6vw, 34px); letter-spacing: 2px; }
+.caritas button { font-size: 64px; width: 110px; height: 110px; border-radius: 50%; background: #f6f7fb; box-shadow: 0 4px 0 var(--shadow); }
+.opciones { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.tarjeta { background: #fff; border: 3px solid #e3e6f0; border-radius: 22px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 110px; box-shadow: 0 4px 0 var(--shadow); touch-action: manipulation; }
+.tarjeta .e { font-size: clamp(48px, 12vw, 76px); line-height: 1.05; }
+.tarjeta b { font: 700 clamp(16px, 4vw, 22px) var(--font-letters); letter-spacing: 1.5px; }
+.tarjeta.grande .e { font-size: clamp(76px, 20vw, 120px); }
+.tarjeta.grande b { font-size: clamp(24px, 6vw, 34px); }
+.tarjeta.sin-txt b { display: none; }
+.opciones.sin .tarjeta { pointer-events: none; }
+.tarjeta.sel { border-color: #9a6ee0; background: #f2eefe; transform: scale(1.04); }
+.bien { border-color: #4cb87a !important; background: var(--par, #e6f8ee) !important; animation: brinca .6s ease-out; }
+.tachada { position: relative; }
+.tachada::after { content: '✖'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 80px; color: #ef5b5b; opacity: .7; }
+.mal { animation: tiembla .45s; }
+.grande-dib { display: flex; justify-content: center; }
+.columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 30px; width: 100%; max-width: 560px; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.col .tarjeta { flex-direction: row; justify-content: center; gap: 10px; min-width: 0; }
+.col .tarjeta .e { font-size: clamp(36px, 9vw, 54px); }
+.huecos { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.huecos i { font-style: normal; font-size: 26px; color: #9aa3bb; }
+.hueco { min-width: 96px; min-height: 110px; border: 4px dashed #c9cfe0; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: #c3c8d6; }
+.hueco.lleno { border-style: solid; border-color: #4cb87a; background: #e6f8ee; color: inherit; }
+.hueco .d { font-size: 54px; line-height: 1; }
+.hueco b { font: 700 16px var(--font-letters); }
+.hueco-txt { color: #9a6ee0; }
+.silabas { font: 800 clamp(28px, 7vw, 46px) var(--font-letters); display: flex; align-items: center; gap: 4px; margin: 0; flex-wrap: wrap; justify-content: center; }
+.silabas span { padding: 2px 10px; border-radius: 12px; border: 3px solid transparent; color: #c3c8d6; }
+.silabas span.on { color: #23324a; border-color: #2b2f45; background: #fff; }
+.silabas .quitada { color: #c3c8d6; text-decoration: line-through; text-decoration-color: #e8528b; text-decoration-thickness: 4px; border-color: #e3e6f0 !important; }
+.silabas i { font-style: normal; color: #2fbf86; }
+.hueco-sil { border: 3px dashed #c9a400 !important; background: #fff6d6; color: #c9a400 !important; min-width: 1.6em; text-align: center; }
+.palabra-grande { font: 800 clamp(44px, 12vw, 80px) var(--font-letters); color: #e8528b; letter-spacing: 6px; margin: 6px 0; }
+.ayuda { font-size: clamp(18px, 4.4vw, 24px); font-weight: 800; margin: 0; text-align: center; }
+.fila-btn { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.b-ayuda { background: #fff6d6; border-radius: 999px; padding: 12px 20px; font-size: 19px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); }
+.memfila { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.memfila .falta { background: #fff6d6; color: #e8528b; }
+.memfila .falta.on { animation: brinca .6s ease-out; }
+.trazo { display: flex; align-items: center; gap: 6px; width: 100%; }
+.trazo span { font-size: 44px; flex: none; }
+.trazo canvas { flex: 1; height: 220px; background: #fbfbff; border-radius: 18px; touch-action: none; min-width: 0; }
+.memo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: min(560px, 62vh); }
+.carta { aspect-ratio: 4/5; border-radius: 18px; position: relative; perspective: 600px; background: none; padding: 0; }
+.carta > span { position: absolute; inset: 0; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; backface-visibility: hidden; transition: transform .4s; box-shadow: 0 4px 0 var(--shadow); }
+.carta .atras { background: repeating-linear-gradient(45deg, #9a6ee0 0 12px, #b18cf0 12px 24px); font-size: 34px; border: 4px solid #fff; }
+.carta .frente { background: #fff; transform: rotateY(180deg); border: 4px solid #ffd23f; }
+.carta .frente .e { font-size: clamp(34px, 9vw, 52px); }
+.carta .frente b { font: 700 clamp(12px, 3vw, 16px) var(--font-letters); }
+.carta.vuelta .atras { transform: rotateY(180deg); }
+.carta.vuelta .frente { transform: rotateY(360deg); }
+.carta.par .frente { border-color: #4cb87a; }
+.area { margin: 0; font-weight: 800; color: #9a6ee0; text-transform: uppercase; letter-spacing: 2px; }
+#sub-escena { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.final { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; margin: auto; }
+.final .grande { font-size: 110px; line-height: 1; animation: brinca .8s ease-out; }
+.final h2 { margin: 0; font-size: 30px; }
+.tabla { border-collapse: collapse; font-size: 19px; margin: 6px 0; }
+.tabla td, .tabla th { padding: 4px 18px; border-bottom: 2px solid #f0e3c8; text-align: left; }
+.nota-lupe { background: #fff8d8; border-radius: 14px; padding: 10px 14px; max-width: 520px; }
+.modal { position: fixed; inset: 0; background: rgba(35, 50, 74, .45); z-index: 40; display: grid; place-items: center; padding: 16px; }
+.modal-caja { background: #fff; border-radius: 24px; padding: 18px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 0 var(--shadow); box-sizing: border-box; }
+.modal-caja h2 { margin: 0; font-size: 22px; }
+.modal-caja label { display: flex; flex-direction: column; font-weight: 800; font-size: 15px; gap: 4px; }
+.modal-caja input { font: inherit; font-size: 18px; padding: 8px 12px; border-radius: 12px; border: 2px solid #d8dcea; }
+.mini { font-size: 13px; opacity: .75; margin: 0; }
+#diploma { padding: 16px; }
+.dip { max-width: 760px; margin: 0 auto; background: #fffdf7; border: 6px double #e8528b; border-radius: 28px; padding: 30px 20px; text-align: center; }
+.dip h1 { font-size: clamp(42px, 10vw, 72px); letter-spacing: 8px; color: #e8528b; margin: 6px 0; }
+.dip-emo { font-size: 40px; letter-spacing: 16px; }
+.dip-sub { color: #8a90a5; font-weight: 800; }
+.dip-nombre { font-size: clamp(40px, 10vw, 64px); font-weight: 800; letter-spacing: 6px; color: #c86bfa; margin: 6px 0; }
+.firmas { display: flex; gap: 16px; justify-content: space-around; margin: 30px 0 20px; flex-wrap: wrap; }
+.firmas span { border-top: 2px solid #23324a; padding-top: 4px; min-width: 150px; display: flex; flex-direction: column; font-size: 15px; }
+.firmas small { opacity: .7; }
+@keyframes brinca { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes tiembla { 0%, 100% { translate: 0; } 25% { translate: -8px; } 75% { translate: 8px; } }
+@media (max-width: 640px) {
+  .dias { grid-template-columns: repeat(3, 1fr); }
+  .dia { min-height: 106px; }
+  .memo { grid-template-columns: repeat(3, 1fr); }
+  .tambor { width: 124px; height: 124px; font-size: 54px; }
+  .tarjeta { min-width: 92px; padding: 8px; }
+  .columnas { gap: 10px 14px; }
+  .trazo canvas { height: 180px; }
+  .trazo span { font-size: 32px; }
+  .hueco { min-width: 74px; min-height: 92px; }
+  .hueco .d { font-size: 40px; }
+  .huecos i { font-size: 18px; }
+  .memo { max-width: min(100%, 52vh); }
+}
+@media print { body { background: #fff; } .no-print, #hub, #act { display: none !important; } .dip { border-color: #e8528b; } }
+@media (prefers-reduced-motion: reduce) { .bien, .mal, .medalla.on, .final .grande { animation: none; } }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+<script src="js/cuaderno-datos.js"></script>
+</head>
+<body>
+<div class="wrap" id="hub">
+  <div class="barra">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="crece"><h1 id="titulo">El cuaderno</h1><p id="sub"></p></div>
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+  </div>
+  <p id="progreso" aria-label="Estrellas del calendario"></p>
+  <div id="semanas"></div>
+  <div id="cierre"></div>
+  <div class="para-lupe"><button data-familia>👩 Para mamá y papá: nombres de la familia</button></div>
+</div>
+
+<div id="act" hidden>
+  <div class="a-barra">
+    <button class="round-btn" id="a-casa" aria-label="Volver al cuaderno">📒</button>
+    <h1 id="a-titulo"></h1>
+    <button class="round-btn" id="a-oir" aria-label="Escuchar otra vez">🔊</button>
+  </div>
+  <div id="a-puntos"></div>
+  <p id="a-consigna"></p>
+  <p id="a-lupe"></p>
+  <div id="escena"></div>
+</div>
+
+<div id="diploma" hidden></div>
+<div id="mensaje" aria-live="polite"></div>
+<script src="js/cuaderno.js"></script>
+</body>
+</html>
