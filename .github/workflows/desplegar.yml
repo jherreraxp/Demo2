@@ -18,15 +18,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Revisar secretos
+        id: s
         env: { H: '${{ secrets.VM_HOST }}', K: '${{ secrets.VM_LLAVE }}', D: '${{ secrets.VM_DOMINIO }}' }
         run: |
-          if [ -z "$H" ] || [ -z "$K" ] || [ -z "$D" ]; then echo "Faltan los secretos VM_HOST, VM_LLAVE o VM_DOMINIO."; exit 1; fi
+          if [ -z "$H" ] || [ -z "$K" ] || [ -z "$D" ]; then echo "::notice::Faltan los secretos VM_HOST, VM_LLAVE o VM_DOMINIO; no se despliega."; echo "listo=no" >> "$GITHUB_OUTPUT"; else echo "listo=si" >> "$GITHUB_OUTPUT"; fi
       - name: Preparar SSH
+        if: steps.s.outputs.listo == 'si'
         env: { K: '${{ secrets.VM_LLAVE }}', H: '${{ secrets.VM_HOST }}' }
         run: |
           mkdir -p ~/.ssh && printf '%s\n' "$K" > ~/.ssh/vm && chmod 600 ~/.ssh/vm
           ssh-keyscan -T 15 "$H" >> ~/.ssh/known_hosts
       - name: Instalar o actualizar
+        if: steps.s.outputs.listo == 'si'
         env: { H: '${{ secrets.VM_HOST }}', U: '${{ secrets.VM_USUARIO }}', D: '${{ secrets.VM_DOMINIO }}', R: '${{ github.ref_name }}' }
         run: |
           ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" bash -s -- "$D" "$R" <<'REMOTO'
