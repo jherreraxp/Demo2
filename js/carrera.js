@@ -290,7 +290,8 @@ function atrapar(g) {
   }
 }
 function levelUp() {
-  P.level.carrera = Math.max(P.level.carrera || 0, state.nivel + 1); J.save();
+  if (!state.regalo) { P.level.carrera = Math.max(P.level.carrera || 0, state.nivel + 1); J.save(); }
+  state.regalo = false;
   limpiar();
   J.gift(() => {
     state.nivel = Math.min(state.nivel + 1, NIVELES.length - 1);
@@ -397,6 +398,8 @@ function frame() {
 }
 
 function start(nivel) {
+  state.regalo = J.regaloActivo && J.regaloActivo('carrera') === nivel && nivel > (P.level.carrera || 0);
+  if (state.regalo) J.usarRegalo('carrera');
   $('#portada').hidden = true;
   J.audio(); J.startMusic();
   state.nivel = nivel;
@@ -411,8 +414,10 @@ function start(nivel) {
   J.refreshMusic();
   requestAnimationFrame(frame);
   // selector de nivel
-  const unlocked = Math.min(NIVELES.length, (P.level.carrera || 0) + 1);
-  let sel = unlocked - 1;
+  // un nivel regalado (regalo sorpresa) se abre para jugarlo una vez
+  const reg = J.regaloActivo ? J.regaloActivo('carrera') : null;
+  const unlocked = Math.min(NIVELES.length, Math.max((P.level.carrera || 0) + 1, reg != null ? reg + 1 : 0));
+  let sel = reg != null && reg < NIVELES.length ? reg : unlocked - 1;
   const box = $('#niveles');
   box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');
   box.onclick = e => { const b = e.target.closest('[data-i]'); if (!b || b.disabled) return; sel = +b.dataset.i; [...box.children].forEach((c, k) => c.classList.toggle('on', k === sel)); $('#nivel-desc').textContent = NIVELES[sel].nombre; J.sfx('pop'); };

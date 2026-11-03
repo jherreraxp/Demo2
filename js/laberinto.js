@@ -401,7 +401,8 @@ function nivelListo() {
   J.cheer(true); J.confetti(120); actor().update && (state.fiesta = 3);
   message('¡Todos los quesos! 🧀', 2.4); J.say('¡Todos los quesos!');
   J.addStar(); updatePlayer();
-  P.level.laberinto = Math.max(P.level.laberinto || 0, state.nivel + 1); J.save();
+  if (!state.regalo) { P.level.laberinto = Math.max(P.level.laberinto || 0, state.nivel + 1); J.save(); }
+  state.regalo = false;
   setTimeout(() => J.gift(() => {
     const sig = Math.min(state.nivel + 1, NIVELES.length - 1);
     state.vidas = 3; armarNivel(sig).then(() => arrancar(true));
@@ -527,6 +528,8 @@ async function hacerActores() {
 function swapActor() { actors.forEach(a => { a.group.visible = a === actor(); }); updatePlayer(); }
 
 async function empezar(i) {
+  state.regalo = J.regaloActivo && J.regaloActivo('laberinto') === i && i > (P.level.laberinto || 0);
+  if (state.regalo) J.usarRegalo('laberinto');
   $('#portada').hidden = true;
   J.audio(); J.startMusic();
   state.vidas = 3; state.monedas = 0;
@@ -535,8 +538,9 @@ async function empezar(i) {
   P.two ? J.showTurn(go, { onShow: swapActor }) : go();
 }
 function portada() {
-  const unlocked = Math.min(NIVELES.length, (P.level.laberinto || 0) + 1);
-  let sel = unlocked - 1;
+  const reg = J.regaloActivo ? J.regaloActivo('laberinto') : null;
+  const unlocked = Math.min(NIVELES.length, Math.max((P.level.laberinto || 0) + 1, reg != null ? reg + 1 : 0));
+  let sel = reg != null && reg < NIVELES.length ? reg : unlocked - 1;
   const box = $('#niveles');
   const pintar = () => {
     box.innerHTML = NIVELES.map((n, i) => `<button data-i="${i}" title="${n.nombre}" ${i >= unlocked ? 'disabled aria-label="Nivel bloqueado"' : ''} class="${i === sel ? 'on' : ''}">${i < unlocked ? i + 1 : '🔒'}</button>`).join('');

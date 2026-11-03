@@ -4,7 +4,7 @@
 (() => {
   const J = window.Juego, P = J.progress, C = window.CUADERNO;
   const $ = s => document.querySelector(s);
-  const DEF = { mama: 'Lupe', papa: 'José', hermana: 'Amara', idolo: 'Rumi' };
+  const DEF = { mama: 'Lupe', papa: 'José', hermana: 'Amara', idolo: 'Romi' };
   const EMO = { yo: '👧', mama: '👩', papa: '👨', hermana: '🧒', idolo: '🎤' };
   P.cuaderno = P.cuaderno || { dias: {}, finde: {}, talleres: {}, eval: null };
   const Q = P.cuaderno;

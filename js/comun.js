@@ -29,7 +29,7 @@
   const KEY = 'bloques-letras';
   const CHARS = {
     nieve: { name: 'Princesa Nieve', emoji: '👸' }, ana: { name: 'Princesa Ana', emoji: '👸🏾' },
-    estrella: { name: 'Estrella Pop', emoji: '🎤' }, zoe: { name: 'Zoe', emoji: '🎧' }, mira: { name: 'Mira', emoji: '💃' },
+    estrella: { name: 'Estrella Pop', emoji: '🎤' }, zoe: { name: 'Zuri', emoji: '🎧' }, mira: { name: 'Mila', emoji: '💃' },
     llama: { name: 'Llamita Lula', emoji: '🦙' }, rojito: { name: 'Monstruito Rojo', emoji: '❤️' }, raton: { name: 'Ratoncito Pipo', emoji: '🐭' },
     zorro: { name: 'Zorrito', emoji: '🦊' }, lobo: { name: 'Lobito', emoji: '🐺' }, toro: { name: 'Torito', emoji: '🐂' },
     amara: { name: 'Amara', emoji: '👧🏻' }, papa: { name: 'Papá', emoji: '👨' }, mama: { name: 'Mamá', emoji: '👩' },
@@ -37,6 +37,9 @@
     conejo: { name: 'Conejita Coco', emoji: '🐰' }, oso: { name: 'Osito Bruno', emoji: '🧸' },
     panda: { name: 'Pandita Pao', emoji: '🐼' }, unicornio: { name: 'Unicornio Lulú', emoji: '🦄' },
     pollito: { name: 'Pollito Pío', emoji: '🐥' }, pinguino: { name: 'Pingüino Pepe', emoji: '🐧' },
+    // trajes especiales (plan Familia)
+    nieve_gala: { name: 'Nieve de gala', emoji: '❄️' }, estrella_gira: { name: 'Estrella en concierto', emoji: '🌟' }, ana_dorada: { name: 'Ana dorada', emoji: '👑' },
+    mila_guerrera: { name: 'Mila guerrera de las estrellas', emoji: '🚀' }, unicornio_arcoiris: { name: 'Unicornio arcoíris', emoji: '🌈' },
   };
   function load() {
     let d;
@@ -115,7 +118,7 @@
   const configReady = fetch(ROOT + 'assets/config.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).then(c => { publicConfig = c || {}; }).catch(() => {});
   const allReady = Promise.all([ready, configReady]).then(() => { Object.entries(config().nombres).forEach(([id, n]) => { if (CHARS[id] && n) CHARS[id].name = n; }); });
   const MODELOS = ['gato', 'perro', 'pato', 'oso', 'conejo', 'vaca', 'llama', 'sapo', 'pez', 'pelota', 'flor', 'palta', 'choclo', 'carro', 'sol', 'luna', 'nube', 'casa', 'dado', 'taza', 'uva', 'pera', 'tomate', 'papa', 'piña', 'abeja', 'tortuga', 'loro', 'mono', 'lobo', 'toro', 'ratón', 'gusano'];
-  const EXTRA_EMOJI = { Zoe: '🎧', Mira: '💃', Ana: '👸🏾', Lula: '🦙', Avelu: '👧' };
+  const EXTRA_EMOJI = { Zuri: '🎧', Mila: '💃', Ana: '👸🏾', Lula: '🦙', Avelu: '👧' };
   const JUEGOS_PALABRAS = {
     carrera: 'Carrera de Palabras', bosque: 'Bosque de las Palabras', globos: 'Revienta Globos', gusanos: 'Aplasta Gusanos',
     memoria: 'Memoria: figuras y palabras', memoria_letras: 'Memoria: vocales y letras', memoria_silabas: 'Memoria: vocales y sílabas', tren: 'Tren de sílabas', lectura: 'Lectura: Palabras',
@@ -124,7 +127,7 @@
     carrera: MODELOS, bosque: MODELOS,
     globos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
     gusanos: ['oso', 'uva', 'sol', 'pato', 'gato', 'casa', 'luna', 'mano', 'sopa', 'taza', 'papa', 'mamá', 'papá', 'nube', 'dedo', 'pelota'],
-    memoria: ['perro', 'gato', 'pato', 'oso', 'llama', 'sol', 'luna', 'casa', 'Zoe', 'Mira', 'mamá', 'papá'],
+    memoria: ['perro', 'gato', 'pato', 'oso', 'llama', 'sol', 'luna', 'casa', 'Zuri', 'Mila', 'mamá', 'papá'],
     memoria_letras: ['a', 'e', 'i', 'o', 'u', 'm', 's', 'l', 'p'],
     memoria_silabas: ['a', 'e', 'i', 'o', 'u', 'ma', 'me', 'mi', 'mo', 'mu', 'pa', 'pe', 'pi', 'po', 'pu', 'la', 'lo', 'sa', 'so', 'su'],
     tren: ['gato', 'pato', 'casa', 'luna', 'sopa', 'taza', 'mano', 'palta', 'pelota', 'tomate', 'conejo', 'tortuga', 'papa', 'dado', 'vaca', 'bota'],
@@ -733,47 +736,131 @@
   }
 
   // ---------- regalo ----------
+  // ---------- regalo ----------
+  // trajes especiales del plan Familia (lego.js lee esta misma lista)
+  const PREMIUM_PJ = ['nieve_gala', 'estrella_gira', 'ana_dorada', 'mila_guerrera', 'unicornio_arcoiris'];
+  // niveles que se pueden regalar para jugarlos UNA vez: [juego, cuántos niveles tiene, dibujo, texto]
+  const NIVELES_REGALO = [['piano', 14, '🎹', 'Una canción nueva del piano'], ['carrera', 6, '🏃‍♀️', 'Un nivel nuevo de la carrera'], ['laberinto', 8, '🧀', 'Un laberinto nuevo']];
+  const leerLS = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || '') || d; } catch (e) { return d; } };
+  // Regalo sorpresa: algo que normalmente está bloqueado, para verlo una vez (después sigue bloqueado)
+  function elegirSorpresa() {
+    const vistos = leerLS('bl-regalos-vistos', {});
+    const plan = window.Cuenta && window.Cuenta.personalizacion ? window.Cuenta.personalizacion() : 'completa';
+    const c = [];
+    if (plan !== 'completa') PREMIUM_PJ.forEach(id => c.push({ clave: 'pj:' + id, tipo: 'personaje', id, emoji: (CHARS[id] || {}).emoji || '⭐', nombre: (CHARS[id] || {}).name || id, url: ROOT + 'personajes.html?regalo=' + id }));
+    NIVELES_REGALO.forEach(([juego, max, emoji, nombre]) => {
+      const n = (progress.level[juego] || 0) + 1; // el primero que todavía está bloqueado
+      if (n < max) c.push({ clave: juego + ':' + n, tipo: 'nivel', juego, nivel: n, emoji, nombre, url: ROOT + juego + '.html' });
+    });
+    if (!c.length) {
+      // ¡ya tiene todo! la sorpresa es una fiesta con un personaje al azar
+      const ids = Object.keys(CHARS).filter(id => !PREMIUM_PJ.includes(id) && !/^c_/.test(id));
+      const id = pick(ids);
+      return { clave: 'fiesta', tipo: 'fiesta', id, emoji: '🎉', nombre: '¡Una fiesta con ' + ((CHARS[id] || {}).name || 'un amigo') + '!', url: ROOT + 'personajes.html?regalo=' + id + '&fiesta=1' };
+    }
+    const min = Math.min(...c.map(x => vistos[x.clave] || 0));
+    return pick(c.filter(x => (vistos[x.clave] || 0) === min));
+  }
+  // un nivel regalado (para jugarlo una vez): el juego pregunta con regaloActivo y lo gasta con usarRegalo
+  function regaloActivo(juego) {
+    try { const r = JSON.parse(sessionStorage.getItem('bl-regalo') || 'null'); if (r && r.juego === juego && r.hasta > Date.now()) return r.nivel; } catch (e) {}
+    return null;
+  }
+  function usarRegalo(juego) { try { const r = JSON.parse(sessionStorage.getItem('bl-regalo') || 'null'); if (r && r.juego === juego) sessionStorage.removeItem('bl-regalo'); } catch (e) {} }
+
   function gift(onContinue) {
     const wrap = document.createElement('div');
     wrap.className = 'regalo';
+    const sorpresa = elegirSorpresa();
+    const R = 46, CIRC = 2 * Math.PI * R;
     wrap.innerHTML = `
-      <div class="regalo-caja" role="dialog" aria-label="Regalo">
-        <button class="regalo-abrir" aria-label="Abrir regalo">🎁</button>
+      <div class="regalo-caja" role="dialog" aria-label="¡Ganaste un regalo!">
+        <div class="regalo-abre" aria-hidden="true"><span class="regalo-tapa">🎀</span><span class="regalo-box">🎁</span><span class="regalo-brillo">✨</span></div>
         <p class="regalo-titulo">¡Ganaste un regalo!</p>
-        <p class="regalo-sub">Toca la caja para abrirla</p>
-        <div class="regalo-opciones" hidden>
+        <div class="regalo-opciones">
           <a class="regalo-op op-cuento" href="${ROOT}cuento.html"><span>📖</span>Un cuento</a>
           <a class="regalo-op op-pintar" href="${ROOT}princesa.html"><span>🎨</span>Pintar</a>
           <a class="regalo-op op-ballet" href="${ROOT}ballet.html"><span>🩰</span>Ballet</a>
-          <button class="regalo-op op-seguir"><span>▶️</span>Seguir jugando</button>
         </div>
+        <button class="regalo-sorpresa op-sorpresa"><span class="rs-ico">🎁</span><span class="rs-txt"><b>Regalo sorpresa</b><small>¿Qué será?</small></span></button>
+        <button class="op-seguir regalo-seguir" aria-label="Seguir jugando">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${R}" class="rs-fondo"/><circle cx="50" cy="50" r="${R}" class="rs-anillo" style="stroke-dasharray:${CIRC};stroke-dashoffset:0"/></svg>
+          <span class="rs-centro"><span class="rs-play">▶</span><b>Seguir jugando</b><small class="rs-num">5</small></span>
+        </button>
       </div>`;
     document.body.appendChild(wrap);
     cheer(true); confetti(160);
-    say(['¡Ganaste un regalo!', 'Toca la caja para abrirla.'], { queue: true });
-    const box = wrap.querySelector('.regalo-abrir');
-    box.onclick = () => {
-      box.classList.add('abierta'); box.textContent = '✨';
-      sparkle(); confetti(80);
-      wrap.querySelector('.regalo-sub').hidden = true;
-      wrap.querySelector('.regalo-opciones').hidden = false;
-      say('¿Quieres un cuento, pintar, bailar, o seguir jugando?');
+    say('¡Ganaste un regalo!', { queue: true });
+    setTimeout(() => { wrap.querySelector('.regalo-abre').classList.add('abierta'); sparkle(); confetti(60); }, 650);
+    // temporizador: a los 5 segundos se aprieta solo "Seguir jugando" (se cancela si toca otra cosa)
+    const anillo = wrap.querySelector('.rs-anillo'), num = wrap.querySelector('.rs-num');
+    const DUR = 5000, t0 = performance.now();
+    let activo = true, raf = 0, listo = false;
+    const seguir = () => {
+      if (listo) return; listo = true; activo = false; cancelAnimationFrame(raf);
+      wrap.remove(); stopVoice(); onContinue && onContinue();
     };
-    wrap.querySelector('.op-seguir').onclick = () => { wrap.remove(); stopVoice(); onContinue && onContinue(); };
+    const paso = now => {
+      if (!activo) return;
+      const q = Math.min(1, (now - t0) / DUR);
+      anillo.style.strokeDashoffset = String(CIRC * q);
+      num.textContent = String(Math.max(1, Math.ceil((DUR - (now - t0)) / 1000)));
+      if (q >= 1) return seguir();
+      raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+    const parar = () => { if (!activo) return; activo = false; cancelAnimationFrame(raf); wrap.classList.add('sin-reloj'); };
+    wrap.addEventListener('pointerdown', e => { if (!e.target.closest('.op-seguir')) parar(); });
+    wrap.querySelector('.op-seguir').onclick = seguir;
+    // regalo sorpresa: se destapa y abre lo bloqueado para verlo una vez
+    const btn = wrap.querySelector('.op-sorpresa');
+    btn.onclick = () => {
+      parar();
+      if (btn.classList.contains('destapada')) return;
+      btn.classList.add('destapada');
+      btn.querySelector('.rs-ico').textContent = sorpresa.emoji;
+      btn.querySelector('.rs-txt').innerHTML = `<b>${esc(sorpresa.nombre)}</b><small>${sorpresa.tipo === 'nivel' ? '¡Para jugarlo una vez!' : sorpresa.tipo === 'personaje' ? '¡Míralo con su traje especial!' : '¡A bailar!'}</small>`;
+      sparkle(); confetti(80); say('¡Regalo sorpresa!');
+      const v = leerLS('bl-regalos-vistos', {}); v[sorpresa.clave] = (v[sorpresa.clave] || 0) + 1;
+      try { localStorage.setItem('bl-regalos-vistos', JSON.stringify(v)); } catch (e) {}
+      if (sorpresa.tipo === 'nivel') { try { sessionStorage.setItem('bl-regalo', JSON.stringify({ tipo: 'nivel', juego: sorpresa.juego, nivel: sorpresa.nivel, hasta: Date.now() + 30 * 60000 })); } catch (e) {} }
+      setTimeout(() => { location.href = sorpresa.url; }, 1600);
+    };
   }
 
   const css = document.createElement('style');
   css.textContent = `
-  .regalo{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(35,50,74,.55)}
-  .regalo-caja{box-sizing:border-box;background:#fff;color:#23324a;border-radius:32px;padding:24px 20px;max-width:440px;width:100%;text-align:center;box-shadow:0 10px 0 rgba(35,50,74,.3);font-family:"Baloo 2",system-ui,sans-serif;animation:regalo-in .4s ease-out}
-  .regalo-abrir{font-size:110px;line-height:1.1;background:none;border:0;cursor:pointer;animation:regalo-bote 1s ease-in-out infinite}
-  .regalo-abrir.abierta{animation:none}
-  .regalo-titulo{font-size:32px;font-weight:800;margin:4px 0}
-  .regalo-sub{font-size:20px;margin:0}
-  .regalo-opciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:12px}
-  .regalo-op{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px;border-radius:20px;border:0;font:inherit;font-size:20px;font-weight:800;color:#fff;text-decoration:none;cursor:pointer;box-shadow:0 6px 0 rgba(35,50,74,.3)}
-  .regalo-op span{font-size:44px;line-height:1.1}
-  .op-cuento{background:#3f8ee8}.op-pintar{background:linear-gradient(135deg,#ef5b5b,#f6c33b,#4cb87a,#3f8ee8,#9a6ee0)}.op-seguir{background:#4cb87a}.op-ballet{background:#ff7eb6}
+  .regalo{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(35,50,74,.55);overflow-y:auto}
+  .regalo-caja{box-sizing:border-box;background:linear-gradient(#fff,#fff7fc);color:#23324a;border-radius:32px;padding:18px 18px 22px;max-width:460px;width:100%;text-align:center;box-shadow:0 10px 0 rgba(35,50,74,.3);font-family:"Baloo 2",system-ui,sans-serif;animation:regalo-in .4s ease-out;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .regalo-abre{position:relative;width:120px;height:110px}
+  .regalo-box{position:absolute;inset:0;font-size:96px;line-height:110px;animation:regalo-bote 1s ease-in-out infinite}
+  .regalo-tapa{position:absolute;left:50%;top:0;font-size:40px;transform:translateX(-50%);transition:transform .6s cubic-bezier(.3,1.6,.5,1),opacity .6s;z-index:2}
+  .regalo-brillo{position:absolute;left:50%;top:10px;font-size:60px;transform:translate(-50%,0) scale(0);opacity:0;transition:transform .6s .15s cubic-bezier(.3,1.6,.5,1),opacity .4s .15s}
+  .regalo-abre.abierta .regalo-tapa{transform:translate(-50%,-46px) rotate(-25deg);opacity:0}
+  .regalo-abre.abierta .regalo-brillo{transform:translate(-50%,-30px) scale(1.2);opacity:1}
+  .regalo-titulo{font-size:clamp(26px,7vw,34px);font-weight:800;margin:0;line-height:1.1}
+  .regalo-opciones{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+  .regalo-op{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:88px;padding:8px 4px;border-radius:20px;border:0;font:inherit;font-size:17px;font-weight:800;color:#fff;text-decoration:none;cursor:pointer;box-shadow:0 5px 0 rgba(35,50,74,.25);line-height:1.1}
+  .regalo-op span{font-size:36px;line-height:1.1}
+  .op-cuento{background:#3f8ee8}.op-pintar{background:linear-gradient(135deg,#ef5b5b,#f6c33b,#4cb87a,#3f8ee8,#9a6ee0)}.op-ballet{background:#ff7eb6}
+  .regalo-sorpresa{display:flex;align-items:center;gap:12px;width:100%;min-height:72px;border:0;border-radius:22px;padding:8px 14px;font:inherit;color:#5a2d00;cursor:pointer;background:repeating-linear-gradient(45deg,#ffd23f 0 14px,#ffe27a 14px 28px);box-shadow:0 5px 0 #d49a12;text-align:left}
+  .regalo-sorpresa .rs-ico{font-size:42px;line-height:1;animation:regalo-bote 1.2s ease-in-out infinite}
+  .regalo-sorpresa .rs-txt{display:flex;flex-direction:column;line-height:1.15}
+  .regalo-sorpresa b{font-size:20px}.regalo-sorpresa small{font-size:15px;font-weight:700;opacity:.85}
+  .regalo-sorpresa.destapada{background:linear-gradient(135deg,#fff1b8,#ffd6ec);animation:regalo-gira .6s ease-out}
+  .regalo-seguir{position:relative;width:150px;height:150px;border:0;border-radius:50%;padding:0;cursor:pointer;background:#4cb87a;color:#fff;box-shadow:0 8px 0 #2f8a58;font:inherit;margin-top:4px}
+  .regalo-seguir:active{transform:translateY(5px);box-shadow:0 3px 0 #2f8a58}
+  .regalo-seguir svg{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);transform:rotate(-90deg)}
+  .regalo-seguir .rs-fondo{fill:none;stroke:rgba(76,184,122,.25);stroke-width:7}
+  .regalo-seguir .rs-anillo{fill:none;stroke:#ffd23f;stroke-width:7;stroke-linecap:round}
+  .regalo-seguir .rs-centro{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;line-height:1.05}
+  .regalo-seguir .rs-play{font-size:44px;line-height:1}
+  .regalo-seguir b{font-size:18px;font-weight:800;max-width:120px}
+  .regalo-seguir small{font-size:16px;font-weight:800;background:rgba(255,255,255,.25);border-radius:999px;min-width:28px;margin-top:4px}
+  .regalo.sin-reloj .rs-anillo,.regalo.sin-reloj .rs-num{display:none}
+  @keyframes regalo-gira{from{transform:rotateY(90deg)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){.regalo-box,.regalo-sorpresa .rs-ico{animation:none}.regalo-tapa,.regalo-brillo{transition:none}.regalo-seguir .rs-anillo{transition:none}}
+  @media (max-width:380px){.regalo-op{min-height:78px;font-size:15px}.regalo-op span{font-size:30px}.regalo-seguir{width:132px;height:132px}}
   .turno{position:fixed;inset:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#fff6c8,#ffc2dd);animation:regalo-in .3s ease-out;font-family:"Baloo 2",system-ui,sans-serif;color:#23324a;text-align:center;transition:opacity .3s}
   .turno.fuera{opacity:0}
   .turno-cara{font-size:120px;line-height:1;animation:regalo-bote 1s ease-in-out infinite}
@@ -796,7 +883,7 @@
 
   window.Juego = {
     WORDS, CHARS, pick, shuffle, strip, esc, norm, progress, save: () => save(progress), player, childName, addStar,
-    festejo, fuegoArtificial,
+    festejo, fuegoArtificial, PREMIUM_PJ, regaloActivo, usarRegalo,
     say, stopVoice, sound, SOUNDS, SOUND_WORD, PRAISES, SHOUTS, voices, recUrl, ROOT,
     sfx, tones, ding, boing, fanfare, sparkle, cheer, applause, confetti, gift,
     startMusic, stopMusic, setMusic, setSong, songList, musicBeat, SONGS, currentSong: () => songId, refreshMusic: updateMusicButtons, isMusicOn: () => musicOn, isPlaying: () => !!timer || !!(songEl && !songEl.paused), audio,

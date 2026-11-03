@@ -42,6 +42,14 @@ canvas.mundo { touch-action: none; }
 .puntos i { width: 8px; height: 8px; border-radius: 50%; background: rgba(35,50,74,.25); }
 .puntos i.on { background: #23324a; width: 20px; border-radius: 4px; }
 .elegir { font-size: 28px; padding: 12px 46px; border-radius: 999px; }
+.elegir.bloq { background: #8a7fb0; box-shadow: 0 6px 0 #5f5585; font-size: 22px; }
+.chip-plan { display: inline-block; margin-left: 10px; vertical-align: middle; font: 800 14px/1 system-ui, sans-serif; background: linear-gradient(135deg, #ffd23f, #ff7eb6); color: #5a2d00; border-radius: 999px; padding: 6px 10px; }
+.banner-regalo { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 172px); transform: translateX(-50%); z-index: 8; background: repeating-linear-gradient(45deg, #ffd23f 0 14px, #ffe27a 14px 28px); color: #5a2d00; font: 800 clamp(20px, 4.4vw, 28px) "Baloo 2", system-ui, sans-serif; border-radius: 999px; padding: 8px 22px; box-shadow: 0 5px 0 #d49a12; transition: opacity .6s; animation: regalo-in .4s ease-out; pointer-events: none; }
+.banner-regalo.fuera { opacity: 0; }
+.banner-regalo { white-space: nowrap; }
+@media (max-width: 560px) { .banner-regalo { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 296px); font-size: 17px; padding: 6px 16px; } .chip-plan { font-size: 12px; padding: 4px 8px; } }
+#aviso-plan { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translate(-50%, 140%); z-index: 30; background: #23324a; color: #fff; border-radius: 16px; padding: 12px 16px; font: 700 15px system-ui, sans-serif; transition: transform .3s; max-width: 90vw; }
+#aviso-plan.ver { transform: translate(-50%, 0); } #aviso-plan a { color: #ffd23f; }
 .elegir.ya { background: #4cb87a; box-shadow: 0 6px 0 #2e8a55; }
 .secund { display: flex; gap: 10px; }
 .secund a { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); display: grid; place-items: center; font-size: 26px; text-decoration: none; position: relative; }
@@ -88,7 +96,7 @@ canvas.mundo { touch-action: none; }
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual, esPropio } from './js/personajes.js';
+import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual, esPropio, esPremium } from './js/personajes.js';
 import { pintarParque } from './js/parque.js';
 pintarParque(document.querySelector('#parque'));
 
@@ -99,7 +107,7 @@ const volver = new URLSearchParams(location.search).get('volver');
 const destino = volver && /^[a-z]+\.html$/.test(volver) ? volver : 'index.html';
 
 // grupos cortos, en vez de 22 botones
-const CHICAS = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara'], FAMILIA = ['amara', 'mama', 'papa'];
+const CHICAS = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara', 'nieve_gala', 'estrella_gira', 'ana_dorada', 'mila_guerrera'], FAMILIA = ['amara', 'mama', 'papa'];
 const CATS = [
   { id: 'todos', nombre: '⭐ Todos', f: () => true },
   { id: 'chicas', nombre: '👸 Princesas y chicas', f: id => CHICAS.includes(id) },
@@ -108,6 +116,13 @@ const CATS = [
   { id: 'mios', nombre: '🧵 Mis creados', f: id => esPropio(id) },
 ];
 let cat = 'todos', editing = 0, lista = [], idx = 0;
+// trajes especiales: se eligen con el plan Familia (sin servidor, como en la copia de GitHub, están libres)
+const plan = () => (window.Cuenta && window.Cuenta.personalizacion ? window.Cuenta.personalizacion() : 'completa');
+const bloqueado = id => esPremium(id) && plan() !== 'completa';
+// ?regalo=<id>: el regalo sorpresa deja mirar (no elegir) un personaje bloqueado
+const qs = new URLSearchParams(location.search);
+const regaloId = qs.get('regalo') && PERSONAJES.includes(qs.get('regalo')) ? qs.get('regalo') : null;
+let regaloT = regaloId ? 9 : 0;
 
 // ---------- escena: un pedestal al centro con su foco ----------
 const W = crearMundo($('#mundo'), { fog: null });
@@ -191,12 +206,14 @@ function renderQuien() {
 function renderInfo() {
   const id = lista[idx]; if (!id) { $('#nombre').hidden = true; return; }
   $('#nombre').hidden = false;
-  $('#nombre').innerHTML = `<small>${info(id).emoji}</small>${J.esc(info(id).name)}`;
+  const lock = bloqueado(id);
+  $('#nombre').innerHTML = `<small>${info(id).emoji}</small>${J.esc(info(id).name)}${esPremium(id) ? `<span class="chip-plan">${lock ? '🔒' : '⭐'} Plan Familia</span>` : ''}`;
   const n = lista.length, MAX = 12;
   $('#puntos').innerHTML = n <= MAX ? lista.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('') : `<span style="font-weight:800">${idx + 1} / ${n}</span>`;
   const ya = elegido() === id;
-  $('#elegir').textContent = ya ? '✔ ¡Es tu personaje!' : '¡Elegir!';
-  $('#elegir').classList.toggle('ya', ya);
+  $('#elegir').textContent = lock ? '🔒 Con el plan Familia' : ya ? '✔ ¡Es tu personaje!' : '¡Elegir!';
+  $('#elegir').classList.toggle('ya', ya && !lock);
+  $('#elegir').classList.toggle('bloq', lock);
   $('#a-pintar').href = 'princesa.html?p=' + id; $('#a-cuidar').href = 'cuidar.html?p=' + id; $('#a-taller').href = 'editor.html?p=' + id;
   $('#prev').hidden = $('#next').hidden = n < 2;
 }
@@ -214,8 +231,14 @@ function usarCategoria(c, centrarEn) {
   const i = lista.indexOf(centrarEn || elegido()); idx = i >= 0 ? i : 0;
   renderCats(); renderInfo(); colocar();
 }
+function avisoPlan() {
+  J.sfx('pop'); J.say('Con el plan Familia');
+  if (window.Cuenta && window.Cuenta.avisoDemo) window.Cuenta.avisoDemo('Este traje especial es del plan Familia. Pide a papá o mamá que lo vean en la cuenta.');
+  else { let t = $('#aviso-plan'); if (!t) { t = document.createElement('div'); t.id = 'aviso-plan'; document.body.appendChild(t); } t.innerHTML = '🔒 Este traje especial es del plan Familia. <a href="cuenta.html">Ver plan</a>'; t.classList.add('ver'); clearTimeout(avisoPlan.t); avisoPlan.t = setTimeout(() => t.classList.remove('ver'), 6000); }
+}
 function elegir() {
   const id = lista[idx]; if (!id) return;
+  if (bloqueado(id)) return avisoPlan();
   if (elegido() === id) { location.href = destino; return; }
   P.players[editing].char = id; J.save();
   fx.burst(new THREE.Vector3(0, 1.6, 0), 60, 1.2); J.cheer();
@@ -266,7 +289,8 @@ W.onFrame((dt, t) => {
     g.position.lerp(tmp, k);
     const s = g.scale.x + ((o ? q.s * 1.05 : 1.25) - g.scale.x) * k; g.scale.setScalar(s);
     g.rotation.y += ((o ? -o * .35 : Math.sin(t * .6) * .25) - g.rotation.y) * k;
-    if (o === 0 && v.llego > 0) { v.llego -= dt; v.ch.update(dt, v.llego > 1 ? 'festejar' : 'saludar'); }
+    if (o === 0 && regaloT > 0 && lista[idx] === regaloId) { regaloT -= dt; v.ch.update(dt, regaloT > 6 ? 'festejar' : 'bailar'); }
+    else if (o === 0 && v.llego > 0) { v.llego -= dt; v.ch.update(dt, v.llego > 1 ? 'festejar' : 'saludar'); }
     else v.ch.update(dt, o === 0 ? 'quieto' : 'quieto');
   }
   anillo.material.emissiveIntensity = .6 + Math.sin(t * 3) * .3;
@@ -274,10 +298,15 @@ W.onFrame((dt, t) => {
   fx.update(dt);
 });
 
-renderEstilos(); renderQuien(); usarCategoria('todos');
+renderEstilos(); renderQuien(); usarCategoria('todos', regaloId || undefined);
 J.refreshMusic(); W.start();
-setTimeout(() => J.say('¡Elige tu personaje!'), 400);
-if (location.hash === '#prueba') window.__pj = { get idx() { return idx; }, get lista() { return lista; }, mover, elegir, usarCategoria, visibles, cache };
+if (regaloId) {
+  // regalo de hoy: baila con confeti; si es un traje especial, se mira pero no se elige
+  const b = document.createElement('div'); b.className = 'banner-regalo'; b.textContent = '🎁 Regalo de hoy'; document.body.appendChild(b);
+  setTimeout(() => { J.confetti(140); J.cheer(true); fx.burst(new THREE.Vector3(0, 1.6, 0), 90, 1.6); J.say(['¡Regalo sorpresa!', info(regaloId).name], { queue: true }); }, 500);
+  setTimeout(() => b.classList.add('fuera'), 9000);
+} else setTimeout(() => J.say('¡Elige tu personaje!'), 400);
+if (location.hash === '#prueba') window.__pj = { get idx() { return idx; }, get lista() { return lista; }, mover, elegir, usarCategoria, visibles, cache, bloqueado, regaloId };
 </script>
 </body>
 </html>

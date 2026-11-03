@@ -47,10 +47,11 @@ export const FIGURAS = {
               c: { blusa: 0xffc94a, vestido: 0xffc94a, mangas: 0xfff1b8, guantes: 0xffffff, cinturon: 0xff5fa2, 'moño': 0xff5fa2, zapatos: 0xff5fa2, pantalon: 0x8d5a3b, corona: 0xffd23f, collar: 0xffffff } },
   estrella: { nombre: 'Estrella Pop', piel: 0xf6d2b4, ojos: 0x8a4fd8, pelo: { c: 0x9b6ae8, e: 'larga' }, ropa: 'falda', audifonos: true, microfono: true, logo: 'estrella',
               c: { blusa: 0xff8cc6, falda: 0xffffff, mangas: 0xff8cc6, guantes: 0xf6d2b4, cinturon: 0xffd23f, pantalon: 0xf6d2b4, zapatos: 0xffffff, audifonos: 0xffffff, logo: 0xffffff, collar: 0xffd23f } },
-  zoe:      { nombre: 'Zoe', piel: 0xf3cfae, ojos: 0x2b1d1d, pelo: { c: 0x1d1d2b, e: 'mono' }, ropa: 'pantalon', gorra: true, logo: 'rayo',
-              c: { blusa: 0x2b2b3d, mangas: 0x2b2b3d, guantes: 0xf3cfae, cinturon: 0x2b2b3d, pantalon: 0xc9b6ff, zapatos: 0xffffff, gorra: 0x2b2b3d, logo: 0x7fe3ff } },
-  mira:     { nombre: 'Mira', piel: 0xf0c8a6, ojos: 0x7a3b1f, pelo: { c: 0xff5d8f, e: 'coletas' }, ropa: 'falda', gorra: true, logo: 'corazon',
-              c: { blusa: 0x2b2b3d, falda: 0xff8cc6, mangas: 0x2b2b3d, guantes: 0xf0c8a6, cinturon: 0xff5d8f, pantalon: 0xf0c8a6, zapatos: 0xff5d8f, gorra: 0x2b2b3d, logo: 0xff8cc6 } },
+  // (los ids 'zoe' y 'mira' se mantienen por el progreso guardado; los nombres y diseños son propios)
+  zoe:      { nombre: 'Zuri', piel: 0xc98f62, ojos: 0x2b1d1d, pelo: { c: 0x1d1d2b, e: 'coletas', punta: 0xffd23f }, ropa: 'pantalon', logo: 'estrella',
+              c: { blusa: 0xff8a3d, mangas: 0xff8a3d, guantes: 0xc98f62, cinturon: 0xffd23f, pantalon: 0x3f6fd8, zapatos: 0xffffff, logo: 0xffffff } },
+  mira:     { nombre: 'Mila', piel: 0xf0c8a6, ojos: 0x2f8a58, pelo: { c: 0x8a4fe0, e: 'ondas' }, ropa: 'falda', logo: 'flor',
+              c: { blusa: 0x7fe3c4, falda: 0x4a78c8, mangas: 0x7fe3c4, guantes: 0xf0c8a6, cinturon: 0xffffff, pantalon: 0xf0c8a6, zapatos: 0x9a6ee0, logo: 0xffffff } },
   amara:    { nombre: 'Amara', piel: 0xf7d6bf, ojos: 0x6b3a1f, pelo: { c: 0x6b3b22, e: 'larga' }, ropa: 'pantalon', gorra: true, audifonos: true, logo: 'corazon',
               c: { blusa: 0xff9bd0, mangas: 0xff9bd0, guantes: 0xf7d6bf, cinturon: 0xff9bd0, pantalon: 0xc9a2ff, zapatos: 0xffffff, gorra: 0xffffff, audifonos: 0xffffff, logo: 0xff5fa2 } },
   mama:     { nombre: 'Mamá', piel: 0xf0c8a6, ojos: 0x5a3220, pelo: { c: 0x4a2a1a, e: 'ondas' }, ropa: 'falda', aretes: true, logo: 'flor',
@@ -58,9 +59,18 @@ export const FIGURAS = {
   papa:     { nombre: 'Papá', piel: 0xe6b994, ojos: 0x4a2a1a, pelo: { c: 0x2b1d14, e: 'corto' }, ropa: 'pantalon', barba: true, logo: 'rayo', chico: true,
               c: { blusa: 0x2b2b3d, mangas: 0x2b2b3d, guantes: 0xe6b994, cinturon: 0x3a4a6b, pantalon: 0x3f6fd8, zapatos: 0xffffff, logo: 0x3f8ee8 } },
   raton:    { nombre: 'Ratoncito Pipo', piel: 0xb7bec8, ojos: 0x1d2233, cabeza: 'raton', ropa: 'pantalon', chico: true,
-              c: { blusa: 0xef5b5b, mangas: 0xb7bec8, guantes: 0xffffff, pantalon: 0x3f8ee8, zapatos: 0xffd23f, orejas: 0xffb6c8, cinturon: 0x3f8ee8, nariz: 0xff7eb6 } },
-  rojito:   { nombre: 'Monstruito Rojo', piel: 0xe8303c, ojos: 0x2b8a3e, cabeza: 'monstruo', ropa: 'pantalon', peludo: true, chico: true,
-              c: { blusa: 0xe8303c, mangas: 0xe8303c, guantes: 0xe8303c, pantalon: 0xe8303c, zapatos: 0xff9a2b, nariz: 0xff9a2b, cinturon: 0xe8303c } },
+              c: { blusa: 0x2fb3a8, mangas: 0xb7bec8, guantes: 0xb7bec8, pantalon: 0x9a6ee0, zapatos: 0x4cb87a, orejas: 0xffb6c8, cinturon: 0x9a6ee0, nariz: 0xff7eb6 } },
+  rojito:   { nombre: 'Monstruito Rojo', piel: 0xe8303c, ojos: 0x2b8a3e, cabeza: 'monstruo', ropa: 'pantalon', peludo: true, chico: true, cuernitos: true, manchitas: 0xffb3c7,
+              c: { blusa: 0xe8303c, mangas: 0xe8303c, guantes: 0xe8303c, pantalon: 0xe8303c, zapatos: 0x7b5cff, nariz: 0x7b5cff, cinturon: 0xe8303c } },
+  // ---------- trajes especiales (plan Familia) ----------
+  nieve_gala:    { nombre: 'Nieve de gala', premium: true, piel: 0xffe3cf, ojos: 0x3f8ee8, pelo: { c: 0xf7f0dc, e: 'mono' }, ropa: 'vestido', corona: 'estrella', capa: 0xe9f6ff, copos: true, collar: true, alitas: true,
+              c: { blusa: 0xe9f6ff, vestido: 0xb8e4ff, mangas: 0xffffff, guantes: 0xffffff, cinturon: 0xd8f7ff, zapatos: 0xffffff, pantalon: 0xffe3cf, corona: 0xd8f7ff, collar: 0xd8f7ff, alas: 0xd8f7ff } },
+  estrella_gira: { nombre: 'Estrella en concierto', premium: true, piel: 0xf6d2b4, ojos: 0x8a4fd8, pelo: { c: 0xb98cff, e: 'ondas' }, ropa: 'pantalon', aretes: true, microfono: true, logo: 'estrella', lentes: true,
+              c: { blusa: 0x2fc4c9, mangas: 0xffffff, pantalon: 0x2fc4c9, cinturon: 0xffd23f, guantes: 0xf6d2b4, zapatos: 0xffffff, logo: 0xffd23f, lentes: 0xffd23f } },
+  ana_dorada:    { nombre: 'Ana dorada', premium: true, piel: 0x8d5a3b, ojos: 0x5a3220, pelo: { c: 0x2b1b14, e: 'afro' }, ropa: 'vestido', corona: 'oro', collar: true, capa: 0xfff1b8,
+              c: { blusa: 0xffd23f, vestido: 0xffc21a, mangas: 0xfff1b8, guantes: 0xffffff, cinturon: 0xff7a1a, zapatos: 0xffd23f, pantalon: 0x8d5a3b, corona: 0xffd23f, collar: 0xfff1b8 } },
+  mila_guerrera: { nombre: 'Mila guerrera de las estrellas', premium: true, piel: 0xf0c8a6, ojos: 0x2f8a58, pelo: { c: 0x8a4fe0, e: 'coletas' }, ropa: 'pantalon', capa: 0x7b5cff, varita: true, logo: 'rayo',
+              c: { blusa: 0x23264a, mangas: 0x7fe3ff, pantalon: 0x23264a, cinturon: 0x7fe3ff, guantes: 0x7fe3ff, zapatos: 0x7fe3ff, logo: 0x7fe3ff, varita: 0x7fe3ff } },
 };
 const ANIMALES = {
   llama: { nombre: 'Llamita Lula', ojos: 0x3b2a20, c: { pelaje: 0xf6efe2, panza: 0xffffff, orejas: 0xf6efe2, nariz: 0xe8d9c3, manta: 0xff5d8f, pompones: 0xb98cff }, tipo: 'llama' },
@@ -69,6 +79,7 @@ const ANIMALES = {
   gato:  { nombre: 'Gatito Michi', ojos: 0x4cb87a, c: { pelaje: 0xffb36b, panza: 0xffffff, orejas: 0xffb36b, nariz: 0xfff1e0, cola: 0xffb36b }, tipo: 'gato' },
   perro: { nombre: 'Perrito Toby', ojos: 0x5a3220, c: { pelaje: 0xf2e2c9, panza: 0xffffff, orejas: 0x8a5a3c, nariz: 0xffffff, cola: 0xf2e2c9, manchas: 0x8a5a3c, collar: 0xff5d8f }, tipo: 'perro' },
   unicornio: { nombre: 'Unicornio Lulú', ojos: 0x8a4fd8, c: { pelaje: 0xffffff, panza: 0xfff4fb, orejas: 0xffffff, nariz: 0xffe3f1, cuerno: 0xffd23f, crin: 0xff8cc6, cola: 0xb98cff }, tipo: 'unicornio' },
+  unicornio_arcoiris: { nombre: 'Unicornio arcoíris', premium: true, ojos: 0x3f8ee8, c: { pelaje: 0xfff4fb, panza: 0xffffff, orejas: 0xffd6ec, nariz: 0xe3dcff, cuerno: 0xfff27a, crin: 0x7fd3ff, cola: 0xff7eb6 }, tipo: 'unicornio' },
   toro:  { nombre: 'Torito', ojos: 0x3b2a20, c: { pelaje: 0x8a5a3c, panza: 0xd8b48f, orejas: 0x8a5a3c, nariz: 0xf3b6a4, cuernos: 0xfff4dc, cola: 0x5a3a24 }, tipo: 'toro' },
 };
 // animalitos que se paran en dos patas
@@ -79,9 +90,13 @@ const PELUCHES = {
   pollito:  { nombre: 'Pollito Pío', ojos: 0x2b1d1d, c: { pelaje: 0xffe14d, panza: 0xfff3a8, alas: 0xffd23f, pico: 0xff9a2b, patas: 0xff9a2b }, tipo: 'pollito' },
   pinguino: { nombre: 'Pingüino Pepe', ojos: 0x2b1d1d, c: { pelaje: 0x2b2f45, panza: 0xffffff, alas: 0x2b2f45, pico: 0xffb23f, patas: 0xffb23f, 'moño': 0xef5b5b }, tipo: 'pinguino' },
 };
-export const PERSONAJES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara', 'mama', 'papa', 'llama', 'rojito', 'raton', 'zorro', 'lobo', 'toro', 'gato', 'perro', 'conejo', 'oso', 'panda', 'unicornio', 'pollito', 'pinguino'];
+export const PERSONAJES = ['nieve', 'ana', 'estrella', 'zoe', 'mira', 'amara', 'mama', 'papa', 'llama', 'rojito', 'raton', 'zorro', 'lobo', 'toro', 'gato', 'perro', 'conejo', 'oso', 'panda', 'unicornio', 'pollito', 'pinguino',
+  'nieve_gala', 'estrella_gira', 'ana_dorada', 'mila_guerrera', 'unicornio_arcoiris'];
+// trajes especiales del plan Familia (la lista vive en comun.js para que el regalo sorpresa la conozca)
+export const PREMIUM = new Set(window.Juego?.PREMIUM_PJ || ['nieve_gala', 'estrella_gira', 'ana_dorada', 'mila_guerrera', 'unicornio_arcoiris']);
+export const esPremium = id => PREMIUM.has(id);
 // emoji de cada personaje (por si la lista de nombres del juego todavía no lo tiene)
-export const EMOJI = { nieve: '👸', ana: '👸🏾', estrella: '🎤', zoe: '🎧', mira: '💃', amara: '👧🏻', mama: '👩', papa: '👨', llama: '🦙', rojito: '❤️', raton: '🐭', zorro: '🦊', lobo: '🐺', toro: '🐂', gato: '🐱', perro: '🐶', conejo: '🐰', oso: '🧸', panda: '🐼', unicornio: '🦄', pollito: '🐥', pinguino: '🐧' };
+export const EMOJI = { nieve: '👸', ana: '👸🏾', estrella: '🎤', zoe: '🎧', mira: '💃', amara: '👧🏻', mama: '👩', papa: '👨', llama: '🦙', rojito: '❤️', raton: '🐭', zorro: '🦊', lobo: '🐺', toro: '🐂', gato: '🐱', perro: '🐶', conejo: '🐰', oso: '🧸', panda: '🐼', unicornio: '🦄', pollito: '🐥', pinguino: '🐧', nieve_gala: '❄️', estrella_gira: '🌟', ana_dorada: '👑', mila_guerrera: '🚀', unicornio_arcoiris: '🌈' };
 export const ESTILOS = { bloques: { nombre: 'Bloques', emoji: '🟪' }, lego: { nombre: 'Lego', emoji: '🧱' }, muneca: { nombre: 'Muñequita', emoji: '🪆' }, realista: { nombre: 'Realista', emoji: '💃' } };
 export const estiloActual = () => { const e = window.Juego?.progress?.estilo; return ESTILOS[e] ? e : 'bloques'; };
 export const PINTABLES = PERSONAJES;
@@ -612,16 +627,71 @@ function pelo(head, cfg, tag) {
   if (e === 'mono') { add(new THREE.SphereGeometry(.1, 16, 12), 0, top + .06, -.14); chain(0, top + .02, -.22, 6, .075); }
   head.userData.braids = braids;
 }
+// ---------- modo yoga: si se queda quieto un ratito (20–30 s), se sienta a descansar ----------
+// cualquier otro modo o un toque en la pantalla lo despierta: se estira, bosteza y saluda
+const VIVOS = new Set();
+if (typeof location !== 'undefined' && location.hash === '#prueba') window.__vivos = VIVOS;
+function relojYoga() {
+  // (en pruebas, window.YOGA_SEG acorta la espera)
+  const espera = () => (typeof window !== 'undefined' && window.YOGA_SEG) || 20 + Math.random() * 10;
+  let quieto = 0, umbral = espera(), dormida = false, estirar = 0, saludo = 0, zT = 0;
+  const zs = [];
+  const r = {
+    get dormida() { return dormida; },
+    despertar() { if (dormida) { dormida = false; estirar = 1; saludo = 1.5; } quieto = 0; umbral = espera(); },
+    modo(dt, mode) {
+      if (mode !== 'quieto') { if (dormida) r.despertar(); else quieto = 0; }
+      else if (!dormida && estirar <= 0 && saludo <= 0) { quieto += dt; if (quieto > umbral) dormida = true; }
+      if (estirar > 0) { estirar -= dt; return mode === 'quieto' ? 'estirar' : mode; }
+      if (saludo > 0) { saludo -= dt; return mode === 'quieto' ? 'saludar' : mode; }
+      return dormida ? 'yoga' : mode;
+    },
+    // unas zetas suaves que suben mientras descansa (pocas y baratas)
+    particulas(dt, root, on) {
+      zT -= dt;
+      if (on && zT <= 0 && zs.length < 3) { zT = 1.6; const sp = new THREE.Sprite(matZ()); sp.scale.setScalar(.28); sp.position.set(.22, 1.5, 0); sp.userData.v = 0; root.add(sp); zs.push(sp); }
+      for (let i = zs.length - 1; i >= 0; i--) {
+        const z = zs[i]; z.userData.v += dt; z.position.y += dt * .25; z.position.x += Math.sin(z.userData.v * 3) * dt * .1;
+        z.material.opacity = Math.max(0, 1 - z.userData.v / 2.4);
+        if (z.userData.v > 2.4 || !on) { root.remove(z); zs.splice(i, 1); }
+      }
+    },
+  };
+  return r;
+}
+let texZ = null;
+function matZ() {
+  if (!texZ) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.font = '800 46px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#9a6ee0'; g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeText('z', 32, 34); g.fillText('z', 32, 34); texZ = new THREE.CanvasTexture(c); texZ.colorSpace = THREE.SRGBColorSpace; }
+  return new THREE.SpriteMaterial({ map: texZ, transparent: true, depthWrite: false });
+}
+if (typeof document !== 'undefined') document.addEventListener('pointerdown', () => {
+  let alguien = false;
+  VIVOS.forEach(ch => { if (!ch.group.parent) return; if (ch.durmiendo) { ch.despertar(); alguien = true; } });
+  if (alguien && window.Juego?.say) window.Juego.say('¡Hola!');
+}, { passive: true });
+
 function animar(f) {
   let t = 0, blinkT = 2, target = null;
   const cur = { armL: [0, .08], armR: [0, .08], legL: [0, 0], legR: [0, 0], y: 0 };
   const lerp = (a, b, k) => a + (b - a) * k;
+  const yoga = relojYoga();
+  const cadera = f.legs[0] ? f.legs[0].position.y : .5; // al sentarse, el cuerpo baja casi lo que mide la pierna
   function update(dt, mode = 'quieto', extra = 1) {
     t += dt;
-    blinkT -= dt; const closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
-    f.cara.update(dt, closed, mode);
+    mode = yoga.modo(dt, mode);
+    blinkT -= dt; let closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
+    if (mode === 'yoga') closed = true; // ojitos cerrados, carita tranquila
+    f.cara.update(dt, closed, mode === 'yoga' || mode === 'estirar' ? 'quieto' : mode);
     let pose = null, bob = 0, spin = 0, lean = 0, headTurn = 0, headNod = 0;
-    if (mode === 'correr') {
+    if (mode === 'yoga') {
+      // posición de loto: piernas cruzadas hacia adelante, manos en las rodillas, respira despacito
+      pose = { armL: [-.75, .42], armR: [-.75, .42], legL: [-1.45, .62], legR: [-1.45, .62], y: -cadera * .86 };
+      bob = Math.sin(t * 1.3) * .012; headNod = .12 + Math.sin(t * 1.3) * .03;
+    } else if (mode === 'estirar') {
+      // se despierta: estira los brazos y bosteza
+      pose = { armL: [-.2, 2.8], armR: [-.2, 2.8], legL: [0, .05], legR: [0, .05], y: 0 };
+      bob = .03; headNod = -.18;
+    } else if (mode === 'correr') {
       const ph = t * 12 * extra, s = Math.sin(ph);
       pose = { armL: [s * 1.1, .14], armR: [-s * 1.1, .14], legL: [-s * .95, 0], legR: [s * .95, 0], y: 0 };
       bob = Math.abs(Math.cos(ph)) * .09; lean = .14; headNod = Math.sin(ph * 2) * .04;
@@ -655,6 +725,7 @@ function animar(f) {
     f.head.rotation.y = headTurn;
     f.head.rotation.x = headNod;
     if (f.post) f.post(t, mode);
+    yoga.particulas(dt, f.root, mode === 'yoga');
     // pelo, trenzas y coletas que se mueven
     const run = mode === 'correr';
     f.braids.forEach((b, i) => {
@@ -667,6 +738,7 @@ function animar(f) {
   }
   return {
     group: f.root, parts: f.parts, update, ballet: true, _repintar: f._repintar,
+    despertar: () => yoga.despertar(), get durmiendo() { return yoga.dormida; },
     // puntos donde se pueden poner adornos (cuidar.html)
     anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: HH / 2 + .1, cuello: 1.17, frente: HD / 2, ojos: .03, k: 1, espalda: .98, espaldaZ: -.15, ...(f.anclas || {}) },
     setPose(name) { target = POSES[name] || POSES.primera; },
@@ -864,12 +936,15 @@ function peloMuneca(head, cfg, tag, R) {
 const RR = .13; // radio de la cabeza
 // cómo se ve cada personaje en este estilo (diseños propios, inspirados en su personalidad)
 const LOOK_REALISTA = {
-  estrella: { pelo: { e: 'trenza', c: 0xb98cff, larga: true, rodillas: true, punta: 0xffd23f }, ropa: 'short', crop: true, botas: true, rayaBota: 0xff5d8f, audifonos: false, microfono: true, logo: null, parches: [0xff5d8f, 0x3fc1c9, 0xffffff],
-    c: { blusa: 0xffffff, mangas: 0xffc83d, pantalon: 0x23263a, cinturon: 0xff5d8f, zapatos: 0x1d1d26, logo: 0xff5d8f } },
-  zoe: { pelo: { e: 'bob', c: 0x1d1d2b, monos: true }, gorra: false, ropa: 'pantalon', botas: false, logo: 'rayo',
-    c: { blusa: 0x23324a, mangas: 0x2fb3a8, pantalon: 0x23324a, zapatos: 0xffffff, cinturon: 0x2fb3a8, logo: 0x7fe3ff, suela: 0x2fb3a8 } },
-  mira: { alta: 1.04, pelo: { e: 'mono', c: 0xc2255c, larga: true }, gorra: false, ropa: 'falda', crop: true, botas: true, logo: null,
-    c: { blusa: 0x1d1d26, mangas: 0x1d1d26, falda: 0xffb000, zapatos: 0xe8303c, cinturon: 0xe8303c, pantalon: 0x1d1d26 } },
+  // cantante con traje de escenario turquesa y blanco, zapatillas blancas y aretes de estrella (diseño propio)
+  estrella: { pelo: { e: 'ondas', c: 0xb98cff }, ropa: 'pantalon', crop: false, botas: false, aretes: true, audifonos: false, microfono: true, logo: 'estrella',
+    c: { blusa: 0x2fc4c9, mangas: 0xffffff, pantalon: 0x2fc4c9, cinturon: 0xffffff, zapatos: 0xffffff, logo: 0xffd23f, suela: 0x2fc4c9 } },
+  // Zuri: trencitas con cuentas, polerón naranja y jean
+  zoe: { pelo: { e: 'coletas', c: 0x1d1d2b, punta: 0xffd23f }, gorra: false, ropa: 'pantalon', botas: false, logo: 'estrella',
+    c: { blusa: 0xff8a3d, mangas: 0xff8a3d, pantalon: 0x3f6fd8, zapatos: 0xffffff, cinturon: 0xffd23f, logo: 0xffffff, suela: 0xff8a3d } },
+  // Mila: melenita lila, polo menta, falda de jean y zapatillas moradas
+  mira: { pelo: { e: 'bob', c: 0x8a4fe0 }, gorra: false, ropa: 'falda', crop: false, botas: false, logo: 'flor',
+    c: { blusa: 0x7fe3c4, mangas: 0x7fe3c4, falda: 0x4a78c8, zapatos: 0x9a6ee0, cinturon: 0xffffff, pantalon: 0xf0c8a6, suela: 0xffffff } },
   nieve: { pelo: { e: 'trenza', c: 0xf4eedd, larga: true }, ropa: 'vestido', capa: 0xd6f2ff, copos: true, corona: 'hielo',
     c: { blusa: 0x9fdcff, vestido: 0x9fdcff, mangas: 0xd6f2ff, guantes: 0xffe3cf, zapatos: 0xcff3ff, corona: 0xd8f7ff, cinturon: 0xffffff } },
   ana: { pelo: { e: 'rizos', c: 0x2b1b14 }, ropa: 'vestido', corona: 'tiara', mono: false,
@@ -1016,7 +1091,7 @@ function figuraRealista(id) {
     const run = mode === 'correr';
     if (vestidoOn) legs.forEach(l => { l.rotation.x *= .3; l.rotation.z *= .5; });
     if (capa) capa.rotation.x = .28 + (run ? .35 : 0) + Math.sin(t * 3) * .03;
-    legs.forEach((l, i) => { const back = Math.max(0, l.rotation.x); rodillas[i].rotation.x = (run ? .25 : .02) + back * 1.4 + (mode === 'ballet' && body.position.y < -.05 ? .6 : 0); });
+    legs.forEach((l, i) => { const back = Math.max(0, l.rotation.x); rodillas[i].rotation.x = mode === 'yoga' ? 2.1 : (run ? .25 : .02) + back * 1.4 + (mode === 'ballet' && body.position.y < -.05 ? .6 : 0); });
     arms.forEach((a, i) => { codos[i].rotation.x = run ? -1.1 : mode === 'bailar' ? -.6 - Math.sin(t * 5 + i) * .3 : mode === 'saludar' && i ? -.5 : -.12; });
   };
   return animar(f);
@@ -1078,6 +1153,15 @@ function extrasFigura(ch, cfg) {
   const A = ch.anclas, k = A.k || 1;
   const m3 = (geo, m, x = 0, y = 0, z = 0) => mesh(geo, m, x, y, z);
   const tag = tagger(ch.parts);
+  // cuernitos y manchitas (el Monstruito Rojo tiene su propio look)
+  if (cfg.cuernitos) {
+    const cm = mat(0xfff4dc, { roughness: .4 });
+    [-1, 1].forEach(sx => { const c = tag(m3(new THREE.ConeGeometry(.035 * k, .11 * k, 10), cm, sx * .11 * k, (A.alto || .2) * .95, 0), 'cuernos'); c.rotation.z = -sx * .35; A.cabeza.add(c); });
+  }
+  if (cfg.manchitas) {
+    const mm = mat(cfg.manchitas, { roughness: .9 });
+    [[-.1, .95, .16], [.12, .82, .17], [-.04, .7, .17], [.15, 1.02, .14]].forEach(([x, y, z]) => { const d = tag(m3(new THREE.SphereGeometry(.035, 10, 8), mm, x * (k > .9 ? 1 : .8), y * (A.cuello || 1.1) / 1.17, z), 'manchas'); d.scale.z = .35; A.cuerpo.add(d); });
+  }
   if (cfg.lentes) {
     const g = new THREE.Group(), marco = mat(cfg.c.lentes || 0xff4fa3), vidrio = mat(0x23324a, { transparent: true, opacity: .7, metalness: .3 });
     [-1, 1].forEach(sx => { g.add(tag(m3(new THREE.TorusGeometry(.06, .014, 8, 22), marco, sx * .08, 0, 0), 'lentes')); g.add(m3(new THREE.CircleGeometry(.058, 22), vidrio, sx * .08, 0, -.002)); });
@@ -1237,13 +1321,18 @@ function animal(id) {
   else if (uni) { const tl = tag(mesh(rbox(.14, .14, .42, .06), mat(C.cola, { roughness: .6 }), 0, -.08, -.16), 'cola'); tl.rotation.x = .7; tail.add(tl); }
   else { const tl = tag(mesh(rbox(bushy ? .17 : .07, bushy ? .17 : .07, bushy ? .46 : .3, bushy ? .07 : .03), fur('cola'), 0, .05, -.2), bushy ? 'cola' : 'pelaje'); tl.rotation.x = -.5; tail.add(tl); }
   let t = 0, blinkT = 2;
+  const yoga = relojYoga();
   function update(dt, mode = 'quieto', speed = 1) {
-    t += dt; blinkT -= dt; const closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
-    cara.update(dt, closed, mode);
-    const run = mode === 'correr', happy = mode === 'festejar' || mode === 'feliz';
+    t += dt; mode = yoga.modo(dt, mode);
+    blinkT -= dt; let closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
+    if (mode === 'yoga') closed = true;
+    cara.update(dt, closed, mode === 'yoga' || mode === 'estirar' ? 'quieto' : mode);
+    const run = mode === 'correr', happy = mode === 'festejar' || mode === 'feliz', echado = mode === 'yoga';
     const ph = t * 12 * speed;
-    legs.forEach((l, i) => { l.rotation.x = run ? Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * .75 : happy ? Math.sin(t * 12 + i) * .25 : 0; });
-    body.position.y = run ? Math.abs(Math.sin(ph)) * .07 : happy ? Math.abs(Math.sin(t * 7)) * .3 : 0;
+    // descansando: se echa con las patitas dobladas y respira despacio
+    legs.forEach((l, i) => { l.rotation.x = echado ? (i < 2 ? -1.3 : 1.3) : mode === 'estirar' ? (i < 2 ? -.5 : .4) : run ? Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * .75 : happy ? Math.sin(t * 12 + i) * .25 : 0; });
+    body.position.y = echado ? -L * .78 + Math.sin(t * 1.3) * .01 : run ? Math.abs(Math.sin(ph)) * .07 : happy ? Math.abs(Math.sin(t * 7)) * .3 : 0;
+    yoga.particulas(dt, root, echado);
     body.rotation.y = mode === 'festejar' ? t * 4 : (mode === 'bailar' || mode === 'ballet') ? Math.sin(t * 3) * .5 : 0;
     tail.rotation.y = Math.sin(t * (happy || mode === 'bailar' ? 14 : 4)) * .5;
     neck.rotation.x = run ? -.1 : Math.sin(t * 1.5) * .05;
@@ -1252,6 +1341,7 @@ function animal(id) {
   }
   return {
     group: root, parts, update, setPose() {}, setTutu() {}, setCara: n => cara.set(n), get cara() { return cara.actual; },
+    despertar: () => yoga.despertar(), get durmiendo() { return yoga.dormida; },
     _repintar(part, c) { if (part === 'nariz') cara.redibujar({ hocico: hex(c) }); },
     anclas: { cabeza: head, cuerpo: body, mano: null, alto: hh / 2 + .02, cuello: L + .3, frente: hd / 2, animal: true },
   };
@@ -1266,6 +1356,8 @@ export async function crearPersonaje(id, base = '', { colores = true, estilo } =
   ch.estilo = FIGURAS[id] ? est : 'animal';
   if (FIGURAS[id]) extrasFigura(ch, cfgDe(id, est));
   ch.id = id;
+  ch.premium = PREMIUM.has(id);
+  if (ch.despertar) VIVOS.add(ch);
   ch.group.scale.multiplyScalar(1.05);
   const saved = colores && window.Juego?.progress?.colors?.[id];
   if (saved) Object.entries(saved).forEach(([part, c]) => pintarParte(ch, part, c));
