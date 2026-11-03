@@ -8,16 +8,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
 <style>
-/* Layout: a game-portal wall — a logo tile and section chips on top, then a dense mosaic of colorful
-   tiles of three sizes (big 2×2, wide 2×1, square). Colors come from the chosen palette (js/tema.js). */
+/* Menú pensado para una niña que aún no lee y para sus papás:
+   - arriba, solo su saludo y una tarjeta enorme "Seguir jugando" (lo que toca hoy);
+   - después, estantes por tema que se deslizan de lado, con fotitos reales de cada juego;
+   - todo lo de los papás (filtros, colores, tiempo, cuenta, admin) va dentro de la tuerquita ⚙️. */
 :root {
   --ink: #23324a;
   --paper: #ffffff;
   --shadow: rgba(35, 20, 70, .22);
-  --cell: 132px;
-  --gap: 14px;
+  --gap: 16px;
   --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
   --font-letters: "Andika", "Century Gothic", system-ui, sans-serif;
+  --carta: clamp(196px, 23vw, 250px);
   color-scheme: light;
 }
 [hidden] { display: none !important; }
@@ -31,97 +33,134 @@ body {
   background-attachment: fixed;
 }
 body.con-foto { background: transparent; }
-button, a.btn { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; }
-a.tile { font: inherit; color: #fff; border: 0; cursor: pointer; text-decoration: none; }
-button:focus-visible, a:focus-visible { outline: 4px solid var(--tema-tinta, var(--ink)); outline-offset: 3px; }
-.wrap { box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 40px; display: flex; flex-direction: column; gap: var(--gap); }
+button, a { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; background: none; }
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px solid var(--tema-tinta, var(--ink)); outline-offset: 3px; }
+.wrap { box-sizing: border-box; max-width: 1320px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 36px; display: flex; flex-direction: column; gap: 20px; }
 
-/* barra de arriba: tarjeta del logo + secciones */
-.top { display: flex; gap: var(--gap); align-items: stretch; }
-.logo { flex: none; width: calc(var(--cell) * 2 + var(--gap)); box-sizing: border-box; background: var(--paper); border-radius: 24px; box-shadow: 0 6px 0 var(--shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-.marca { margin: 0; font-size: 30px; line-height: .95; font-weight: 800; letter-spacing: -.5px; }
+/* ---------- barra de arriba: marca · jugadoras · tuerquita ---------- */
+.top { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+.marca { margin: 0; font-size: clamp(24px, 3.4vw, 34px); line-height: 1; font-weight: 800; letter-spacing: -.5px; white-space: nowrap; flex: none; }
 .marca .a1 { color: var(--tema-acento, #ff5dab); }
 .marca .a2 { color: var(--tema-acento2, #8a5cf0); }
-.marca .y { font-size: 20px; color: var(--tema-tinta); opacity: .6; }
-.jugadores { display: flex; gap: 6px; flex-wrap: wrap; }
-.jug { background: color-mix(in srgb, var(--tema-bg1, #ffd6f0) 55%, #fff); border-radius: 999px; padding: 1px 10px; font-size: 15px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.iconos { display: flex; gap: 6px; }
-.ico { width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--tema-bg2, #c7b3ff) 30%, #fff); font-size: 20px; display: grid; place-items: center; flex: none; box-shadow: 0 3px 0 var(--shadow); position: relative; overflow: hidden; }
-.ico.on { background: var(--tema-acento, #ff5dab); }
-.ico:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow); }
-.secciones { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
-.chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px; font-size: 17px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; }
-.chip.on { background: var(--tema-acento, #ff5dab); color: #fff; }
-.chip .ahora { font-size: 14px; }
-.edades .chip { font-size: 15px; padding: 4px 12px; background: rgba(255,255,255,.7); }
-.edades .chip.on { background: #23324a; color: #fff; }
-.edades label { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; background: rgba(255,255,255,.7); border-radius: 999px; padding: 2px 4px 2px 12px; white-space: nowrap; box-shadow: 0 4px 0 var(--shadow); }
-.edades select { font: inherit; border: 0; border-radius: 999px; padding: 4px 8px; background: #fff; }
-.vacio { grid-column: 1 / -1; background: rgba(255,255,255,.8); border-radius: 20px; padding: 18px; text-align: center; font-weight: 800; }
-.que { margin: 0; font-size: 17px; font-weight: 700; background: rgba(255,255,255,.6); border-radius: 14px; padding: 4px 12px; align-self: flex-start; text-wrap: pretty; }
+.marca .y { font-size: .62em; opacity: .6; }
+.jugadores { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.jugadores > :first-child { margin-left: auto; }
+.jugadores::-webkit-scrollbar { display: none; }
+.jug { flex: none; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.88); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.jug .cara { font-size: 26px; line-height: 1; }
+.jug .est { color: #c98a00; }
+.engrane { flex: none; width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: 0 5px 0 var(--shadow); display: grid; place-items: center; font-size: 30px; position: relative; }
+.engrane small { position: absolute; bottom: 3px; left: 0; right: 0; font-size: 10px; font-weight: 800; line-height: 1; opacity: .7; }
+.engrane[aria-expanded="true"] { background: var(--tema-acento, #ff5dab); color: #fff; }
+.engrane:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--shadow); }
 
-/* mosaico */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cell), 1fr)); grid-auto-rows: var(--cell); grid-auto-flow: dense; gap: var(--gap); }
-.tile { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 6px 0 var(--shadow); display: grid; place-items: center; color: #fff; transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), box-shadow .18s; isolation: isolate; }
-.tile::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(rgba(255,255,255,.16) 2px, transparent 2px) 0 0 / 28px 28px, linear-gradient(90deg, rgba(255,255,255,.16) 2px, transparent 2px) 0 0 / 28px 28px; }
-.tile:hover, .tile:focus-visible { transform: scale(1.05) rotate(-.6deg); box-shadow: 0 10px 0 var(--shadow); z-index: 2; }
-.tile:active { transform: scale(.97); }
-.t-xl { grid-column: span 2; grid-row: span 2; }
-.t-l { grid-column: span 2; }
-.arte { font-size: calc(var(--cell) * .5); line-height: 1; filter: drop-shadow(0 4px 0 rgba(0,0,0,.18)); transition: transform .25s; }
-.t-xl .arte { font-size: calc(var(--cell) * 1.05); }
-.t-l .arte { font-size: calc(var(--cell) * .62); }
-.tile:hover .arte { transform: scale(1.08) translateY(-4px); }
-.arte.letras { font-family: var(--font-letters); font-weight: 700; font-size: calc(var(--cell) * .34); text-shadow: 0 3px 0 rgba(0,0,0,.2); filter: none; white-space: nowrap; }
-.t-xl .arte.letras { font-size: calc(var(--cell) * .6); }
-img.arte { position: absolute; inset: 4%; width: 92%; height: 92%; object-fit: contain; }
-.t-l img.arte { inset: 0; width: 100%; height: 100%; }
-.tit { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 8px; background: linear-gradient(transparent, rgba(30, 10, 60, .72)); display: flex; flex-direction: column; line-height: 1.05; text-align: left; opacity: 0; transform: translateY(8px); transition: opacity .18s, transform .18s; }
-.tit b { font-size: 17px; font-weight: 800; }
-.tit small { font-size: 13px; font-weight: 600; opacity: .9; }
-.t-xl .tit b { font-size: 24px; }
-.tile:hover .tit, .tile:focus-visible .tit { opacity: 1; transform: none; }
-.badges { position: absolute; left: 8px; top: 8px; display: flex; gap: 4px; }
-.badge { background: #fff; color: var(--tema-tinta, var(--ink)); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 800; line-height: 1.6; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
-.badge.nuevo { background: #ffe27a; }
-.estrellas { position: absolute; right: 8px; top: 8px; background: rgba(30, 10, 60, .55); border-radius: 999px; padding: 0 8px; font-size: 13px; font-weight: 800; line-height: 1.6; }
-.tile.ahora { outline: 5px solid #fff; outline-offset: -5px; animation: brilla 1.6s ease-in-out infinite alternate; }
-@keyframes brilla { to { box-shadow: 0 6px 0 var(--shadow), 0 0 0 6px color-mix(in srgb, var(--tema-acento, #ff5dab) 55%, transparent); } }
+/* ---------- hoja de los papás ---------- */
+.velo { position: fixed; inset: 0; z-index: 40; background: rgba(35, 20, 70, .28); }
+.hoja { position: fixed; z-index: 41; top: calc(env(safe-area-inset-top, 0px) + 84px); right: max(16px, calc((100vw - 1320px) / 2 + 16px)); width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 110px); overflow-y: auto; box-sizing: border-box;
+  background: #fff; border-radius: 26px; box-shadow: 0 18px 40px rgba(35, 20, 70, .3); padding: 16px; display: flex; flex-direction: column; gap: 14px; font-family: var(--font-display); color: var(--ink); }
+.hoja h2 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 8px; }
+.hoja h3 { margin: 0 0 6px; font-size: 15px; letter-spacing: .3px; opacity: .7; text-transform: uppercase; }
+.ops { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.op { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; border-radius: 16px; background: #f4efff; font-size: 17px; font-weight: 800; text-align: left; box-shadow: 0 3px 0 rgba(35, 20, 70, .12); }
+.op .opi { font-size: 24px; flex: none; width: 30px; text-align: center; }
+.op.on { background: var(--tema-acento, #ff5dab); color: #fff; }
+.op .candado { margin-left: auto; font-size: 14px; opacity: .6; }
+.op:active { transform: translateY(2px); box-shadow: none; }
+.filas { display: flex; flex-wrap: wrap; gap: 6px; }
+.fchip { border-radius: 999px; padding: 6px 12px; min-height: 40px; background: #f4efff; font-size: 15px; font-weight: 800; }
+.fchip.on { background: #23324a; color: #fff; }
+.edadnina { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; margin-top: 8px; }
+.edadnina select { font: inherit; border: 2px solid #e3dbff; border-radius: 12px; padding: 4px 10px; background: #fff; }
+.hoja .nota { margin: 0; font-family: system-ui, sans-serif; font-size: 13px; line-height: 1.35; opacity: .75; }
+@media (max-width: 600px) {
+  .hoja { top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 82vh; border-radius: 26px 26px 0 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); }
+}
 
-/* tarjeta de bienvenida con el personaje en 3D */
-.hola { background: linear-gradient(#8fd6f8, #dff4ff 62%, #7fd36a 62%, #57b84a); cursor: pointer; }
-.hola::before { background: linear-gradient(90deg, transparent 0 22px, rgba(0,0,0,.06) 22px 24px) 0 0 / 24px 100%; }
+/* ---------- hola + seguir jugando ---------- */
+.heroe { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: var(--gap); }
+.hola { position: relative; border-radius: 30px; overflow: hidden; min-height: 280px; background: linear-gradient(#8fd6f8, #dff4ff 62%, #7fd36a 62%, #57b84a); box-shadow: 0 7px 0 var(--shadow); cursor: pointer; }
 .hola canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.hola .saludo { position: absolute; left: 12px; right: 12px; top: 10px; color: #fff; -webkit-text-stroke: 0; text-shadow: 0 3px 0 var(--tema-acento2, #8a5cf0), 0 -1px 0 var(--tema-acento2, #8a5cf0), 2px 0 0 var(--tema-acento2, #8a5cf0), -2px 0 0 var(--tema-acento2, #8a5cf0); font-size: calc(var(--cell) * .24); font-weight: 800; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.2); }
-.hola .saludo span { display: block; font-size: .62em; opacity: .95; }
+.saludo { position: absolute; left: 16px; right: 16px; top: 14px; color: #fff; font-size: clamp(28px, 3.2vw, 40px); font-weight: 800; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.22); pointer-events: none; }
+.saludo span { display: block; font-size: .55em; margin-top: 4px; }
+.cambiar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 4px 16px 4px 10px; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); font-size: 18px; font-weight: 800; }
+.cambiar b { font-size: 26px; }
+.seguir { position: relative; display: grid; grid-template-columns: 1fr 1.15fr; align-items: center; gap: 18px; border-radius: 30px; overflow: hidden; min-height: 280px; padding: 22px 26px; box-sizing: border-box; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 7px 0 var(--shadow); color: #fff; isolation: isolate; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
+.seguir::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 85% 20%, rgba(255,255,255,.35), transparent 45%), linear-gradient(rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px, linear-gradient(90deg, rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px; }
+.seguir .txt { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.seguir .etq { font-size: 18px; font-weight: 800; background: rgba(30, 10, 60, .28); border-radius: 999px; padding: 2px 12px; }
+.seguir .t { font-family: var(--font-letters); font-weight: 700; font-size: clamp(30px, 3.6vw, 48px); line-height: 1.02; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.seguir .s { font-size: 18px; font-weight: 700; opacity: .95; }
+.seguir .play { margin-top: 8px; display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 6px 30px 6px 10px; border-radius: 999px; background: #fff; color: #1f8a4c; font-size: 30px; font-weight: 800; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+.seguir .play i { font-style: normal; width: 60px; height: 60px; border-radius: 50%; background: #4cb87a; color: #fff; display: grid; place-items: center; font-size: 30px; padding-left: 4px; box-sizing: border-box; }
+.seguir .pantalla { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 16 / 10; border: 6px solid #fff; box-shadow: 0 10px 0 rgba(30, 10, 60, .25); transform: rotate(2deg); background: rgba(255,255,255,.25); }
+.seguir .pantalla img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.seguir .pantalla .art { position: absolute; inset: 0; display: grid; place-items: center; font-size: 90px; }
+.seguir:hover, .seguir:focus-visible { transform: scale(1.015); }
+.seguir:active { transform: scale(.985); }
+.seguir .play { animation: late 1.8s ease-in-out infinite; }
+@keyframes late { 50% { transform: scale(1.06); } }
 
-.pie { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 15px; text-align: center; margin-top: 10px; }
-.pie p { margin: 0; max-width: 62ch; background: rgba(255,255,255,.6); border-radius: 16px; padding: 8px 14px; text-wrap: pretty; }
-details.credits { font-size: 14px; }
+/* ---------- estantes ---------- */
+.estante { display: flex; flex-direction: column; gap: 8px; }
+.est-cab { display: flex; align-items: center; gap: 10px; }
+.est-tit { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 4px 18px 4px 8px; border-radius: 999px; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); font-size: 24px; font-weight: 800; }
+.est-tit .e { font-size: 34px; line-height: 1; }
+.est-tit .ahora { font-size: 15px; background: var(--tema-acento, #ff5dab); color: #fff; border-radius: 999px; padding: 0 10px; }
+.flechas { margin-left: auto; display: flex; gap: 8px; }
+.flecha { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); font-size: 22px; font-weight: 800; }
+.flecha:disabled { opacity: .35; cursor: default; }
+.fila { display: grid; grid-auto-flow: column; grid-auto-columns: var(--carta); gap: var(--gap); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; padding: 6px 16px 16px; margin-inline: -16px; scrollbar-width: none; }
+.fila::-webkit-scrollbar { display: none; }
+
+/* tarjeta de juego: fotito real en un marco con los colores del juego */
+.carta { scroll-snap-align: start; position: relative; display: flex; flex-direction: column; border-radius: 26px; padding: 8px 8px 10px; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 6px 0 var(--shadow); color: #fff; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.carta .img { position: relative; aspect-ratio: 16 / 10; border-radius: 19px; overflow: hidden; background: rgba(255,255,255,.18); }
+.carta .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.carta .img .art { position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.18)); }
+.carta .img .art.letras { font-family: var(--font-letters); font-weight: 700; font-size: 44px; text-shadow: 0 3px 0 rgba(0,0,0,.2); filter: none; }
+.carta .sub { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 8px; background: linear-gradient(transparent, rgba(30, 10, 60, .8)); font-size: 15px; font-weight: 700; line-height: 1.15; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; }
+.carta:hover .sub, .carta:focus-visible .sub, .carta.ver-sub .sub { opacity: 1; transform: none; }
+.carta .emo { position: relative; z-index: 1; margin: -30px 0 0 8px; width: 54px; height: 54px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 30px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+.carta .emo.letras { font-family: var(--font-letters); font-weight: 700; font-size: 17px; color: var(--ink); }
+.carta .tit { margin: 4px 6px 0; font-family: var(--font-letters); font-weight: 700; font-size: 21px; line-height: 1.08; text-shadow: 0 2px 0 rgba(0,0,0,.22); min-height: 2.16em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.carta .meta { margin: 4px 6px 0; display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 800; }
+.carta .meta span { background: rgba(30, 10, 60, .35); border-radius: 999px; padding: 0 8px; line-height: 1.6; }
+.carta .tags { position: absolute; right: 14px; top: 14px; display: flex; gap: 4px; }
+.carta .tag { background: #fff; color: var(--ink); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 800; line-height: 1.7; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.carta .tag.nuevo { background: #ffe27a; }
+.carta:hover, .carta:focus-visible { transform: translateY(-4px) rotate(-.6deg); }
+.carta.salta { animation: salta .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes salta { 0% { transform: scale(1); } 35% { transform: scale(.92); } 70% { transform: scale(1.07); } 100% { transform: scale(1); } }
+.vacio { background: rgba(255,255,255,.85); border-radius: 22px; padding: 20px; text-align: center; font-size: 18px; font-weight: 800; }
+
+.pie { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 14px; text-align: center; margin-top: 6px; }
+.pie p { margin: 0; max-width: 64ch; background: rgba(255,255,255,.6); border-radius: 16px; padding: 8px 14px; text-wrap: pretty; }
 details.credits summary { cursor: pointer; }
 details.credits a { color: inherit; }
 
-@media (hover: none) {
-  .tit { opacity: 1; transform: none; padding: 14px 8px 6px; }
-  .tit b { font-size: 13px; } .tit small { display: none; }
-  .t-xl .tit b { font-size: 18px; } .t-xl .tit small, .t-l .tit small { display: block; font-size: 12px; }
-}
-@media (max-width: 760px) {
-  .top { flex-direction: column; }
-  .logo { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
-  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+@media (max-width: 820px) {
+  .heroe { grid-template-columns: 1fr; }
+  .hola { min-height: 220px; }
+  .seguir { grid-template-columns: 1fr; min-height: 0; padding: 18px; }
+  .seguir .pantalla { order: -1; transform: rotate(-1deg); }
+  .flechas { display: none; }
 }
 @media (max-width: 520px) {
-  :root { --gap: 9px; --cell: calc((100vw - 32px - 18px) / 3); }
-  .wrap { padding-inline: 16px; }
-  .grid { grid-template-columns: repeat(3, 1fr); }
-  .marca { font-size: 25px; }
-  .tile { border-radius: 18px; }
-  .chip { font-size: 15px; padding: 5px 12px; }
-  .que { font-size: 15px; }
+  :root { --gap: 12px; --carta: 70vw; }
+  .marca { font-size: 22px; }
+  .marca .y, .marca .a2 { display: none; }
+  .jug { font-size: 15px; padding: 4px 10px 4px 6px; }
+  .jug .cara { font-size: 22px; }
+  .jugadores.dos .nom { display: none; }
+  .hola { min-height: 200px; }
+  .saludo { font-size: 28px; }
+  .seguir .t { font-size: 30px; }
+  .seguir .s { font-size: 16px; }
+  .seguir .play { font-size: 26px; min-height: 68px; }
+  .seguir .play i { width: 54px; height: 54px; }
+  .est-tit { font-size: 21px; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .fila { scroll-behavior: auto; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -135,37 +174,63 @@ details.credits a { color: inherit; }
 <body class="menu">
 <div class="wrap">
   <header class="top">
-    <div class="logo">
-      <h1 class="marca"><span class="a1">Avelu</span> <span class="y">y</span> <span class="a2">Amara</span></h1>
-      <div class="jugadores" id="jugadores"></div>
-      <div class="iconos">
-        <button class="ico" data-musica aria-label="Música">🎵</button>
-        <button class="ico" id="colores" aria-label="Colores">🎨</button>
-        <a class="ico btn" href="personajes.html" aria-label="Mi personaje">👗</a>
-        <button class="ico" id="dos" aria-label="Jugar de a 2">👭</button>
-        <button class="ico" id="tiempo-btn" aria-label="Control de tiempo" onclick="Juego.pedirPin(() => location.href = 'tiempo.html')">⏰</button>
-        <button class="ico" id="papas" aria-label="Para mamá y papá">🔒</button>
-        <button class="ico" id="cuenta" aria-label="Cuenta de la familia" hidden>👤</button>
-      </div>
-    </div>
-    <div class="secciones">
-      <div class="chips" id="chips" role="tablist" aria-label="Secciones"></div>
-      <div class="chips edades" id="edades" aria-label="Edades"></div>
-      <p class="que" id="que"></p>
-    </div>
+    <h1 class="marca"><span class="a1">Avelu</span> <span class="y">y</span> <span class="a2">Amara</span></h1>
+    <div class="jugadores" id="jugadores" aria-label="Jugadoras"></div>
+    <button class="engrane" id="engrane" aria-label="Para mamá y papá" aria-expanded="false" aria-controls="hoja">⚙️<small>Papás</small></button>
   </header>
 
-  <main class="grid" id="grid" aria-label="Jueguitos"></main>
+  <section class="heroe" aria-label="Para empezar">
+    <div class="hola" id="hola" role="button" tabindex="0" aria-label="Tu personaje: tócalo">
+      <canvas id="preview" aria-hidden="true"></canvas>
+      <div class="saludo" id="saludo"></div>
+      <a class="cambiar" href="personajes.html" aria-label="Cambiar mi personaje"><b>👗</b>Cambiar</a>
+    </div>
+    <a class="seguir" id="seguir" href="#"></a>
+  </section>
+
+  <main id="estantes" aria-label="Jueguitos"></main>
 
   <footer class="pie">
-    <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. Sigan las secciones en orden (👉 marca por dónde seguir); cada actividad sube de nivel sola.</p>
+    <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. La tarjeta grande «Seguir jugando» muestra lo que toca hoy; cada actividad sube de nivel sola.</p>
     <details class="credits">
       <summary>Créditos</summary>
-      <p>Casitas, árboles, nubes y sonidos: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0). Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Letras Andika y Baloo 2 (OFL).
+      <p>Casitas, árboles, nubes y sonidos: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0). Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Física: <a href="https://brm.io/matter-js/" target="_blank" rel="noopener">matter.js</a> (MIT). Letras Andika y Baloo 2 (OFL).
       Personajes, animalitos y música: diseños originales del juego.</p>
     </details>
   </footer>
 </div>
+
+<div class="velo" id="velo" hidden></div>
+<aside class="hoja" id="hoja" role="dialog" aria-modal="true" aria-label="Opciones para mamá y papá" hidden>
+  <h2>⚙️ Para mamá y papá</h2>
+  <div>
+    <h3>En este aparato</h3>
+    <div class="ops">
+      <button class="op" id="op-musica"><span class="opi" data-musica>🎵</span>Música</button>
+      <button class="op" id="op-dos"><span class="opi">👭</span>Dos jugadoras</button>
+      <button class="op" id="op-colores"><span class="opi">🎨</span>Colores</button>
+      <a class="op" href="personajes.html"><span class="opi">👗</span>Personaje</a>
+    </div>
+  </div>
+  <div>
+    <h3>Mostrar juegos de</h3>
+    <div class="filas" id="f-secciones"></div>
+  </div>
+  <div>
+    <h3>Edad</h3>
+    <div class="filas" id="f-edades"></div>
+    <label class="edadnina"><span id="edad-lbl">Edad</span> <select id="edad-nina"></select></label>
+  </div>
+  <div>
+    <h3>Con la clave de papás</h3>
+    <div class="ops">
+      <button class="op" id="op-tiempo"><span class="opi">⏰</span>Tiempo<span class="candado">🔒</span></button>
+      <button class="op" id="op-admin"><span class="opi">🛠️</span>Ajustes<span class="candado">🔒</span></button>
+      <button class="op" id="op-cuenta" hidden><span class="opi" id="cuenta-ico">👤</span><span id="cuenta-txt">Cuenta</span><span class="candado">🔒</span></button>
+    </div>
+  </div>
+  <p class="nota">La clave al inicio es 1234; se cambia en Ajustes. Los filtros se guardan en este aparato.</p>
+</aside>
 
 <script>
 (() => {
@@ -173,6 +238,7 @@ details.credits a { color: inherit; }
   const $ = s => document.querySelector(s);
   const lv = k => L[k] || 0;
 
+  // ---------- qué toca hoy ----------
   // orden del programa: la primera sección sin terminar es la que toca ahora
   const LISTA = {
     palabras: () => lv('carrera') >= 2 && lv('bosque') >= 1,
@@ -182,78 +248,152 @@ details.credits a { color: inherit; }
     frases: () => lv('carrera') >= 6,
   };
   const ahora = () => Object.keys(LISTA).find(k => !LISTA[k]());
-  let sel = (() => { try { return sessionStorage.getItem('bl-seccion') || 'todos'; } catch (e) { return 'todos'; } })();
-  if (!SECCIONES.some(s => s.id === sel)) sel = 'todos';
-  // filtro por edades: se guarda en este aparato; si no hay, se usa la edad de la niña
+  const juego = id => JUEGOS.find(g => g.id === id);
+  function recomendado() {
+    // primero el cuaderno de la familia (20 días); luego el programa por secciones
+    const dias = Object.keys((P.cuaderno && P.cuaderno.dias) || {}).length;
+    const cq = juego('cuaderno');
+    if (cq && dias < 20) return { g: cq, etq: `📒 Día ${dias + 1} de tu cuaderno`, s: dias ? '¡Sigamos con el cuaderno!' : '¡Empecemos tu cuaderno!' };
+    const sec = ahora();
+    const lista = JUEGOS.filter(g => g.seccion === sec).sort((a, b) => lv(a.id) - lv(b.id));
+    const g = lista[0] || juego('carrera') || JUEGOS[0];
+    return { g, etq: '👉 Lo que toca hoy', s: g.sub };
+  }
+
+  // ---------- filtros (los cambian los papás en la tuerquita) ----------
+  const LS = { get(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   const EDADES = [{ id: 'todas', n: 'Todas' }, { id: '3-4', n: '3–4 años', r: [3, 4] }, { id: '4-5', n: '4–5', r: [4, 5] }, { id: '5-6', n: '5–6', r: [5, 6] }, { id: '6+', n: '6+', r: [6, 99] }];
   const deEdad = a => a ? (a <= 3 ? '3-4' : a === 4 ? '4-5' : a === 5 ? '5-6' : '6+') : 'todas';
-  let edadSel = (() => { try { return localStorage.getItem('bl-edad') || deEdad(P.edad); } catch (e) { return deEdad(P.edad); } })();
+  let edadSel = LS.get('bl-edad', deEdad(P.edad));
   if (!EDADES.some(x => x.id === edadSel)) edadSel = 'todas';
+  let secSel = LS.get('bl-seccion-menu', 'todos');
+  if (!SECCIONES.some(s => s.id === secSel)) secSel = 'todos';
   const paraEdad = g => { const r = (EDADES.find(x => x.id === edadSel) || {}).r; if (!r || !g.edad) return true; return g.edad[0] <= r[1] && g.edad[1] >= r[0]; };
+  const edadTxt = g => g.edad ? (g.edad[1] >= 9 ? `${g.edad[0]}+ años` : `${g.edad[0]}–${g.edad[1]} años`) : '';
 
+  // ---------- tarjetas ----------
   const soloEmoji = t => /^[\p{Extended_Pictographic}‍️\s]+$/u.test(t);
-  function arte(g) {
-    if (g.emoji.startsWith('pj:')) return `<img class="arte" data-pj="${g.emoji.slice(3)}" data-modo="${{ carrera: 'correr', cuidar: 'saludar' }[g.id] || 'bailar'}" alt="">`;
-    return `<span class="arte ${soloEmoji(g.emoji) ? '' : 'letras'}">${J.esc(g.emoji)}</span>`;
-  }
-  function tile(g, now) {
-    const n = lv(g.id), tags = g.etiquetas || [];
-    return `<a class="tile t-${g.tam || 'm'} ${g.seccion === now ? 'ahora' : ''}" href="${g.url}" style="--a:${g.fondo[0]};--b:${g.fondo[1]}" aria-label="${J.esc(g.titulo)}: ${J.esc(g.sub)}">
-      ${arte(g)}
-      ${tags.length ? `<span class="badges">${tags.map(t => `<span class="badge ${t}">${t === 'nuevo' ? '✨ Nuevo' : t}</span>`).join('')}</span>` : ''}
-      ${n ? `<span class="estrellas">⭐ ${n}</span>` : ''}
-      <span class="tit"><b>${J.esc(g.titulo)}</b><small>${J.esc(g.sub)}</small></span>
+  const emojiDe = g => g.emoji.startsWith('pj:') ? (J.CHARS[P.players[0].char]?.emoji || '🧒') : g.emoji;
+  const fotoDe = g => g.captura || `assets/capturas/${g.id}.webp`;
+  const sinFoto = g => { const e = emojiDe(g); return `<span class="art ${soloEmoji(e) ? '' : 'letras'}">${J.esc(e)}</span>`; };
+  window.__sinFoto = img => { const g = juego(img.dataset.id); if (g) img.outerHTML = sinFoto(g); else img.remove(); };
+  function carta(g) {
+    const n = lv(g.id), tags = (g.etiquetas || []).filter(t => t === 'nuevo' || t === '3D'), e = emojiDe(g);
+    return `<a class="carta" href="${g.url}" data-id="${g.id}" style="--a:${g.fondo[0]};--b:${g.fondo[1]}" aria-label="${J.esc(g.titulo)}: ${J.esc(g.sub)}">
+      <span class="img"><img src="${fotoDe(g)}" alt="" loading="lazy" decoding="async" data-id="${g.id}" onerror="__sinFoto(this)"><span class="sub">${J.esc(g.sub)}</span></span>
+      ${tags.length ? `<span class="tags">${tags.map(t => `<span class="tag ${t}">${t === 'nuevo' ? '✨ Nuevo' : t}</span>`).join('')}</span>` : ''}
+      <span class="emo ${soloEmoji(e) ? '' : 'letras'}" aria-hidden="true">${J.esc(e)}</span>
+      <span class="tit">${J.esc(g.titulo)}</span>
+      <span class="meta">${g.edad ? `<span>🎂 ${edadTxt(g)}</span>` : ''}${n ? `<span>⭐ ${n}</span>` : ''}</span>
     </a>`;
   }
 
+  // ---------- dibujar ----------
   function render() {
     const now = ahora();
-    $('#jugadores').innerHTML = (P.two ? P.players : [P.players[0]]).map(p => `<span class="jug">${J.CHARS[p.char]?.emoji || '⭐'} ${J.esc(p.name)} ⭐ ${p.stars}</span>`).join('');
-    $('#dos').classList.toggle('on', !!P.two);
-    $('#dos').title = P.two ? `De a 2: ${P.players[0].name} y ${P.players[1].name}` : 'Jugar de a 2';
-    $('#chips').innerHTML = SECCIONES.map(s => `<button class="chip ${s.id === sel ? 'on' : ''}" role="tab" aria-selected="${s.id === sel}" data-s="${s.id}">${s.emoji} ${s.nombre}${s.id === now ? ' <span class="ahora">👉</span>' : ''}</button>`).join('');
-    const sec = SECCIONES.find(s => s.id === sel);
-    const nowSec = SECCIONES.find(s => s.id === now);
-    $('#que').textContent = sel === 'todos' ? (nowSec ? `👉 Ahora: ${nowSec.nombre} — ${nowSec.q}` : '¡Terminaste el camino! Juega lo que quieras.') : sec.q;
-    $('#edades').innerHTML = EDADES.map(x => `<button class="chip ${x.id === edadSel ? 'on' : ''}" data-e="${x.id}">${x.id === 'todas' ? '🎂 ' : ''}${x.n}</button>`).join('')
-      + `<label>Edad de ${J.esc(J.childName())}<select id="edad-nina" aria-label="Edad de ${J.esc(J.childName())}"><option value="">–</option>${[3, 4, 5, 6, 7, 8].map(a => `<option ${P.edad === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>`;
-    const lista = JUEGOS.filter(g => (sel === 'todos' || g.seccion === sel) && paraEdad(g));
-    $('#grid').innerHTML = `<div class="tile t-xl hola" id="hola" role="button" tabindex="0" aria-label="Tu personaje: tócalo">
-        <canvas id="preview" aria-hidden="true"></canvas>
-        <div class="saludo">¡Hola, ${J.esc(J.childName())}!<span>${P.two ? `y ${J.esc(P.players[1].name)}` : '¿A qué jugamos hoy?'}</span></div>
-      </div>` + lista.map(g => tile(g, now)).join('') + (lista.length ? '' : '<p class="vacio">No hay juegos de esta sección para esa edad. Prueba con «Todas». 🙂</p>');
+    $('#jugadores').classList.toggle('dos', !!P.two);
+    $('#jugadores').innerHTML = (P.two ? P.players : [P.players[0]]).map(p => `<span class="jug"><span class="cara">${J.CHARS[p.char]?.emoji || '⭐'}</span><span class="nom">${J.esc(p.name)}</span> <span class="est">⭐ ${p.stars}</span></span>`).join('');
+    $('#saludo').innerHTML = `¡Hola, ${J.esc(J.childName())}!<span>${P.two ? `y ${J.esc(P.players[1].name)}` : '¿A qué jugamos hoy?'}</span>`;
+    // seguir jugando
+    const r = recomendado(), g = r.g;
+    const s = $('#seguir');
+    s.href = g.url; s.dataset.id = g.id; s.style.setProperty('--a', g.fondo[0]); s.style.setProperty('--b', g.fondo[1]);
+    s.setAttribute('aria-label', `Seguir jugando: ${g.titulo}`);
+    s.innerHTML = `<span class="txt"><span class="etq">${r.etq}</span><span class="t">${J.esc(g.titulo)}</span><span class="s">${J.esc(r.s)}</span>
+      <span class="play"><i>▶</i>¡A jugar!</span></span>
+      <span class="pantalla"><img src="${fotoDe(g)}" alt="" data-id="${g.id}" onerror="__sinFoto(this)"></span>`;
+    // estantes: el cuaderno y lo que toca hoy primero, luego el resto en el orden del programa
+    // el estante del cuaderno sobra si ya está en la tarjeta grande (tiene un solo juego)
+    const enHeroe = g.seccion === 'cuaderno' && JUEGOS.filter(x => x.seccion === 'cuaderno').length === 1;
+    const orden = SECCIONES.filter(x => x.id !== 'todos' && (secSel === 'todos' || x.id === secSel) && !(enHeroe && x.id === 'cuaderno' && secSel === 'todos'));
+    orden.sort((a, b) => (b.id === 'cuaderno') - (a.id === 'cuaderno') || (b.id === now) - (a.id === now));
+    const html = orden.map(sec => {
+      const lista = JUEGOS.filter(x => x.seccion === sec.id && paraEdad(x));
+      if (!lista.length) return '';
+      return `<section class="estante" aria-label="${J.esc(sec.nombre)}">
+        <div class="est-cab">
+          <button class="est-tit" data-dice="${J.esc(sec.nombre)}"><span class="e">${sec.emoji}</span>${J.esc(sec.nombre)}${sec.id === now ? ' <span class="ahora">👉 Ahora</span>' : ''}</button>
+          <div class="flechas"><button class="flecha" data-mueve="-1" aria-label="Anteriores">‹</button><button class="flecha" data-mueve="1" aria-label="Siguientes">›</button></div>
+        </div>
+        <div class="fila">${lista.map(carta).join('')}</div>
+      </section>`;
+    }).join('');
+    $('#estantes').innerHTML = html || '<p class="vacio">No hay juegos con estos filtros. Pídele a papá o mamá que toque ⚙️ y elija «Todas». 🙂</p>';
+    $('#estantes').style.display = 'flex'; $('#estantes').style.flexDirection = 'column'; $('#estantes').style.gap = '18px';
+    document.querySelectorAll('.fila').forEach(flechas);
+    pintarHoja();
     window.dispatchEvent(new Event('menu-render'));
     J.refreshMusic();
   }
-  $('#chips').addEventListener('click', e => {
-    const b = e.target.closest('[data-s]'); if (!b) return;
-    sel = b.dataset.s; try { sessionStorage.setItem('bl-seccion', sel); } catch (er) {}
-    J.sfx('pop'); render();
-  });
-  $('#edades').addEventListener('click', e => {
-    const b = e.target.closest('[data-e]'); if (!b) return;
-    edadSel = b.dataset.e; try { localStorage.setItem('bl-edad', edadSel); } catch (er) {}
-    J.sfx('pop'); render();
-  });
-  $('#edades').addEventListener('change', e => {
-    if (e.target.id !== 'edad-nina') return;
-    P.edad = +e.target.value || undefined; J.save();
-    edadSel = deEdad(P.edad); try { localStorage.setItem('bl-edad', edadSel); } catch (er) {}
-    J.sfx('pop'); render();
-  });
-  $('#dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };
-  $('#colores').onclick = e => { J.sfx('pop'); Tema.picker(e.currentTarget); };
-  document.addEventListener('click', e => { if (e.target.closest('a.tile')) J.sfx('pop'); });
-  // botón de mamá y papá: pide el PIN (1234 al inicio; se cambia en el modo admin)
-  $('#papas').addEventListener('click', () => J.pedirPin(() => { location.href = 'admin.html'; }));
-  window.__menu = { render };
+  function flechas(fila) {
+    const cab = fila.previousElementSibling, [a, b] = cab.querySelectorAll('.flecha');
+    const upd = () => { a.disabled = fila.scrollLeft < 8; b.disabled = fila.scrollLeft + fila.clientWidth >= fila.scrollWidth - 8; };
+    fila.addEventListener('scroll', upd, { passive: true }); upd();
+  }
 
+  // ---------- tocar una tarjeta: salta, dice su nombre y abre el juego ----------
+  let largo = null, fueLargo = false;
+  const ir = (el, g) => {
+    if (el.dataset.yendo) return; el.dataset.yendo = '1';
+    el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta');
+    J.sfx('pop'); J.say(g.titulo);
+    setTimeout(() => { location.href = el.getAttribute('href'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 800);
+  };
+  document.addEventListener('click', e => {
+    const el = e.target.closest('a.carta, a.seguir'); if (!el || !el.dataset.id) return;
+    e.preventDefault();
+    if (fueLargo) { fueLargo = false; return; }
+    const g = juego(el.dataset.id); if (g) ir(el, g); else location.href = el.getAttribute('href');
+  });
+  // mantener apretado: muestra la frase cortita (y la dice) sin abrir el juego
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest('a.carta'); if (!el) return;
+    clearTimeout(largo);
+    largo = setTimeout(() => { fueLargo = true; el.classList.add('ver-sub'); const g = juego(el.dataset.id); if (g) J.say(g.sub); setTimeout(() => el.classList.remove('ver-sub'), 2500); }, 550);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => document.addEventListener(t, () => clearTimeout(largo), true));
+  document.addEventListener('contextmenu', e => { if (e.target.closest('a.carta')) e.preventDefault(); });
+  $('#estantes').addEventListener('click', e => {
+    const t = e.target.closest('[data-dice]'); if (t) { J.sfx('pop'); J.say(t.dataset.dice); return; }
+    const m = e.target.closest('[data-mueve]'); if (m) { const fila = m.closest('.estante').querySelector('.fila'); fila.scrollBy({ left: +m.dataset.mueve * fila.clientWidth * .85, behavior: 'smooth' }); }
+  });
+
+  // ---------- hoja de los papás (tuerquita) ----------
+  const hoja = $('#hoja'), velo = $('#velo'), engrane = $('#engrane');
+  function abrir(on) {
+    hoja.hidden = velo.hidden = !on; engrane.setAttribute('aria-expanded', on);
+    if (on) { J.sfx('pop'); pintarHoja(); hoja.querySelector('button, a')?.focus(); } else engrane.focus();
+  }
+  engrane.onclick = () => abrir(hoja.hidden);
+  velo.onclick = () => abrir(false);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !hoja.hidden) abrir(false); });
+  function pintarHoja() {
+    $('#op-dos').classList.toggle('on', !!P.two);
+    $('#op-dos').lastChild.textContent = P.two ? `De a 2: ${P.players[0].name} y ${P.players[1].name}` : 'Dos jugadoras';
+    $('#f-secciones').innerHTML = SECCIONES.map(s => `<button class="fchip ${s.id === secSel ? 'on' : ''}" data-s="${s.id}">${s.emoji} ${s.id === 'todos' ? 'Todos' : J.esc(s.nombre)}</button>`).join('');
+    $('#f-edades').innerHTML = EDADES.map(x => `<button class="fchip ${x.id === edadSel ? 'on' : ''}" data-e="${x.id}">${x.id === 'todas' ? '🎂 ' : ''}${x.n}</button>`).join('');
+    $('#edad-lbl').textContent = `Edad de ${J.childName()}`;
+    $('#edad-nina').innerHTML = `<option value="">–</option>${[3, 4, 5, 6, 7, 8].map(a => `<option ${P.edad === a ? 'selected' : ''}>${a}</option>`).join('')}`;
+  }
+  $('#f-secciones').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; secSel = b.dataset.s; LS.set('bl-seccion-menu', secSel); J.sfx('pop'); render(); };
+  $('#f-edades').onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; edadSel = b.dataset.e; LS.set('bl-edad', edadSel); J.sfx('pop'); render(); };
+  $('#edad-nina').onchange = e => { P.edad = +e.target.value || undefined; J.save(); edadSel = deEdad(P.edad); LS.set('bl-edad', edadSel); J.sfx('pop'); render(); };
+  $('#op-musica').onclick = e => { if (!e.target.closest('[data-musica]')) $('#op-musica [data-musica]').click(); };
+  $('#op-dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };
+  $('#op-colores').onclick = e => { J.sfx('pop'); if (window.Tema && Tema.picker) Tema.picker(e.currentTarget); };
+  $('#op-tiempo').onclick = () => J.pedirPin(() => { location.href = 'tiempo.html'; });
+  $('#op-admin').onclick = () => J.pedirPin(() => { location.href = 'admin.html'; });
+
+  // ---------- personaje de la bienvenida ----------
+  $('#hola').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#hola').click(); } });
+
+  window.__menu = { render, abrir };
   render();
   setTimeout(() => J.say(['¡Hola!', J.childName(), '¿A qué jugamos hoy?']), 900);
 })();
 </script>
 <script type="module">
-// personajes en 3D: el de la bienvenida baila, y las tarjetas con 'pj:' muestran una fotito
+// personaje en 3D que baila en la bienvenida (y fotitos para tarjetas 'pj:' sin captura)
 import * as THREE from 'three';
 import { crearPersonaje } from './js/personajes.js';
 const J = window.Juego, P = J.progress;
@@ -261,80 +401,48 @@ const luz = sc => {
   sc.add(new THREE.HemisphereLight(0xffffff, 0xe6d4ff, 2.2));
   const d = new THREE.DirectionalLight(0xffffff, 1.6); d.position.set(2, 4, 5); sc.add(d);
 };
-const idDe = k => k === 'otro' ? (P.two ? P.players[1].char : (P.players[1]?.char !== P.players[0].char && P.players[1]?.char) || 'zoe') : P.players[0].char;
-
-// fotitos (un solo lienzo escondido para todas)
-const fotos = new Map();
-let foto = null;
-async function fotito(id, modo) {
-  const key = id + ':' + modo;
-  if (fotos.has(key)) return fotos.get(key);
-  if (!foto) {
-    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-    r.setSize(320, 320); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
-    const sc = new THREE.Scene(); luz(sc);
-    const cam = new THREE.PerspectiveCamera(30, 1, .1, 50); cam.position.set(0, 1.2, 4.7); cam.lookAt(0, .95, 0);
-    foto = { r, sc, cam };
-  }
-  const p = (async () => {
-    const ch = await crearPersonaje(id);
-    foto.sc.add(ch.group);
-    for (let i = 0; i < 14; i++) ch.update(.03, modo);
-    ch.group.rotation.y = modo === 'correr' ? .7 : .25;
-    foto.r.render(foto.sc, foto.cam);
-    const url = foto.r.domElement.toDataURL();
-    foto.sc.remove(ch.group);
-    return url;
-  })();
-  fotos.set(key, p);
-  return p;
-}
-async function pintarFotos() {
-  for (const img of document.querySelectorAll('img[data-pj]')) {
-    try { img.src = await fotito(idDe(img.dataset.pj), img.dataset.modo); } catch (e) { img.replaceWith(Object.assign(document.createElement('span'), { className: 'arte', textContent: '🧒' })); }
-  }
-}
-
-// bienvenida que baila
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene(); luz(scene);
 const cam = new THREE.PerspectiveCamera(30, 1, .1, 50);
 cam.position.set(0, 1.25, 5.6); cam.lookAt(0, .85, 0);
-let ch = null, chId = null;
-let mode = 'bailar', modeT = 0;
+let ch = null, chId = null, mode = 'bailar', modeT = 0;
 async function montar() {
   const holder = document.getElementById('preview');
-  if (!holder) return;
-  holder.replaceWith(renderer.domElement); renderer.domElement.id = 'preview';
-  const box = document.getElementById('hola');
+  if (holder && holder !== renderer.domElement) { holder.replaceWith(renderer.domElement); renderer.domElement.id = 'preview'; renderer.domElement.setAttribute('aria-hidden', 'true'); }
   const id = P.players[0].char;
   if (id !== chId) { if (ch) scene.remove(ch.group); ch = await crearPersonaje(id); chId = id; ch.group.position.y = -.25; scene.add(ch.group); }
   size();
-  box.onclick = () => { mode = 'festejar'; modeT = 1.5; J.cheer(); };
-  box.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); box.onclick(); } };
 }
 function size() {
   const c = renderer.domElement, w = c.clientWidth || 280, h = c.clientHeight || 280;
-  renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+  renderer.setSize(w, h, false); cam.aspect = w / h;
+  // el personaje queda a la izquierda del cartel si la tarjeta es ancha
+  cam.position.set(w / h > 1.4 ? -.9 : 0, 1.25, 5.6); cam.lookAt(w / h > 1.4 ? -.9 : 0, .85, 0);
+  cam.updateProjectionMatrix();
 }
+document.getElementById('hola').addEventListener('click', e => { if (e.target.closest('.cambiar')) return; mode = 'festejar'; modeT = 1.5; J.cheer(); });
 addEventListener('resize', size);
-addEventListener('menu-render', () => { montar(); pintarFotos(); });
-await montar(); pintarFotos();
+addEventListener('menu-render', montar);
+await montar();
 const clock = new THREE.Clock();
 (function loop() {
   const dt = Math.min(clock.getDelta(), .05);
   modeT -= dt; if (modeT <= 0) mode = 'bailar';
-  if (ch && document.body.contains(renderer.domElement)) { ch.update(dt, mode); renderer.render(scene, cam); }
+  if (ch && !document.hidden) { ch.update(dt, mode); renderer.render(scene, cam); }
   requestAnimationFrame(loop);
 })();
 </script>
 <script>
-// cuenta de la familia (solo si hay servidor configurado): 👤, o ⭐ con el plan Familia
+// cuenta de la familia (solo si hay servidor configurado): aparece en la tuerquita, con ⭐ si tienen el plan Familia
 (() => {
-  const b = document.getElementById('cuenta'), C = window.Cuenta;
+  const b = document.getElementById('op-cuenta'), C = window.Cuenta;
   if (!b || !C || !C.servidor()) return;
-  const pintar = () => { b.hidden = false; b.textContent = C.esFamilia() ? '⭐' : '👤'; b.setAttribute('aria-label', C.conectado() ? 'Cuenta de la familia' + (C.esFamilia() ? ' (plan Familia)' : '') : 'Entrar a la cuenta de la familia'); };
+  const pintar = () => {
+    b.hidden = false;
+    document.getElementById('cuenta-ico').textContent = C.esFamilia() ? '⭐' : '👤';
+    document.getElementById('cuenta-txt').textContent = C.conectado() ? (C.esFamilia() ? 'Plan Familia' : 'Cuenta') : 'Entrar';
+  };
   pintar(); addEventListener('cuenta', pintar);
   b.addEventListener('click', () => window.Juego.pedirPin(() => { location.href = 'cuenta.html'; }));
 })();
