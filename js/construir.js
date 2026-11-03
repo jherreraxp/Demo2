@@ -168,9 +168,10 @@ function moverPuertas(dt) {
 function dibujarBloques() {
   mallas.forEach(m => { grupoBloques.remove(m); m.dispose(); }); mallas = [];
   dibujarPuertas();
+  detectarEspeciales();
   const grupos = new Map();
   items.forEach(it => {
-    if (it.t !== 'b') return;
+    if (it.t !== 'b' || sueltos.has(it)) return;
     PIEZAS[it.k].partes.forEach((parte, pi) => {
       if (parte.hoja) return;
       const k = it.k + '|' + pi + '|' + (parte.mat || it.c);
@@ -178,11 +179,14 @@ function dibujarBloques() {
       grupos.get(k).lista.push(it);
     });
   });
+  instancia = new WeakMap();
   for (const { parte, color, lista } of grupos.values()) {
     const m = new THREE.InstancedMesh(parte.geo, matDeParte(parte, color), lista.length);
     lista.forEach((it, i) => {
       tmpQ.setFromAxisAngle(EJE_Y, -(it.r || 0) * Math.PI / 2);
       m.setMatrixAt(i, tmpM.compose(tmpP.set(it.x, it.y, it.z), tmpQ, tmpS));
+      if (!instancia.has(it)) instancia.set(it, []);
+      instancia.get(it).push([m, i]);
     });
     m.castShadow = !parte.mat || parte.mat === 'marco'; m.receiveShadow = true;
     m.userData.items = lista;
@@ -190,6 +194,231 @@ function dibujarBloques() {
     grupoBloques.add(m); mallas.push(m);
   }
 }
+// ---------- piezas que juegan (modo jugar) ----------
+// Cada tipo de pieza tiene su interacción en la tabla INTERACCIONES: al acercarse, al chocar, al pisar o al tocarla.
+// Para agregar una nueva basta con una línea en tipoDe() y su entrada en la tabla.
+const grupoAnim = new THREE.Group(); scene.add(grupoAnim);
+const sueltos = new Set();          // bloques que se dibujan sueltos (no instanciados) porque se mueven solos
+let instancia = new WeakMap();      // bloque instanciado → [[malla, índice]] para moverlo (hojas, tablones, rebotes)
+const anim = { flores: [], rejas: [], ventanas: [], asientos: [], arboles: [], frutas: [], rebotes: [] };
+const animDe = new Map();           // bloque → su animación (para tocarlo)
+const geoPersiana = caja(.36, .72, .04).translate(.18, 0, 0);
+const geoFruta = new THREE.SphereGeometry(.16, 12, 10), matFruta = new THREE.MeshStandardMaterial({ color: 0xef3b4f, roughness: .35 });
+const tmpE = new THREE.Euler(), tmpV = new THREE.Vector3(), tmpB = new THREE.Vector3();
+const enCelda = (x, y, z) => celdas.get(key(x, y, z));
+function mallaSuelta(it) {
+  const g = new THREE.Group(); g.position.set(it.x, it.y, it.z); g.rotation.y = -(it.r || 0) * Math.PI / 2;
+  PIEZAS[it.k].partes.forEach(parte => { if (parte.hoja) return; const m = new THREE.Mesh(parte.geo, matDeParte(parte, it.c)); m.castShadow = !parte.mat; m.receiveShadow = true; m.userData.item = it; g.add(m); });
+  return g;
+}
+function detectarEspeciales() {
+  grupoAnim.clear(); sueltos.clear(); animDe.clear();
+  for (const k of ['flores', 'rejas', 'ventanas', 'asientos', 'arboles', 'rebotes']) anim[k].length = 0;
+  // columpios: un asiento (mitad) con su cadena (reja) encima y la viga 3 más arriba
+  for (const it of items) {
+    if (it.t !== 'b' || it.k !== 'medio') continue;
+    const cad = enCelda(it.x, it.y + 1, it.z), viga = enCelda(it.x, it.y + 3, it.z);
+    if (!cad || cad.k !== 'reja' || !viga || viga.t !== 'b') continue;
+    const eje = (enCelda(it.x + 1, it.y + 3, it.z) || enCelda(it.x - 1, it.y + 3, it.z)) ? 'x' : 'z';
+    const pivote = new THREE.Group(); pivote.position.set(it.x, it.y + 3, it.z); grupoAnim.add(pivote);
+    const asiento = mallaSuelta(it); asiento.position.set(0, -3, 0); pivote.add(asiento);
+    const cadena = mallaSuelta(cad); cadena.position.set(0, -2, 0); cadena.scale.y = 2.6; pivote.add(cadena);
+    const sw = { tipo: 'asiento', it, cad, pivote, eje, amp: 0, t: 0 };
+    sueltos.add(it); sueltos.add(cad); anim.asientos.push(sw); animDe.set(it, sw); animDe.set(cad, sw);
+  }
+  // árboles: tronco de madera con hojas (seto) encima
+  for (const it of items) {
+    if (it.t !== 'b' || it.c !== 'madera' || it.k !== 'cubo') continue;
+    const abajo = enCelda(it.x, it.y - 1, it.z); if (abajo && abajo.c === 'madera') continue;
+    let alto = 0; while (enCelda(it.x, it.y + alto, it.z)?.c === 'madera') alto++;
+    if (enCelda(it.x, it.y + alto, it.z)?.c !== 'seto') continue;
+    const hojas = items.filter(o => o.t === 'b' && o.c === 'seto' && Math.abs(o.x - it.x) <= 2 && Math.abs(o.z - it.z) <= 2 && o.y >= it.y + alto && o.y <= it.y + alto + 3);
+    const ar = { tipo: 'arbol', it, hojas, e: 0, cd: 0, alto, cerca: false };
+    anim.arboles.push(ar); animDe.set(it, ar); hojas.forEach(h => animDe.set(h, ar));
+    for (let y = 0; y < alto; y++) animDe.set(enCelda(it.x, it.y + y, it.z), ar);
+  }
+  for (const it of items) {
+    if (it.t !== 'b' || sueltos.has(it)) continue;
+    if (it.k === 'flor' || it.k === 'reja') {
+      const g = mallaSuelta(it); grupoAnim.add(g); sueltos.add(it);
+      const a = { tipo: it.k, it, g, e: 0, t: Math.random() * 6, cerca: false };
+      (it.k === 'flor' ? anim.flores : anim.rejas).push(a); animDe.set(it, a);
+    } else if (it.k === 'ventana') {
+      // persianas a los dos lados de la ventana: se abren cuando ella se acerca
+      const base = new THREE.Group(); base.position.set(it.x, it.y + .14, it.z); base.rotation.y = -(it.r || 0) * Math.PI / 2; grupoAnim.add(base);
+      const mat = matDe(it.c === 'blanco' ? 'lila' : it.c), hojas = [];
+      for (const lado of [-1, 1]) for (const cara of [-1, 1]) {
+        const piv = new THREE.Group(); piv.position.set(lado * .43, 0, cara * .53); piv.rotation.y = lado < 0 ? 0 : Math.PI; base.add(piv);
+        const m = new THREE.Mesh(geoPersiana, mat); m.castShadow = true; m.userData.item = it; piv.add(m);
+        hojas.push({ piv, lado, cara });
+      }
+      const v = { tipo: 'ventana', it, hojas, abre: 1, toque: 0 };
+      anim.ventanas.push(v); animDe.set(it, v);
+    }
+  }
+}
+// ---- acciones (lo que hace cada pieza) ----
+let chimeT = 0;
+function chime(n = 0) { const a = performance.now(); if (a - chimeT < 140) return; chimeT = a; J.tones([[1047, 1175, 1319, 1568, 1760][n % 5]], .08, 'sine', .05); }
+function bailarFlor(f) { if (f.e < .3) { chime(Math.round(f.it.x + f.it.z)); fx.burst(tmpB.set(f.it.x, f.it.y + .4, f.it.z), 5, .25); } f.e = 1; }
+function sacudirReja(r) { if (r.e < .3) J.sfx('tick', .35, .8 + Math.random() * .4); r.e = 1; }
+function sacudirArbol(a) {
+  if (a.e < .3) J.sfx('pop', .4, .7);
+  a.e = 1;
+  if (a.cd <= 0 && Math.random() < .55) {
+    // a veces cae una frutita para recoger
+    a.cd = 5;
+    const h = a.hojas[Math.floor(Math.random() * a.hojas.length)] || a.it;
+    const m = new THREE.Mesh(geoFruta, matFruta); m.castShadow = true;
+    m.position.set(a.it.x + (Math.random() - .5) * 2.2, h.y + .2, a.it.z + (Math.random() - .5) * 2.2);
+    scene.add(m); anim.frutas.push({ m, vy: 0, piso: a.it.y + .16, vida: 25 });
+  }
+}
+function empujarColumpio(sw) { sw.amp = Math.max(sw.amp, .7); J.sfx('jump', .4, .8); }
+function abrirVentana(v) { v.toque = 4; J.efecto('abrir'); }
+function rebotar(it) {
+  if (!instancia.has(it) || anim.rebotes.some(r => r.it === it)) return;
+  anim.rebotes.push({ it, t: 0 }); J.sfx('pop', .5, .8 + ((it.x * 7 + it.y * 3 + it.z) % 5) * .12);
+  fx.burst(tmpB.set(it.x, it.y + 1, it.z), 6, .3);
+}
+const INTERACCIONES = {
+  flor:     { radio: 1.3, alAcercarse: bailarFlor, alTocar: bailarFlor },
+  reja:     { alChocar: sacudirReja, alTocar: sacudirReja },
+  arbol:    { radio: 1.4, alAcercarse: sacudirArbol, alTocar: sacudirArbol },
+  asiento:  { alChocar: sw => sentarse(sw), alTocar: empujarColumpio },
+  ventana:  { alTocar: abrirVentana },
+};
+function interactuarBloque(it, como) {
+  const a = animDe.get(it), f = a && INTERACCIONES[a.tipo] && INTERACCIONES[a.tipo][como];
+  if (f) { f(a); return true; }
+  if (como === 'alTocar') { rebotar(it); return true; }
+  return false;
+}
+function moverInstancia(it, dx, dy, dz) {
+  const lista = instancia.get(it); if (!lista) return;
+  tmpQ.setFromAxisAngle(EJE_Y, -(it.r || 0) * Math.PI / 2);
+  for (const [m, i] of lista) { m.setMatrixAt(i, tmpM.compose(tmpP.set(it.x + dx, it.y + dy, it.z + dz), tmpQ, tmpS)); m.instanceMatrix.needsUpdate = true; }
+}
+function moverPiezas(dt, t) {
+  const jugando = state.modo === 'jugar', px = jug.pos.x, pz = jug.pos.z, py = jug.pos.y;
+  const cerca = (it, r) => jugando && Math.abs(it.x - px) < r && Math.abs(it.z - pz) < r && Math.hypot(it.x - px, it.z - pz) < r && Math.abs(it.y - py) < 2;
+  for (const f of anim.flores) {
+    const c = cerca(f.it, INTERACCIONES.flor.radio); if (c && !f.cerca) bailarFlor(f); f.cerca = c;
+    f.t += dt; f.e = Math.max(0, f.e - dt * .7);
+    f.g.rotation.z = Math.sin(f.t * 9) * .3 * f.e + Math.sin(f.t * 1.4) * .04;
+    f.g.rotation.x = Math.cos(f.t * 7) * .15 * f.e;
+    f.g.scale.y = 1 + Math.abs(Math.sin(f.t * 10)) * .5 * f.e;
+  }
+  for (const r of anim.rejas) { if (r.e <= 0) continue; r.e = Math.max(0, r.e - dt * 1.8); r.t += dt; r.g.rotation.z = Math.sin(r.t * 38) * .12 * r.e; }
+  for (const v of anim.ventanas) {
+    v.toque -= dt;
+    const quiere = !jugando || v.toque > 0 || cerca(v.it, 2.6) ? 1 : 0;   // en el juego se cierran cuando ella está lejos
+    v.abre += (quiere - v.abre) * Math.min(1, dt * 5);
+    for (const h of v.hojas) h.piv.rotation.y = (h.lado < 0 ? 0 : Math.PI) + h.lado * h.cara * -v.abre * 1.75;
+  }
+  for (const a of anim.arboles) {
+    const c = cerca(a.it, INTERACCIONES.arbol.radio); if (c && !a.cerca) sacudirArbol(a); a.cerca = c;
+    a.cd -= dt;
+    if (a.e <= 0) continue;
+    a.e = Math.max(0, a.e - dt * 1.2);
+    const ox = Math.sin(t * 30) * .07 * a.e, oz = Math.cos(t * 26) * .05 * a.e;
+    for (const h of a.hojas) moverInstancia(h, ox, 0, oz);
+  }
+  for (let i = anim.frutas.length - 1; i >= 0; i--) {
+    const f = anim.frutas[i]; f.vida -= dt;
+    if (f.m.position.y > f.piso) { f.vy -= 14 * dt; f.m.position.y = Math.max(f.piso, f.m.position.y + f.vy * dt); if (f.m.position.y === f.piso) J.sfx('land', .25, 1.4); }
+    f.m.rotation.y += dt;
+    const lejos = Math.hypot(f.m.position.x - px, f.m.position.z - pz);
+    if ((jugando && lejos < .7 && Math.abs(f.m.position.y - py) < 1.2) || f.vida <= 0) {
+      if (f.vida > 0) { J.sfx('coin'); fx.burst(f.m.position, 14, .4); state.estrellas++; $('#estrellas').textContent = state.estrellas; if (state.estrellas % 3 === 0) { J.addStar(); updatePlayer(); J.say('¡Una estrellita!'); } else J.say('¡Una fruta!'); }
+      scene.remove(f.m); anim.frutas.splice(i, 1);
+    }
+  }
+  for (const sw of anim.asientos) {
+    const montada = jug.columpio === sw;
+    sw.amp = montada ? Math.min(.85, sw.amp + dt * .7) : Math.max(0, sw.amp - dt * .25);
+    sw.t += dt;
+    sw.pivote.rotation[sw.eje === 'x' ? 'x' : 'z'] = sw.amp * Math.sin(sw.t * 2.6);
+  }
+  for (let i = anim.rebotes.length - 1; i >= 0; i--) {
+    const r = anim.rebotes[i]; r.t += dt;
+    const k = r.t < .45 ? Math.sin(r.t / .45 * Math.PI) * .35 : 0;
+    moverInstancia(r.it, 0, k, 0);
+    if (r.t >= .45) anim.rebotes.splice(i, 1);
+  }
+}
+// sentarse en el columpio y mecerse
+function sentarse(sw) {
+  if (jug.columpio || jug.cdColumpio > 0 || jug.desliza) return;
+  jug.columpio = sw; sw.t = 0; jug.vy = 0; jug.suelo = true;
+  J.say('¡Más alto!'); J.sfx('jump', .4, 1.2);
+}
+function bajarseDelColumpio() {
+  const sw = jug.columpio; if (!sw) return;
+  jug.columpio = null; jug.cdColumpio = 1.5;
+  const lado = Math.sin(sw.t * 2.6) >= 0 ? -1 : 1;
+  const ox = sw.eje === 'x' ? 0 : lado * 1.3, oz = sw.eje === 'x' ? lado * 1.3 : 0;
+  let x = sw.it.x + ox, z = sw.it.z + oz;
+  if (topeEn(x, z, sw.it.y) === Infinity) { x = sw.it.x - ox; z = sw.it.z - oz; }
+  jug.pos.set(x, sw.it.y + .4, z); jug.vy = 2; jug.suelo = false;
+}
+function montarColumpio(dt, entrada) {
+  const sw = jug.columpio, L = 2.5, a = sw.amp * Math.sin(sw.t * 2.6);
+  if (sw.eje === 'x') { jug.pos.set(sw.it.x, sw.it.y + 3 - L * Math.cos(a), sw.it.z - L * Math.sin(a)); jug.dir = 0; }
+  else { jug.pos.set(sw.it.x + L * Math.sin(a), sw.it.y + 3 - L * Math.cos(a), sw.it.z); jug.dir = Math.PI / 2; }
+  if (sw.t > 7 || (entrada > .5 && sw.t > 1.2) || jug.saltoPedido) { jug.saltoPedido = false; bajarseDelColumpio(); }
+}
+// tobogán (y techos): si pisa una rampa de techo, se resbala hacia abajo solita
+const bajada = r => [[0, 1], [-1, 0], [0, -1], [1, 0]][((r || 0) % 4 + 4) % 4];   // dirección cuesta abajo de un techo según su giro
+function techoBajo(x, z, y0) {
+  const cx = Math.round(x), cz = Math.round(z);
+  for (let y = Math.floor(y0) + 1; y >= Math.max(0, Math.floor(y0) - 2); y--) {
+    const it = enCelda(cx, y, cz);
+    if (it && it.t === 'b' && it.k === 'techo') { const [dx, dz] = bajada(it.r); return { it, alto: it.y + .5 - ((x - cx) * dx + (z - cz) * dz), dx, dz }; }
+  }
+  return null;
+}
+let chispaT = 0;
+function deslizar(dt) {
+  const d = jug.desliza;
+  d.v = Math.min(d.v + dt * 8, 7.5);
+  const nx = jug.pos.x + d.dx * d.v * dt, nz = jug.pos.z + d.dz * d.v * dt;
+  if (fuera(nx, nz)) { jug.desliza = null; return; }
+  const tb = techoBajo(nx, nz, jug.pos.y);
+  if (tb && tb.alto <= jug.pos.y + .35 && tb.alto >= jug.pos.y - 1.2) { jug.pos.set(nx, Math.max(tb.it.y, tb.alto), nz); d.dx = tb.dx; d.dz = tb.dz; }
+  else if (topeEn(nx, nz, jug.pos.y) === Infinity) { jug.desliza = null; J.sfx('land', .3); return; }
+  else { jug.pos.x = nx; jug.pos.z = nz; jug.empuje = { dx: d.dx, dz: d.dz, v: d.v * .8, t: .6 }; jug.desliza = null; jug.suelo = false; jug.vy = 1; return; }
+  jug.dir = Math.atan2(d.dx, d.dz);
+  chispaT -= dt; if (chispaT <= 0) { chispaT = .09; fx.burst(tmpB.set(jug.pos.x, jug.pos.y + .2, jug.pos.z), 2, .25); }
+}
+
+// lo que hace cada animalito o personaje puesto en el mundo cuando ella juega
+const vidas = new WeakMap();
+function vidaDe(it) { let s = vidas.get(it); if (!s) { s = { sigue: false, cd: 0, salto: 0, baile: 0, cerca: false, y: it.y }; vidas.set(it, s); } return s; }
+function tocarCosa(it) {
+  const s = vidaDe(it);
+  if (it.t === 'o') {
+    s.sigue = !s.sigue; s.salto = .8;
+    J.say(s.sigue ? ['¡Ven!', it.w] : ['¡Quédate aquí!']); J.sfx('pop', .6, 1.4);
+  } else if (it.t === 'p') {
+    s.sigue = !s.sigue;
+    if (s.sigue) { s.baile = 3; jug.baile = 3; J.say(['¡Vamos!', nombrePersonaje(it.id)]); J.efecto('festejo'); }
+    else { J.say('¡Aquí me quedo!'); J.sfx('pop', .6, 1.1); }
+  } else if (it.t === 'f') { J.confetti(40); J.sfx('coin', .5, 1.2); }
+  else if (it.t === 's') J.sparkle();
+}
+function tocarEnJuego(cx, cy) {
+  const a = apuntar(cx, cy); if (!a || !a.item) return;
+  const it = a.item;
+  if (it.t === 'b') interactuarBloque(it, 'alTocar'); else tocarCosa(it);
+}
+function soltarCosas() {
+  // al volver a construir, todos vuelven a su lugar
+  for (const [it, v] of vivos) { const s = vidas.get(it); if (s) { s.sigue = false; s.salto = 0; s.y = it.y; } v.group.position.set(it.x, it.y, it.z); v.group.rotation.y = -(it.r || 0) * Math.PI / 2; }
+  jug.columpio = null; jug.desliza = null; jug.empuje = null; jug.baile = 0; jug.modoAnim = null;
+  anim.frutas.forEach(f => scene.remove(f.m)); anim.frutas.length = 0;
+}
+
 // cosas sueltas: objetos 3D, personajes, estrellas y meta
 const vivos = new Map(); // item → { group, update }
 function hacerEstrella() {
@@ -429,11 +658,12 @@ const ARMADOS = {
   } },
 };
 function ponerArmado(id, x0, y0, z0) {
-  const lista = ARMADOS[id].hacer();
+  const lista = ARMADOS[id].hacer(), grupoId = id + '-' + Date.now().toString(36);
   recordar();
   let n = 0;
   for (const p of lista) {
     const it = Array.isArray(p) ? { t: 'b', k: p[0], c: p[1], x: x0 + p[2], y: y0 + p[3], z: z0 + p[4], r: p[5] || 0 } : { ...p, x: x0 + p.x, y: y0 + p.y, z: z0 + p.z };
+    it.a = id; it.g = grupoId;   // a qué armado pertenece (tobogán, columpio, árbol…)
     if (it.t !== 'b') { it.x = Math.round(it.x); it.z = Math.round(it.z); }
     if (libre(it.x, it.y, it.z, altoDe(it))) { items.push(it); for (let h = 0; h < altoDe(it); h++) celdas.set(key(it.x, it.y + h, it.z), it); n++; }
   }
@@ -535,7 +765,7 @@ ghost.visible = false; scene.add(ghost);
 function apuntar(cx, cy) {
   v2.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(v2, camera);
-  const hits = ray.intersectObjects([...mallas, ...grupoPuertas.children, ...grupoCosas.children, suelo], true);
+  const hits = ray.intersectObjects([...mallas, ...grupoPuertas.children, ...grupoAnim.children, ...grupoCosas.children, suelo], true);
   for (const h of hits) {
     if (h.object === suelo) {
       if (h.point.y < -.05) continue;
@@ -616,6 +846,7 @@ function soltar(e) {
   const p = punteros.get(e.pointerId); punteros.delete(e.pointerId);
   if (!p || !gesto) return;
   if (gesto.tipo === 'toque' && gesto.mov <= 10 && state.modo === 'construir' && gesto.boton === 0) accionEn(e.clientX, e.clientY);
+  else if (gesto.tipo === 'toque' && gesto.mov <= 10 && state.modo === 'jugar') tocarEnJuego(e.clientX, e.clientY);
   if (!punteros.size) gesto = null;
 }
 canvas.addEventListener('pointerup', soltar);
@@ -644,12 +875,15 @@ $('#vista').onclick = () => cambiarVista();
 const rayoCam = new THREE.Raycaster(), dirCam = new THREE.Vector3(), cabeza = new THREE.Vector3();
 function adentro() {
   // ¿hay techo encima? (está dentro de una casa, debajo de un puente…)
+  // cuenta techo encima de ella y de sus 4 vecinos: una viga de columpio o un tablón solo no cuentan como casa
   const x = Math.round(jug.pos.x), z = Math.round(jug.pos.z);
-  for (let y = Math.floor(jug.pos.y + 1.4); y < ALTO; y++) { const it = celdas.get(key(x, y, z)); if (it && it.t === 'b' && !PIEZAS[it.k].pasa) return true; }
-  return false;
+  const techo = (cx, cz) => { for (let y = Math.floor(jug.pos.y + 1.4); y < ALTO; y++) { const it = celdas.get(key(cx, y, cz)); if (it && it.t === 'b' && !PIEZAS[it.k].pasa) return true; } return false; };
+  if (!techo(x, z)) return false;
+  return techo(x + 1, z) + techo(x - 1, z) + techo(x, z + 1) + techo(x, z - 1) >= 3;
 }
 const jug = { pos: new THREE.Vector3(), vy: 0, dir: 0, suelo: true, joy: new THREE.Vector2(), keys: {}, mov: false, fiesta: 0 };
 const RADIO = .28, ALTO_PJ = 1.3, PASO = 1.05;
+let choque = null, pasoT = 0, alto = false, tablon = null;
 function topeEn(x, z, pie) {
   // altura del piso más alto en (x,z) que se pueda pisar desde "pie"; Infinity si es una pared
   let piso = 0;
@@ -663,6 +897,7 @@ function topeEn(x, z, pie) {
       if (top <= pie + .01) { piso = Math.max(piso, top); continue; }
       if (top - pie <= PASO && jug.suelo) { piso = Math.max(piso, top); continue; }
       if (top - pie <= .2) { piso = Math.max(piso, top); continue; }
+      choque = it;
       return Infinity;
     }
   }
@@ -692,6 +927,7 @@ function volverAConstruir() {
   state.modo = 'construir'; document.body.classList.remove('juego');
   $('#jugar').textContent = '▶ ¡Jugar!';
   if (heroe) heroe.group.visible = false;
+  soltarCosas();
   corte.constant = 999; moverPuertas(1);
   items.forEach(it => { if (vivos.get(it)) vivos.get(it).group.visible = true; });
   cam.target.set(jug.pos.x, 0, jug.pos.z); cam.r = narrow() ? 30 : 24; cam.phi = 1.0; aplicarCamara();
@@ -699,7 +935,7 @@ function volverAConstruir() {
   if (red) red.modo();
 }
 $('#jugar').onclick = () => { J.audio(); J.sfx('pop'); state.modo === 'jugar' ? volverAConstruir() : empezarJuego(); };
-function saltar() { if (state.modo !== 'jugar' || !jug.suelo) return; jug.vy = 7.2; jug.suelo = false; J.efecto('salto'); }
+function saltar() { if (state.modo === 'jugar' && jug.columpio) { jug.saltoPedido = true; return; } if (state.modo !== 'jugar' || !jug.suelo || jug.desliza) return; jug.vy = 7.2; jug.suelo = false; J.efecto('salto'); }
 $('#saltar').addEventListener('pointerdown', e => { e.preventDefault(); saltar(); });
 addEventListener('keydown', e => {
   if (modal.hidden === false || e.target.tagName === 'INPUT') return;
@@ -736,23 +972,63 @@ function pasoJuego(dt, t) {
   const len = Math.hypot(mx, mz);
   jug.mov = len > .15;
   const V = 4.2;
+  jug.cdColumpio = (jug.cdColumpio || 0) - dt; jug.cdDesliza = (jug.cdDesliza || 0) - dt; jug.baile = (jug.baile || 0) - dt;
+  if (jug.columpio) montarColumpio(dt, len);
+  else if (jug.desliza) deslizar(dt);
+  else {
+  if (jug.empuje) {
+    // sale volando un poquito al final del tobogán
+    const e = jug.empuje, ex = jug.pos.x + e.dx * e.v * dt, ez = jug.pos.z + e.dz * e.v * dt;
+    if (topeEn(ex, ez, jug.pos.y) !== Infinity && !fuera(ex, ez)) { jug.pos.x = ex; jug.pos.z = ez; }
+    e.v *= 1 - dt * 2; e.t -= dt; if (e.t <= 0 || jug.suelo) jug.empuje = null;
+  }
   if (jug.mov) {
     if (len > 1) { mx /= len; mz /= len; }
     const nx = jug.pos.x + mx * V * dt, nz = jug.pos.z + mz * V * dt;
+    const y0 = jug.pos.y;
+    choque = null;
     const px = topeEn(nx, jug.pos.z, jug.pos.y); if (px !== Infinity && !fuera(nx, jug.pos.z)) { jug.pos.x = nx; if (jug.suelo && px > jug.pos.y) jug.pos.y = px; }
     const pz = topeEn(jug.pos.x, nz, jug.pos.y); if (pz !== Infinity && !fuera(jug.pos.x, nz)) { jug.pos.z = nz; if (jug.suelo && pz > jug.pos.y) jug.pos.y = pz; }
+    if (choque) interactuarBloque(choque, 'alChocar');
+    // pasitos al subir escalones y rampas
+    pasoT -= dt; if (jug.pos.y > y0 + .2 && pasoT <= 0) { pasoT = .18; J.sfx('tick', .3, 1.1 + jug.pos.y * .05); }
+    // el columpio: si se acerca al asiento, se sienta
+    for (const sw of anim.asientos) if (Math.hypot(sw.it.x - jug.pos.x, sw.it.z - jug.pos.z) < .95 && Math.abs(jug.pos.y - sw.it.y) < 1) sentarse(sw);
     let d = Math.atan2(mx, mz) - jug.dir; d = Math.atan2(Math.sin(d), Math.cos(d));
     jug.dir += d * Math.min(1, dt * 12);
   }
   // gravedad
   const piso = Math.max(0, topeEnPie());
   jug.vy -= 20 * dt; jug.pos.y += jug.vy * dt;
-  if (jug.pos.y <= piso) { if (!jug.suelo && jug.vy < -6) J.sfx('land', .4); jug.pos.y = piso; jug.vy = 0; jug.suelo = true; }
+  if (jug.pos.y <= piso) {
+    if (!jug.suelo && jug.vy < -6) J.sfx('land', .4);
+    if (!jug.suelo && jug.trasTobogan) { jug.trasTobogan = false; if (Math.random() < .5) J.say('¡Otra vez!'); }
+    jug.pos.y = piso; jug.vy = 0; jug.suelo = true;
+  }
   else if (jug.pos.y > piso + .05) jug.suelo = false;
+  // ¿pisó una rampa de techo (tobogán)? se resbala
+  if (jug.suelo && jug.cdDesliza <= 0) {
+    const tb = enCelda(Math.round(jug.pos.x), Math.round(jug.pos.y) - 1, Math.round(jug.pos.z));
+    if (tb && tb.t === 'b' && tb.k === 'techo' && Math.abs(jug.pos.y - (tb.y + 1)) < .05) {
+      const [dx, dz] = bajada(tb.r);
+      jug.desliza = { dx, dz, v: 1.5 }; jug.cdDesliza = .8; jug.trasTobogan = true; J.say('¡Wiii!'); J.sfx('jump', .4, 1.5);
+    }
+  }
+  // puente: los tablones se mecen al cruzar
+  const bajo = jug.suelo ? enCelda(Math.round(jug.pos.x), Math.round(jug.pos.y - .5), Math.round(jug.pos.z)) : null;
+  const tab = bajo && bajo.t === 'b' && bajo.k === 'medio' && bajo.y >= 1 && bajo.c === 'madera' && !sueltos.has(bajo) ? bajo : null;
+  if (tablon && tablon !== tab) moverInstancia(tablon, 0, 0, 0);
+  tablon = tab;
+  if (tab) { const k = Math.abs(Math.sin(t * 9)) * -.06 * (jug.mov ? 1 : .3); moverInstancia(tab, 0, k, 0); jug.pos.y += k; if (jug.mov && pasoT <= 0) { pasoT = .3; J.sfx('tick', .2, .6); } }
+  // en lo más alto de la torre
+  if (jug.suelo && jug.pos.y >= 5.5 && !alto) { alto = true; J.say('¡Qué alto!'); fx.burst(tmpB.set(jug.pos.x, jug.pos.y + 1.5, jug.pos.z), 24, .6); jcam.r = Math.max(jcam.r, 13); }
+  if (jug.pos.y < 3) alto = false;
+  }
   // techo
   heroe.group.position.copy(jug.pos); heroe.group.rotation.y = jug.dir;
   jug.fiesta -= dt;
-  heroe.update(dt, jug.fiesta > 0 ? 'festejar' : !jug.suelo ? 'festejar' : jug.mov ? 'correr' : 'quieto', .9);
+  jug.modoAnim = jug.desliza ? 'festejar' : jug.columpio ? 'quieto' : jug.baile > 0 ? 'bailar' : null;
+  heroe.update(dt, jug.modoAnim || (jug.fiesta > 0 ? 'festejar' : !jug.suelo ? 'festejar' : jug.mov ? 'correr' : 'quieto'), .9);
   // estrellitas y meta
   for (const it of items) {
     const v = vivos.get(it); if (!v || !v.group.visible) continue;
@@ -815,14 +1091,32 @@ function topeEnPie() {
 // ---------- bucle ----------
 W.onFrame((dt, t) => {
   (scene.userData.nubes || []).forEach(n => { n.position.x += n.userData.v * dt; if (n.position.x > 50) n.position.x = -50; });
+  let nSigue = 0;
   for (const [it, v] of vivos) {
+    if (it.t !== 'p' && it.t !== 'o') { v.update(dt, false); continue; }
+    const jugando = state.modo === 'jugar', s = vidaDe(it), g = v.group;
+    const d = Math.hypot(g.position.x - jug.pos.x, g.position.z - jug.pos.z);
+    const cerca = jugando && d < (it.t === 'p' ? 2.5 : 1.8);
+    s.cd -= dt; s.salto = Math.max(0, s.salto - dt); s.baile -= dt;
+    // al acercarse: los animalitos saltan y dicen su nombre
+    if (cerca && !s.cerca && it.t === 'o') { s.salto = .8; if (s.cd <= 0) { s.cd = 8; J.say(it.w); } }
+    s.cerca = cerca;
+    let corre = false;
+    if (jugando && s.sigue) {
+      // la sigue un poquito atrás (cada uno en su lugar)
+      const k = nSigue++, ang = jug.dir + Math.PI + (k % 2 ? 1 : -1) * (.5 + .3 * Math.floor(k / 2));
+      tmpV.set(jug.pos.x + Math.sin(ang) * 1.4, jug.pos.y, jug.pos.z + Math.cos(ang) * 1.4);
+      const dx = tmpV.x - g.position.x, dz = tmpV.z - g.position.z, dist = Math.hypot(dx, dz);
+      if (dist > .15) { const pasoS = Math.min(dist, 4.6 * dt); g.position.x += dx / dist * pasoS; g.position.z += dz / dist * pasoS; g.rotation.y = Math.atan2(dx, dz); corre = dist > .3; }
+      s.y += (jug.pos.y - s.y) * Math.min(1, dt * 6);
+    } else if (!jugando) { g.position.set(it.x, it.y, it.z); s.y = it.y; }
+    g.position.y = s.y + (s.salto > 0 ? Math.abs(Math.sin(s.salto * Math.PI * 2.5)) * .45 : 0);
     if (it.t === 'p') {
-      const cerca = state.modo === 'jugar' && Math.hypot(it.x - jug.pos.x, it.z - jug.pos.z) < 2.5;
-      v.update(dt, cerca ? 'saludar' : 'quieto');
-      if (cerca) v.group.rotation.y = Math.atan2(jug.pos.x - it.x, jug.pos.z - it.z);
-      else v.group.rotation.y = -(it.r || 0) * Math.PI / 2;
-    } else v.update(dt, state.modo === 'jugar' && Math.hypot(it.x - jug.pos.x, it.z - jug.pos.z) < 2);
+      v.update(dt, s.baile > 0 ? 'bailar' : corre ? 'correr' : cerca ? 'saludar' : 'quieto');
+      if (!s.sigue) g.rotation.y = cerca ? Math.atan2(jug.pos.x - g.position.x, jug.pos.z - g.position.z) : -(it.r || 0) * Math.PI / 2;
+    } else v.update(dt, cerca || corre || s.salto > 0);
   }
+  moverPiezas(dt, t);
   if (state.modo === 'jugar' && heroe) pasoJuego(dt, t);
   else { sun.position.set(cam.target.x + 8, 20, cam.target.z + 10); sun.target.position.copy(cam.target); moverPuertas(dt); }
   if (red) red.frame(dt);
@@ -856,5 +1150,6 @@ addEventListener('resize', () => { if (state.modo === 'construir') aplicarCamara
     state, get items() { return items; }, poner, ponerArmado, borrar, pintar, girar, deshacer, empezarJuego, volverAConstruir, jug, celdas, key,
     elegir, guardar(nombre) { const m = leerMundos(); m[nombre] = items; escribirMundos(m); }, abrir(nombre) { const m = leerMundos(); items = (m[nombre] || []).map(x => ({ ...x })); vivos.forEach(v => grupoCosas.remove(v.group)); vivos.clear(); redibujar(); },
     limpiar() { items = []; redibujar(); }, listo: () => sincronizando,
+    anim, tocar: it => (it.t === 'b' ? interactuarBloque(it, 'alTocar') : tocarCosa(it)), vidaDe, sentarse,
   };
 })();

@@ -261,7 +261,8 @@ body:not(.juego) .red-saludos { bottom: calc(env(safe-area-inset-bottom, 0px) + 
   function enviarPos(forzar = false) {
     if (!red.activo) return;
     const jugando = juego.state.modo === 'jugar', j = juego.jug;
-    const modo = !jugando ? 'construir' : j.fiesta > 0 || !j.suelo ? 'festejar' : j.mov ? 'correr' : 'quieto';
+    // modoAnim: deslizándose por el tobogán, en el columpio o bailando (lo pone construir.js)
+    const modo = !jugando ? 'construir' : j.modoAnim || (j.fiesta > 0 || !j.suelo ? 'festejar' : j.mov ? 'correr' : 'quieto');
     const m = { t: 'pos', x: +j.pos.x.toFixed(2), y: +j.pos.y.toFixed(2), z: +j.pos.z.toFixed(2), dir: +j.dir.toFixed(2), modo };
     const s = JSON.stringify(m), ahora = performance.now();
     if (!forzar && (ahora - red.ultimoPos < 100 || (s === red.ultimoEnvio && ahora - red.ultimoPos < 1500))) return;
