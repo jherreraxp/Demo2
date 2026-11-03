@@ -8,7 +8,7 @@
 
   window.CUADERNO = {
     semanas: [
-      { n: 1, titulo: 'Jugamos con las palabras', emoji: '🗣️', color: '#4f7cff', meta: ['Darse cuenta de que lo que decimos está hecho de palabras.', 'Contar las palabras de una oración con golpecitos.', 'Comparar palabras largas y cortas.', 'Ordenar y completar oraciones de oído.'] },
+      { n: 1, titulo: 'Jugamos con las palabras', emoji: '🗣️', color: '#4f7cff', meta: ['Darse cuenta de que lo que decimos está hecho de palabras.', 'Contar las palabras de una oración subiendo cada una a un vagón del trencito.', 'Comparar palabras largas y cortas.', 'Ordenar y completar oraciones de oído.'] },
       { n: 2, titulo: 'Jugamos con las rimas', emoji: '🎵', color: '#e8528b', meta: ['Escuchar que dos palabras terminan igual.', 'Encontrar la pareja que rima.', 'Descubrir la palabra que no rima.', 'Inventar rimas, aunque sean palabras inventadas.'] },
       { n: 3, titulo: 'Jugamos con las sílabas', emoji: '👏', color: '#2fbf86', meta: ['Separar palabras en pedacitos con palmadas.', 'Reconocer con qué sílaba empieza una palabra.', 'Juntar sílabas para formar una palabra.', 'Jugar con los nombres de la familia.'] },
       { n: 4, titulo: 'Sílabas y sonidos', emoji: '🔊', color: '#8b5cf6', meta: ['Encontrar la sílaba que falta y quitar una sílaba.', 'Escuchar el primer sonido: «aaaa» de {yo}.', 'Reconocer la vocal con la que empieza una palabra.', 'Reconocer de vista palabras que ya conoce.'] },
@@ -16,9 +16,9 @@
 
     // ---------- los 20 días ----------
     dias: [
-      S(1, 1, { id: 'golpecito', titulo: 'Un golpecito por palabra', emoji: '👆', tipo: 'golpecito',
-        consigna: 'Escucha la oración. Da un golpecito por cada palabra.',
-        lupe: 'Lee la oración normal; luego repítela palabra por palabra dando tú el golpecito. Después ella sola.',
+      S(1, 1, { id: 'golpecito', titulo: 'Una palabra en cada vagón', emoji: '🚃', tipo: 'golpecito',
+        consigna: 'Escucha la oración. Sube cada palabra a un vagón del trencito.',
+        lupe: 'Lee la oración normal; luego repítela palabra por palabra poniendo un bloque o un frejol en la mesa por cada palabra. Las palmadas guárdalas para las sílabas, así no se confunde.',
         items: [
           { frase: ['{yo}', 'come', 'pan'], dib: ['{yo}', '🍽️', '🍞'] },
           { frase: ['{hermana}', 'duerme'], dib: ['{hermana}', '😴'] },

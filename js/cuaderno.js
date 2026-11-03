@@ -138,17 +138,26 @@
   const fila = frase => frase.map(p => `<span class="pal">${J.esc(W(p))}</span>`).join(' ');
   let oirActual = () => {};
   const TIPOS = {
-    // un golpecito por palabra: cada toque dice la palabra que sigue y pinta un cuadrito
+    // un vagón por palabra: cada toque sube la palabra que sigue a un vagón del trencito
+    // (las palmadas quedan solo para las sílabas, así no se confunden)
     golpecito(it, el) {
       let n = 0;
+      const vagones = () => `<div class="tren-pal" aria-label="Trencito de palabras">${it.frase.map((p, k) => k < n
+        ? `<span class="vagon lleno" style="--c:${['#ff7eb6', '#ffb347', '#7fd3ff', '#9be37a', '#c9a2ff'][k % 5]}"><b>${J.esc(W(p))}</b><i></i><i></i></span>`
+        : `<span class="vagon vacio"><b>?</b><i></i><i></i></span>`).join('')}<span class="loco">🚂</span></div>`;
       const pintar = () => {
         el.innerHTML = `<div class="dibus">${it.dib.map(d => `<span class="d">${dib(d)}</span>`).join('')}</div>
           <p class="frase">${it.frase.map((p, k) => `<span class="pal ${k < n ? 'on' : ''}">${J.esc(W(p))}</span>`).join(' ')}</p>
-          ${cuadritos(5, n)}<button class="tambor" id="tambor" aria-label="Dar un golpecito">👆<small>¡Golpecito!</small></button>`;
-        $('#tambor').onclick = () => {
+          ${vagones()}<button class="tambor" id="tambor" aria-label="Subir la palabra al vagón">🚃<small>¡Sube la palabra!</small></button>`;
+        $('#tambor').onclick = async () => {
           if (n >= it.frase.length) return;
           J.sfx('pop', .8, 1 + n * .1); decir([it.frase[n]]); n++; pintar();
-          if (n === it.frase.length) bien([...it.frase]);
+          if (n === it.frase.length) {
+            // el trencito se va con todas las palabras
+            const t = el.querySelector('.tren-pal'); await esperar(500);
+            J.tones([523, 659, 784], .12, 'triangle', .1); t && t.classList.add('sale');
+            await esperar(900); bien([...it.frase]);
+          }
         };
       };
       pintar(); oirActual = () => decir(it.frase); oirActual();
