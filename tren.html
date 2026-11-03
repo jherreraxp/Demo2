@@ -44,6 +44,20 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
 .vagon::before, .vagon::after { border-top-color: #fff !important; }
 .tren.feliz .vagon::before, .tren.feliz .vagon::after { animation: rueda .35s linear infinite; }
 @keyframes rueda { to { transform: rotate(-360deg); } }
+/* viaje: el paisaje corre hacia atrás, sale humo de verdad y el tren arranca hacia adelante */
+body.viaje .via { animation: via-corre .35s linear infinite; }
+@keyframes via-corre { to { background-position: 34px 0, 0 10px; } }
+body.viaje .nubes span { animation-duration: 6s; }
+.pasto { position: fixed; left: 0; right: 0; top: calc(52% + 30px); height: 40px; pointer-events: none; background: radial-gradient(circle at 10px 20px, #5fae3f 6px, transparent 7px) 0 0 / 90px 40px, radial-gradient(circle at 50px 14px, #f7d046 5px, transparent 6px) 0 0 / 130px 40px, radial-gradient(circle at 30px 26px, #ff8fb8 5px, transparent 6px) 0 0 / 170px 40px; opacity: .9; }
+body.viaje .pasto { animation: pasto-corre .5s linear infinite; }
+@keyframes pasto-corre { to { background-position: 90px 0, 130px 0, 170px 0; } }
+.bola-humo { position: fixed; z-index: 5; pointer-events: none; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #e9eef5 55%, rgba(210,218,230,.85)); box-shadow: inset -6px -8px 0 rgba(180,190,205,.35); animation: bola-humo 1.8s ease-out forwards; }
+@keyframes bola-humo { from { opacity: .95; transform: translate(-50%, 0) scale(.35); } to { opacity: 0; transform: translate(calc(-50% + 160px), -110px) scale(1.5); } }
+.rayas { position: fixed; z-index: 2; pointer-events: none; height: 6px; border-radius: 6px; background: rgba(255,255,255,.9); animation: raya .5s linear forwards; }
+@keyframes raya { from { opacity: .9; transform: translateX(0) scaleX(.4); } to { opacity: 0; transform: translateX(160px) scaleX(1); } }
+.globo-chu { position: fixed; z-index: 6; background: #fff; border-radius: 20px; padding: 6px 14px; font: 800 clamp(20px, 4vw, 30px) var(--font-display, sans-serif); color: #e8473c; box-shadow: 0 4px 0 rgba(0,0,0,.15); animation: globo-chu 1.2s ease-out forwards; pointer-events: none; }
+@keyframes globo-chu { from { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } to { opacity: 0; transform: translate(-50%, -40px) scale(1); } }
+@media (prefers-reduced-motion: reduce) { body.viaje .via, body.viaje .pasto { animation: none; } .bola-humo, .rayas { display: none; } }
 .humo { position: fixed; z-index: 5; font-size: 34px; pointer-events: none; animation: humo 1.6s ease-out forwards; }
 @keyframes humo { from { opacity: 1; transform: translate(-50%, 0) scale(.5); } to { opacity: 0; transform: translate(calc(-50% + 60px), -140px) scale(1.4) rotate(20deg); } }
 .vagon { position: relative; width: clamp(84px, 17vw, 122px); height: 92px; border-radius: 14px 14px 8px 8px; background: var(--c, #ef5b5b); box-shadow: inset 0 -10px 0 rgba(0,0,0,.15); display: grid; place-items: center; margin-bottom: 14px; }
@@ -78,6 +92,7 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
 </div>
 <div class="figura" id="figura" hidden><span class="emo" id="emo"></span><button id="decir" aria-label="Escuchar otra vez">🔊</button></div>
 <div class="via" aria-hidden="true"></div>
+<div class="pasto" aria-hidden="true"></div>
 <div class="tren" id="tren" aria-label="Tren"></div>
 <div class="opciones" id="opciones" aria-label="Sílabas"></div>
 <div class="metas" id="metas" style="top:auto;bottom:140px"></div>
@@ -168,6 +183,31 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
     h.style.left = (r.left + r.width * .25) + 'px'; h.style.top = (r.top - 10) + 'px';
     document.body.appendChild(h); setTimeout(() => h.remove(), 1700);
   }
+  // humo de verdad: bolitas blancas que salen de la chimenea y se quedan atrás
+  function bocanada() {
+    const l = $('#tren .loco'); if (!l) return;
+    const r = l.getBoundingClientRect(), t = 26 + Math.random() * 40;
+    const b = document.createElement('span'); b.className = 'bola-humo';
+    b.style.width = b.style.height = t + 'px';
+    b.style.left = (r.left + r.width * .3 + (Math.random() - .5) * 10) + 'px'; b.style.top = (r.top - t * .3) + 'px';
+    document.body.appendChild(b); setTimeout(() => b.remove(), 1900);
+  }
+  // rayitas de velocidad detrás del último vagón
+  function rayas() {
+    const t = $('#tren'); if (!t) return;
+    const r = t.getBoundingClientRect();
+    for (let k = 0; k < 3; k++) {
+      const s = document.createElement('span'); s.className = 'rayas';
+      s.style.left = (r.right + 6) + 'px'; s.style.top = (r.top + r.height * (.25 + k * .25)) + 'px'; s.style.width = (40 + Math.random() * 50) + 'px';
+      document.body.appendChild(s); setTimeout(() => s.remove(), 550);
+    }
+  }
+  function globoChu() {
+    const l = $('#tren .loco'); if (!l) return;
+    const r = l.getBoundingClientRect(), g = document.createElement('span');
+    g.className = 'globo-chu'; g.textContent = '¡Chu-chu!'; g.style.left = (r.left + r.width / 2) + 'px'; g.style.top = (r.top - 70) + 'px';
+    document.body.appendChild(g); setTimeout(() => g.remove(), 1300);
+  }
   function completa() {
     state.jugando = false;
     state.hechas++;
@@ -180,10 +220,16 @@ body { background: linear-gradient(#8fd3ff, #d9f2ff 55%, #9ad86e 55%, #7cc456); 
       J.efecto('acierto'); J.confetti(70);
       message('¡' + state.w[0] + '!');
       J.say([state.w[0], J.pick(J.PRAISES)]);
-      const hum = setInterval(humo, 220);
+      // 1) el tren se pone feliz y echa humo; el paisaje empieza a correr (¡ya va avanzando!)
+      const hum = setInterval(humo, 380), bol = setInterval(bocanada, 110);
+      document.body.classList.add('viaje'); globoChu(); chuchu();
+      let chuf = 0; const ritmo = setInterval(() => { J.tones([110 + (chuf++ % 2) * 20], .08, 'square', .035); }, 260);
       setTimeout(() => {
-        chuchu();
+        // 2) arranca de verdad hacia adelante, con rayitas de velocidad
+        chuchu(); globoChu();
+        const ray = setInterval(rayas, 140);
         tren.classList.add('sale');
+        setTimeout(() => { clearInterval(ray); clearInterval(bol); clearInterval(ritmo); document.body.classList.remove('viaje'); }, 2400);
         $('#opciones').innerHTML = '';
         setTimeout(() => {
           clearInterval(hum);
