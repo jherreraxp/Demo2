@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de tiempo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Andika:wght@700&display=swap">
+<style>
+/* Panel de mamá y papá: tarjetas grandes, botones de un dedo, todo cambia al tocar (se guarda solo). */
+:root {
+  --bg: #f3f0fb; --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #e4def3;
+  --accent: #6b4fd8; --accent-soft: #efe8fb; --ok: #2f8a58; --warn: #c0392b; --pink: #ff7eb6;
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; }
+main { max-width: 760px; margin: 0 auto; padding: 12px 16px 70px; display: flex; flex-direction: column; gap: 14px; }
+h1 { font-family: var(--font-display); font-size: 30px; margin: 0; line-height: 1.1; }
+h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top a { text-decoration: none; font-size: 22px; background: var(--card); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.08); flex: none; }
+.card { background: var(--card); border-radius: 20px; padding: 16px; box-shadow: 0 2px 10px rgba(35,50,74,.07); }
+.card > p.ayuda { margin: -2px 0 10px; color: var(--muted); line-height: 1.45; }
+button { font: inherit; cursor: pointer; border: 2px solid var(--line); background: #fff; color: var(--ink); border-radius: 14px; padding: 10px 14px; min-height: 48px; font-weight: 700; }
+button.si { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.rojo { color: var(--warn); border-color: #f3c7c2; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ninos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.ninos button { border-radius: 999px; flex: none; }
+.ninos button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+/* hoy */
+.hoy { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.anillo { width: 150px; height: 150px; position: relative; }
+.anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.anillo .centro { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.anillo b { font-family: var(--font-display); font-size: 34px; line-height: 1; }
+.anillo small { color: var(--muted); font-weight: 600; }
+.estado { font-family: var(--font-display); font-size: 20px; font-weight: 800; margin: 0 0 4px; }
+.estado-sub { color: var(--muted); margin: 0 0 10px; }
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* reglas */
+.regla { padding-block: 12px; border-top: 1px solid var(--line); }
+.regla:first-of-type { border-top: 0; padding-top: 2px; }
+.regla-t { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.regla-t b { font-size: 17px; }
+.regla-t span { color: var(--muted); font-size: 14px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { min-width: 64px; border-radius: 999px; padding: 8px 12px; min-height: 44px; }
+.chips button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.presets button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; }
+.presets button span { font-size: 28px; line-height: 1; }
+.presets button small { color: var(--muted); font-weight: 600; font-size: 12px; }
+/* interruptor */
+.sw { position: relative; width: 62px; height: 36px; flex: none; }
+.sw input { opacity: 0; width: 100%; height: 100%; position: absolute; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw i { position: absolute; inset: 0; border-radius: 999px; background: #d9d3ea; transition: background .2s; }
+.sw i::after { content: ''; position: absolute; left: 4px; top: 4px; width: 28px; height: 28px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: transform .2s; }
+.sw input:checked + i { background: var(--ok); }
+.sw input:checked + i::after { transform: translateX(26px); }
+.sw input:focus-visible + i { outline: 3px solid var(--accent); outline-offset: 2px; }
+.horas { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 8px; align-items: center; margin-top: 6px; }
+.horas label { color: var(--muted); font-size: 14px; font-weight: 600; }
+input[type=time] { font: inherit; font-size: 18px; padding: 8px; border: 2px solid var(--line); border-radius: 12px; width: 100%; min-height: 46px; color: var(--ink); background: #fff; }
+.horas-t { grid-column: 1 / -1; font-weight: 700; margin-top: 4px; }
+/* semana y juegos */
+.barras svg { width: 100%; height: auto; display: block; }
+.juegos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.juegos li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; }
+.juegos .e { font-size: 24px; text-align: center; }
+.juegos .barra { height: 10px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; margin-top: 3px; }
+.juegos .barra i { display: block; height: 100%; background: var(--pink); border-radius: 999px; }
+.juegos b { font-weight: 700; }
+.juegos small { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.vacio { color: var(--muted); }
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 8px 18px; font-weight: 700; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; }
+#toast.ver { opacity: 1; }
+@media (max-width: 520px) {
+  .hoy { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .acciones { width: 100%; }
+  .horas { grid-template-columns: auto 1fr; }
+  .presets button small { font-size: 11px; }
+}
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+<script src="js/juegos.js"></script>
+</head>
+<body>
+<main id="app" hidden>
+  <div class="top"><a href="admin.html" aria-label="Volver al modo admin">⚙️</a><a href="index.html" aria-label="Volver al juego">🏠</a><h1>⏰ Control de tiempo</h1></div>
+
+  <section class="card" aria-labelledby="t-hoy">
+    <h2 id="t-hoy">📅 Hoy</h2>
+    <div class="ninos" id="ninos-hoy" role="tablist" aria-label="Niño"></div>
+    <div class="hoy" style="margin-top:12px">
+      <div class="anillo" id="anillo"></div>
+      <div>
+        <p class="estado" id="estado"></p>
+        <p class="estado-sub" id="estado-sub"></p>
+        <div class="acciones">
+          <button class="si" id="mas10">➕ 10 minutos hoy</button>
+          <button id="desbloquear">🔓 Desbloquear</button>
+          <button id="bloquear">🔒 Bloquear ahora</button>
+          <button class="rojo" id="reiniciar">↺ Reiniciar hoy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="t-reglas">
+    <h2 id="t-reglas">🧭 Reglas</h2>
+    <p class="ayuda">Todo se guarda al tocar. Desbloquear o dar más tiempo siempre pide el PIN.</p>
+    <div class="regla"><div class="regla-t"><div><b>Control de tiempo encendido</b><br><span>Apágalo para jugar sin límites.</span></div><label class="sw"><input type="checkbox" id="activo" aria-label="Control de tiempo encendido"><i></i></label></div></div>
+    <div class="regla"><div class="regla-t"><div><b>Reglas para cada niño</b><br><span id="pornino-sub">Las mismas reglas para todos.</span></div><label class="sw"><input type="checkbox" id="pornino" aria-label="Reglas para cada niño"><i></i></label></div>
+      <div class="ninos" id="ninos-reglas" hidden></div></div>
+    <div class="regla"><div class="regla-t"><b>Rápido</b><span>elige uno y listo</span></div>
+      <div class="presets" id="presets"></div></div>
+    <div class="regla"><div class="regla-t"><b>Juego seguido</b><span>después viene un descanso</span></div><div class="chips" id="c-sesion"></div></div>
+    <div class="regla"><div class="regla-t"><b>Descanso</b><span>pantalla tranquila con reloj</span></div><div class="chips" id="c-descanso"></div></div>
+    <div class="regla"><div class="regla-t"><b>Total por día</b><span>sumando todas las sesiones</span></div><div class="chips" id="c-diario"></div></div>
+    <div class="regla"><div class="regla-t"><div><b>Horario permitido</b><br><span>fuera de estas horas no se juega</span></div><label class="sw"><input type="checkbox" id="horario" aria-label="Horario permitido"><i></i></label></div>
+      <div class="horas" id="horas" hidden>
+        <span class="horas-t">Lunes a viernes</span>
+        <label for="h-sa">desde</label><input type="time" id="h-sa"><label for="h-sb">hasta</label><input type="time" id="h-sb">
+        <span class="horas-t">Sábado y domingo</span>
+        <label for="h-fa">desde</label><input type="time" id="h-fa"><label for="h-fb">hasta</label><input type="time" id="h-fb">
+      </div></div>
+    <div class="regla"><div class="regla-t"><div><b>Hora de dormir 🌙</b><br><span>pantalla de buenas noches con canción de cuna</span></div><label class="sw"><input type="checkbox" id="dormir" aria-label="Hora de dormir"><i></i></label></div>
+      <div class="horas" id="dormir-horas" hidden>
+        <label for="d-a">a las</label><input type="time" id="d-a"><label for="d-b">hasta</label><input type="time" id="d-b">
+      </div></div>
+  </section>
+
+  <section class="card barras" aria-labelledby="t-semana">
+    <h2 id="t-semana">📊 Últimos 7 días</h2>
+    <div id="barras"></div>
+  </section>
+
+  <section class="card" aria-labelledby="t-juegos">
+    <h2 id="t-juegos">🎮 Juegos más usados (7 días)</h2>
+    <ul class="juegos" id="juegos"></ul>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+(async () => {
+  const J = window.Juego, P = J.progress, T = window.Tiempo, $ = s => document.querySelector(s);
+  await new Promise(ok => J.pedirPin(ok));
+  $('#app').hidden = false;
+  const toast = t => { const el = $('#toast'); el.textContent = t; el.classList.add('ver'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('ver'), 1400); };
+  const ninos = () => P.players.slice(0, P.two ? 2 : Math.max(1, P.players.length)).map(p => p.name).filter((n, i, a) => n && a.indexOf(n) === i);
+  let verNino = ninos()[0], reglasDe = ninos()[0];
+  const fmt = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? (m % 60) + ' min' : ''}` : `${m} min`; };
+
+  // ---------- reglas (generales o del niño elegido) ----------
+  const general = () => T.cfgGeneral();
+  function destino() {
+    const g = general();
+    if (!g.porNino) return g;
+    g.ninos[reglasDe] = g.ninos[reglasDe] || {};
+    return g.ninos[reglasDe];
+  }
+  const valor = k => { const g = general(); return g.porNino && g.ninos[reglasDe] && g.ninos[reglasDe][k] !== undefined ? g.ninos[reglasDe][k] : g[k]; };
+  function poner(k, v) { destino()[k] = v; T.guardar(); toast('Guardado ✓'); pintar(); }
+  function chips(id, k, opciones, unidad = 'min') {
+    $(id).innerHTML = opciones.map(o => `<button data-v="${o}" class="${valor(k) === o ? 'on' : ''}" aria-pressed="${valor(k) === o}">${o ? o + ' ' + unidad : 'Sin límite'}</button>`).join('');
+    $(id).onclick = e => { const b = e.target.closest('[data-v]'); if (b) poner(k, +b.dataset.v); };
+  }
+  function pintarReglas() {
+    const g = general();
+    $('#activo').checked = !!g.activo;
+    $('#pornino').checked = !!g.porNino;
+    $('#pornino-sub').textContent = g.porNino ? `Estás cambiando las reglas de ${reglasDe}.` : 'Las mismas reglas para todos.';
+    $('#ninos-reglas').hidden = !g.porNino;
+    $('#ninos-reglas').innerHTML = ninos().map(n => `<button data-n="${J.esc(n)}" class="${n === reglasDe ? 'on' : ''}">${J.esc(n)}</button>`).join('');
+    $('#presets').innerHTML = Object.entries(T.PRESETS).map(([k, p]) => `<button data-p="${k}"><span>${p.emoji}</span>${p.nombre}<small>${p.sesion} min · descanso ${p.descanso} · ${p.diario}/día</small></button>`).join('');
+    chips('#c-sesion', 'sesion', [10, 15, 20, 30, 45, 60, 0]);
+    chips('#c-descanso', 'descanso', [5, 10, 15, 30]);
+    chips('#c-diario', 'diario', [30, 45, 60, 90, 120, 0]);
+    const h = valor('horario'), d = valor('dormir');
+    $('#horario').checked = !!h.on; $('#horas').hidden = !h.on;
+    $('#h-sa').value = h.semana[0]; $('#h-sb').value = h.semana[1]; $('#h-fa').value = h.finde[0]; $('#h-fb').value = h.finde[1];
+    $('#dormir').checked = !!d.on; $('#dormir-horas').hidden = !d.on;
+    $('#d-a').value = d.hora; $('#d-b').value = d.hasta;
+  }
+  $('#activo').onchange = e => { general().activo = e.target.checked; T.guardar(); toast(e.target.checked ? 'Control encendido' : 'Control apagado'); pintar(); };
+  $('#pornino').onchange = e => { general().porNino = e.target.checked; T.guardar(); pintar(); };
+  $('#ninos-reglas').onclick = e => { const b = e.target.closest('[data-n]'); if (b) { reglasDe = b.dataset.n; pintar(); } };
+  $('#presets').onclick = e => {
+    const b = e.target.closest('[data-p]'); if (!b) return;
+    const p = T.PRESETS[b.dataset.p], dst = destino();
+    dst.sesion = p.sesion; dst.descanso = p.descanso; dst.diario = p.diario; general().activo = true;
+    T.guardar(); toast(`${p.emoji} ${p.nombre} ✓`); pintar();
+  };
+  const copiaDe = k => JSON.parse(JSON.stringify(valor(k)));
+  $('#horario').onchange = e => { const h = copiaDe('horario'); h.on = e.target.checked; poner('horario', h); };
+  [['#h-sa', 'semana', 0], ['#h-sb', 'semana', 1], ['#h-fa', 'finde', 0], ['#h-fb', 'finde', 1]].forEach(([id, k, i]) => {
+    $(id).onchange = e => { if (!e.target.value) return; const h = copiaDe('horario'); h[k][i] = e.target.value; poner('horario', h); };
+  });
+  $('#dormir').onchange = e => { const d = copiaDe('dormir'); d.on = e.target.checked; poner('dormir', d); };
+  $('#d-a').onchange = e => { if (!e.target.value) return; const d = copiaDe('dormir'); d.hora = e.target.value; poner('dormir', d); };
+  $('#d-b').onchange = e => { if (!e.target.value) return; const d = copiaDe('dormir'); d.hasta = e.target.value; poner('dormir', d); };
+
+  // ---------- hoy ----------
+  function pintarHoy() {
+    $('#ninos-hoy').innerHTML = ninos().map(n => `<button role="tab" aria-selected="${n === verNino}" data-n="${J.esc(n)}" class="${n === verNino ? 'on' : ''}">${J.esc(n)}</button>`).join('');
+    const c = T.cfg(verNino), usado = T.usadoHoy(verNino), extra = T.leer().extra[verNino] || 0, tope = c.diario ? c.diario + extra : 0;
+    const frac = tope ? Math.min(1, usado / tope) : Math.min(1, usado / 120);
+    const R = 64, L = 2 * Math.PI * R, color = !tope ? '#6b4fd8' : frac >= 1 ? '#c0392b' : frac > .8 ? '#f39a3b' : '#2f8a58';
+    $('#anillo').innerHTML = `<svg viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="${R}" fill="none" stroke="#efe8fb" stroke-width="14"/><circle cx="75" cy="75" r="${R}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(L * frac).toFixed(1)} ${L.toFixed(1)}"/></svg>
+      <div class="centro"><b>${Math.round(usado)}</b><small>${tope ? `de ${tope} min` : 'min hoy'}</small></div>`;
+    $('#anillo').setAttribute('aria-label', `${verNino} jugó ${Math.round(usado)} minutos hoy${tope ? ` de ${tope}` : ''}`);
+    // estado como lo vería la niña
+    const antes = P.turn, idx = P.players.findIndex(p => p.name === verNino);
+    if (idx >= 0 && P.two) P.turn = idx;
+    const r = idx === 0 || P.two ? T.razon() : null; P.turn = antes;
+    const textos = { descanso: '🧘‍♀️ En descanso', diario: '🌈 Terminó el tiempo de hoy', horario: '🕰️ Fuera del horario', dormir: '🌙 Hora de dormir', bloqueado: '🔒 Bloqueado por papá o mamá' };
+    $('#estado').textContent = !c.activo ? '♾️ Sin límites' : r ? textos[r.tipo] : '✅ Puede jugar';
+    const e = T.leer(), ses = e.sesion[verNino] || 0;
+    $('#estado-sub').textContent = !c.activo ? 'El control de tiempo está apagado.'
+      : r && r.tipo === 'descanso' ? `Vuelve a jugar en ${Math.max(1, Math.ceil((r.hasta - Date.now()) / 60000))} min.`
+      : `Sesión: ${Math.round(ses)} de ${c.sesion || '∞'} min${extra ? ` · +${extra} min extra hoy` : ''}`;
+  }
+  $('#ninos-hoy').onclick = e => { const b = e.target.closest('[data-n]'); if (b) { verNino = b.dataset.n; pintar(); } };
+  // las acciones valen para la niña que está jugando en este aparato
+  const conNino = fn => { const antes = P.turn, idx = P.players.findIndex(p => p.name === verNino); if (idx >= 0 && P.two) P.turn = idx; try { fn(); } finally { P.turn = antes; } };
+  $('#mas10').onclick = () => { conNino(() => T.extra(10)); toast(`+10 minutos para ${verNino}`); pintar(); };
+  $('#desbloquear').onclick = () => { conNino(() => T.desbloquear(30)); toast('Desbloqueado por 30 min'); pintar(); };
+  $('#bloquear').onclick = () => { T.bloquear(); toast('Bloqueado 🔒'); pintar(); };
+  let borrarOk = 0;
+  $('#reiniciar').onclick = () => {
+    if (Date.now() - borrarOk > 3000) { borrarOk = Date.now(); toast('Toca otra vez para reiniciar hoy'); return; }
+    T.reiniciarHoy(); toast('Hoy empieza de cero'); pintar();
+  };
+
+  // ---------- semana ----------
+  const nombreJuego = id => {
+    const j = (window.JUEGOS || []).find(x => x.url.replace(/\?.*$/, '').replace('.html', '') === id);
+    const e = j && !/^pj:/.test(j.emoji) && j.emoji.length <= 4 ? j.emoji : id === 'index' ? '🏠' : '🎮';
+    return { nombre: j ? j.titulo : id === 'index' ? 'Menú' : id, emoji: e };
+  };
+  function dias7() {
+    const out = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); out.push({ key: T.hoyKey(d), d }); }
+    return out;
+  }
+  function pintarSemana() {
+    const ds = dias7(), uso = P.uso || {}, DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const val = ds.map(x => (uso[x.key] && uso[x.key].ninos[verNino]) || 0);
+    const c = T.cfg(verNino), max = Math.max(30, c.diario || 0, ...val) * 1.15;
+    const W = Math.max(300, Math.round($('#barras').clientWidth || 700)), H = 190, b = 26, ancho = (W - 20) / 7;
+    const y = v => H - b - (v / max) * (H - b - 22);
+    const barras = val.map((v, i) => { const x = 10 + i * ancho + ancho * .18, w = ancho * .64, top = y(v);
+      return `<rect x="${x}" y="${top}" width="${w}" height="${Math.max(0, H - b - top)}" rx="8" fill="${i === 6 ? '#6b4fd8' : '#c9b6ff'}"><title>${Math.round(v)} min</title></rect>
+      <text x="${x + w / 2}" y="${Math.max(16, top - 6)}" text-anchor="middle" font-size="16" font-weight="700" fill="#23324a">${v ? Math.round(v) : ''}</text>
+      <text x="${x + w / 2}" y="${H - 6}" text-anchor="middle" font-size="15" fill="#5b6b82">${i === 6 ? 'hoy' : DIAS[ds[i].d.getDay()]}</text>`; }).join('');
+    const linea = c.diario ? `<line x1="10" x2="${W - 10}" y1="${y(c.diario)}" y2="${y(c.diario)}" stroke="#ff7eb6" stroke-width="2" stroke-dasharray="6 6"/><text x="${W - 12}" y="${y(c.diario) - 6}" text-anchor="end" font-size="14" fill="#c2185b">límite ${c.diario} min</text>` : '';
+    $('#barras').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Minutos de juego de ${J.esc(verNino)} en los últimos 7 días: ${val.map(Math.round).join(', ')}">${linea}${barras}</svg>`;
+    // juegos
+    const juegos = {};
+    ds.forEach(x => { const u = uso[x.key]; if (u) Object.entries(u.juegos || {}).forEach(([k, m]) => { juegos[k] = (juegos[k] || 0) + m; }); });
+    const top = Object.entries(juegos).sort((a, b) => b[1] - a[1]).slice(0, 6), mx = top.length ? top[0][1] : 1;
+    $('#juegos').innerHTML = top.length ? top.map(([k, m]) => { const n = nombreJuego(k); return `<li><span class="e">${n.emoji}</span><div><b>${J.esc(n.nombre)}</b><div class="barra"><i style="width:${(m / mx * 100).toFixed(0)}%"></i></div></div><small>${fmt(m)}</small></li>`; }).join('')
+      : '<li class="vacio">Todavía no hay juego registrado esta semana.</li>';
+  }
+
+  function pintar() { pintarReglas(); pintarHoy(); pintarSemana(); }
+  pintar();
+  setInterval(pintarHoy, 15000);
+  addEventListener('resize', () => { clearTimeout(pintar.r); pintar.r = setTimeout(pintarSemana, 200); });
+  if (location.hash === '#prueba') window.__tp = { pintar };
+})();
+</script>
+</body>
+</html>

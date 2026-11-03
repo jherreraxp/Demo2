@@ -76,7 +76,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <main id="main" hidden>
   <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
   <nav class="indice" aria-label="Secciones">
-    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#servidor">Servidor y cuentas</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#servidor">Servidor y cuentas</a><a href="#publicar">Publicar</a><a href="#sesion">⏰ Tiempo</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
   </nav>
 
   <section class="card" id="jugadores">
@@ -180,8 +180,9 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   </section>
 
   <section class="card" id="sesion">
-    <h2>⏱️ Sesión y voz</h2>
-    <div class="row"><label for="ses">Descanso después de</label><select id="ses"><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="20">20 minutos</option><option value="30">30 minutos</option><option value="0">Sin límite</option></select></div>
+    <h2>⏰ Control de tiempo y voz</h2>
+    <p>Minutos por sesión, descansos, total por día, horario permitido y hora de dormir, para cada niño o para todos. También ves cuánto jugó hoy y en la semana.</p>
+    <div class="row"><span id="tiempo-resumen">Control de tiempo</span><div><a href="tiempo.html" style="display:inline-block;text-decoration:none;background:var(--accent);color:#fff;border-radius:10px;padding:9px 16px;font-weight:700">⏰ Abrir Control de tiempo</a></div></div>
     <div class="row"><label for="vel">Velocidad de la voz del dispositivo</label><select id="vel"><option value="0.65">Muy lenta</option><option value="0.8">Lenta (recomendada)</option><option value="0.95">Normal</option></select></div>
   </section>
 
@@ -330,7 +331,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   };
 
   // ---------- sesión ----------
-  $('#ses').value = String(P.sessionMin ?? 15); $('#ses').onchange = e => { P.sessionMin = +e.target.value; J.save(); toast('Guardado'); };
+  if (window.Tiempo) { const c = Tiempo.cfgGeneral(); $('#tiempo-resumen').textContent = c.activo ? `Juego seguido ${c.sesion || '∞'} min · descanso ${c.descanso} min · ${c.diario ? c.diario + ' min por día' : 'sin límite diario'}` : 'Control de tiempo apagado'; }
   $('#vel').value = String(P.rate ?? .8); if (!$('#vel').value) $('#vel').value = '0.8';
   $('#vel').onchange = e => { P.rate = +e.target.value; J.save(); toast('Guardado'); };
 

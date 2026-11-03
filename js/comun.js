@@ -615,9 +615,11 @@
 
   // ---------- PIN de mamá y papá ----------
   const pin = () => progress.pin || '1234';
-  function pedirPin(onOk) {
-    try { if (+sessionStorage.getItem('bl-admin') > Date.now()) { onOk(); return; } } catch (e) {}
+  // opts.siempre: pide el PIN aunque se haya escrito hace poco (para desbloquear el tiempo); opts.z: capa encima
+  function pedirPin(onOk, opts = {}) {
+    if (!opts.siempre) try { if (+sessionStorage.getItem('bl-admin') > Date.now()) { onOk(); return; } } catch (e) {}
     const w = document.createElement('div'); w.className = 'regalo';
+    if (opts.z) w.style.zIndex = opts.z;
     w.innerHTML = `<div class="regalo-caja pin"><p class="regalo-titulo">🔒 Para mamá y papá</p><p class="regalo-sub">Escribe el PIN</p><div class="pin-dots"></div><div class="pin-teclas">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '✕', 0, '⌫'].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div></div>`;
     document.body.appendChild(w);
     let v = '';
@@ -654,19 +656,12 @@
     setTimeout(() => { w.classList.add('fuera'); setTimeout(() => { w.remove(); cb && cb(); }, 300); }, opts.ms || 1800);
   }
 
-  // ---------- descanso ----------
-  const T0 = (() => { try { const v = +sessionStorage.getItem('bl-inicio'); if (v) return v; const n = Date.now(); sessionStorage.setItem('bl-inicio', n); return n; } catch (e) { return Date.now(); } })();
-  let restShown = false;
-  if (!window.SIN_MUSICA) setInterval(() => {
-    if (restShown || !progress.sessionMin || Date.now() - T0 < progress.sessionMin * 60000) return;
-    restShown = true;
-    const w = document.createElement('div');
-    w.className = 'regalo';
-    w.innerHTML = `<div class="regalo-caja"><div style="font-size:90px">😴🌙</div><p class="regalo-titulo">¡Jugaste muy bien, ${esc(childName())}!</p><p class="regalo-sub">Es hora de descansar los ojitos.</p><div class="regalo-opciones"><button class="regalo-op op-seguir"><span>👩</span>Mamá: 5 minutos más</button></div></div>`;
-    document.body.appendChild(w);
-    say(['¡Jugaste muy bien!', childName(), 'Es hora de descansar.']);
-    w.querySelector('button').onclick = () => { w.remove(); try { sessionStorage.setItem('bl-inicio', Date.now() - (progress.sessionMin - 5) * 60000); } catch (e) {} setTimeout(() => { restShown = false; }, 1000); };
-  }, 30000);
+  // ---------- control de tiempo (js/tiempo.js) ----------
+  // Sesiones, descansos, límite diario, horario y hora de dormir; se configura en tiempo.html.
+  if (!window.SIN_TIEMPO && ROOT) {
+    if (document.readyState === 'loading') document.write(`<script src="${ROOT}js/tiempo.js"><\/script>`);
+    else setTimeout(() => { const sc = document.createElement('script'); sc.src = ROOT + 'js/tiempo.js'; document.head.appendChild(sc); });
+  }
 
   // ---------- confeti ----------
   let cv = null, cx = null, bits = [], raf = null;
