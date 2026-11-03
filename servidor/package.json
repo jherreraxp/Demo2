@@ -6,6 +6,6 @@
   "type": "module",
   "main": "servidor.mjs",
   "engines": { "node": ">=22.5" },
-  "scripts": { "start": "node --no-warnings servidor.mjs", "test": "node --no-warnings pruebas.mjs && node --no-warnings pruebas-pagos.mjs" },
+  "scripts": { "start": "node --no-warnings servidor.mjs", "test": "node --no-warnings pruebas.mjs && node --no-warnings pruebas-pagos.mjs && node --no-warnings pruebas-ia.mjs" },
   "dependencies": { "ws": "^8.18.0" }
 }

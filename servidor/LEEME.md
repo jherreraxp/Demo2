@@ -61,7 +61,7 @@ El servidor **no confía en el aviso** del proveedor: siempre consulta el estado
 ## Costos
 
 - VM de Oracle "Always Free": 0. Dominio: 0 (DuckDNS) o ~10–15 USD/año.
-- Cuentos con IA: cada cuento cuesta unos centavos de dólar en la API de Anthropic (límite: 5 por familia por día, `LIMITE_IA_DIA`).
+- Cuentos con IA: cada cuento cuesta unos centavos de dólar en el proveedor de IA (límite: 10 por familia por día, `IA_LIMITE_DIARIO`).
 - Comisiones del proveedor de pagos.
 
 ## Privacidad de los niños (Ley 29733 de Protección de Datos Personales, Perú)
@@ -129,3 +129,36 @@ voces del Estudio (se escuchan, no se guardan), Taller de personajes, pintar el 
 colores y foto de fondo, y lo que crea el Estudio Mágico. Aparece el aviso "Modo demostración" con el botón al plan.
 Los correos de `PLAN_GRATIS_PARA` (tu familia) tienen siempre la personalización completa.
 La copia de respaldo en GitHub Pages (sin servidor) funciona como siempre, completa.
+
+## Cuentos con IA: sirve la llave de cualquier proveedor
+
+El servidor tiene un solo módulo (`lib/ia.mjs`) con adaptadores para **Claude (Anthropic)**, **Gemini (Google)**,
+**OpenAI** y cualquier API **compatible con OpenAI**: OpenRouter, Groq, DeepSeek, Mistral, xAI, Ollama u otra.
+Todos reciben el mismo pedido y devuelven el mismo cuento, así que la página de cuentos no cambia.
+
+Lo más fácil: corre `Instalar-Avelu.ps1` y contesta **s** en «¿Quieres configurar los cuentos con IA?».
+Pega la llave (no se muestra): el script reconoce el proveedor por cómo empieza la llave
+(`sk-ant-` Claude, `AIza` Gemini, `sk-or-` OpenRouter, `gsk_` Groq, `xai-` xAI, `sk-proj-` OpenAI).
+Si empieza solo con `sk-` o no la reconoce, te muestra un menú numerado; para «Otro compatible con OpenAI» te pide la URL base.
+Antes de guardar, **prueba la llave desde la VM**; si falla te dice por qué (llave inválida, sin saldo, modelo inexistente)
+y te deja intentar de nuevo. Al final muestra «Proveedor detectado: … · modelo …».
+
+A mano, en `/etc/avelu/avelu.env` (y luego `sudo docker restart avelu`):
+
+| Variable | Qué es |
+|---|---|
+| `IA_PROVEEDOR` | `anthropic`, `gemini`, `openai`, `openrouter`, `groq`, `deepseek`, `mistral`, `xai`, `ollama` o `custom` |
+| `IA_API_KEY` | la llave del proveedor (Ollama no necesita) |
+| `IA_MODELO` | opcional; si está vacío se usa el recomendado de cada proveedor |
+| `IA_BASE_URL` | solo para `custom` (cualquier API compatible con OpenAI, por ejemplo `https://mi-servidor.com/v1`) |
+| `IA_LIMITE_DIARIO` | cuentos por familia al día (10) |
+| `IA_MAX_TOKENS` | largo máximo de cada respuesta (1500); el tiempo de espera es de 30 s |
+
+Si ya tenías `ANTHROPIC_API_KEY`, sigue funcionando (se usa Claude). Para ver qué proveedor quedó activo:
+`curl https://abu.arcillita.com/api/salud` → `"ia":{"disponible":true,"proveedor":"…","nombre":"…","modelo":"…"}` (sin la llave).
+Para probar una llave a mano en la VM:
+`echo '{"proveedor":"gemini","key":"…"}' | sudo docker run --rm -i -v /opt/avelu:/app:ro -w /app node:22-alpine node --no-warnings probar-ia.mjs`
+(ojo: así la llave queda en el historial de la terminal; el script de Windows no la deja en ningún lado).
+
+Si no hay llave o el proveedor falla, la página de cuentos muestra «Los cuentos mágicos no están disponibles ahora»
+y el resto del juego sigue igual. A la IA solo se envían los apodos y el tema del cuento.

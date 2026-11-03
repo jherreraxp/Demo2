@@ -6,7 +6,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -d "$REPO/.git" ]]; then sudo -u "$(stat -c %U "$REPO")" git -C "$REPO" pull --ff-only; fi
 APP=/opt/avelu; S="$REPO/servidor"
 /usr/local/bin/avelu-respaldo || true
-cp -r "$S"/servidor.mjs "$S"/lib "$S"/cuentos "$S"/package.json "$S"/package-lock.json "$APP"/
+cp -r "$S"/servidor.mjs "$S"/probar-ia.mjs "$S"/lib "$S"/cuentos "$S"/package.json "$S"/package-lock.json "$APP"/
 cd "$APP" && npm ci --omit=dev --no-audit --no-fund
 install -m 755 "$S/respaldo.sh" /usr/local/bin/avelu-respaldo
 systemctl restart avelu

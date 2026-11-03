@@ -314,7 +314,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
     $('#ia-form').hidden = !fam();
     const srv = window.Cuenta && Cuenta.servidor();
     $('#nota').textContent = !srv ? '' : fam() ? '' : (Cuenta.conectado() ? '🔒 Los cuentos con candado y los cuentos con sus nombres son del plan Familia.' : 'Entra a tu cuenta para ver más cuentos.');
-    if (fam()) pintarForm();
+    if (fam()) { pintarForm(); revisarMagia(); }
   }
   $('#estantes').addEventListener('click', e => { const b = e.target.closest('.tapa'); if (b) abrir(todos().find(c => c.id === b.dataset.id)); });
   $('#mis').addEventListener('click', e => {
@@ -326,6 +326,15 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
   // ---------- cuento con nuestros nombres (plan Familia) ----------
   const TEMAS = [['animales', '🐾 Animales'], ['princesas', '👑 Princesas'], ['espacio', '🚀 El espacio'], ['mar', '🐠 El mar'], ['bosque', '🌳 El bosque'], ['dinosaurios', '🦕 Dinosaurios'], ['ballet', '🩰 Ballet'], ['amistad', '💖 Amistad']];
   const elegidos = new Set(); let tema = 'animales';
+  // si el servidor no tiene IA configurada (o falla), se avisa con cariño y el resto de cuentos sigue igual
+  const NO_MAGIA = '🌙 Los cuentos mágicos no están disponibles ahora. ¡Los demás cuentos sí!';
+  async function revisarMagia() {
+    let ia = null;
+    try { const c = await Cuenta.configServidor(); ia = c && c.ia; } catch (e) {}
+    const sin = ia && ia.disponible === false;
+    $('#crear').disabled = !!sin;
+    if (sin) $('#ia-msg').textContent = NO_MAGIA;
+  }
   function pintarForm() {
     const c = Cuenta.actual() || {};
     const nombres = [...new Set([...(c.perfiles || []).map(p => p.nombre), ...J.progress.players.map(p => p.name), 'Papá', 'Mamá'].filter(Boolean))];
@@ -347,7 +356,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
       guardarLocal([c, ...leerLocal().filter(x => x.id !== c.id)]);
       $('#ia-msg').textContent = ''; $('#otro').value = '';
       J.cheer(); abrir(c);
-    } catch (err) { $('#ia-msg').textContent = '😕 ' + err.message; }
+    } catch (err) { $('#ia-msg').textContent = err.status === 503 ? NO_MAGIA : '😕 ' + err.message; }
     finally { $('#crear').disabled = false; }
   };
 

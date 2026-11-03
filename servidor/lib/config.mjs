@@ -34,6 +34,7 @@ export const config = {
   },
   gratisPara: lista(env.PLAN_GRATIS_PARA).map(e => e.toLowerCase()),
   // límites
-  limiteIaDia: Number(env.LIMITE_IA_DIA || 5),
+  // cuentos con IA por familia al día (IA_LIMITE_DIARIO; se sigue leyendo el antiguo LIMITE_IA_DIA)
+  get limiteIaDia() { return Number(env.IA_LIMITE_DIARIO || env.LIMITE_IA_DIA || 10); },
   diasSesion: 60,
 };

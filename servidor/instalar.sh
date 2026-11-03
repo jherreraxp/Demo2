@@ -43,7 +43,7 @@ fi
 echo "==> Usuario y carpetas"
 id avelu >/dev/null 2>&1 || useradd --system --home "$APP" --shell /usr/sbin/nologin avelu
 mkdir -p "$APP" "$DATOS" "$ETC"
-cp -r "$ORIGEN"/servidor.mjs "$ORIGEN"/lib "$ORIGEN"/cuentos "$ORIGEN"/package.json "$ORIGEN"/package-lock.json "$APP"/
+cp -r "$ORIGEN"/servidor.mjs "$ORIGEN"/probar-ia.mjs "$ORIGEN"/lib "$ORIGEN"/cuentos "$ORIGEN"/package.json "$ORIGEN"/package-lock.json "$APP"/
 cd "$APP" && npm ci --omit=dev --no-audit --no-fund
 chown -R root:root "$APP"; chmod -R a+rX "$APP"
 chown -R avelu:avelu "$DATOS"; chmod 700 "$DATOS"

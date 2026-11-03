@@ -10,7 +10,7 @@ La dirección del servidor se configura en el admin (`localStorage 'bl-servidor'
 |---|---|---|---|
 | POST | `/api/registro` | `{ email, clave, nombre, acepto: true }` (acepto = términos y privacidad, adulto mayor de 18) | `{ ok, token, cuenta }` |
 | POST | `/api/entrar` | `{ email, clave }` | `{ ok, token, cuenta }` |
-| GET | `/api/config` | — | `{ ok, googleClientId, pagos, precio, moneda }` (público) |
+| GET | `/api/config` | — | `{ ok, googleClientId, pagos, precio, moneda, ia: { disponible, proveedor, nombre, modelo } }` (público; nunca incluye llaves) |
 | POST | `/api/google` | `{ credential, acepto? }` (ID token de Google Identity Services) | `{ ok, token, cuenta }` o, la primera vez sin `acepto`, `{ ok: false, necesitaAcepto: true, email, nombre }` |
 | POST | `/api/salir` | — | `{ ok }` |
 | GET | `/api/yo` | — | `{ ok, cuenta }` |
@@ -37,7 +37,9 @@ Lo pagado (`plan: 'familia'`):
 - **Cuentos extra**: `GET /api/cuentos` → `{ ok, cuentos: [{ id, titulo, emoji, premium, paginas: [{ texto, dibujo }] }] }`
   (los gratis también salen sin cuenta; los premium salen con `bloqueado: true` y `paginas: []` si no hay plan familia).
 - **Cuentos con IA y sus nombres**: `POST /api/cuentos/ia` `{ protagonistas: ['Avelu', 'Papá'], tema, moraleja? }` → `{ ok, cuento }`
-  (máx. 5 por día por familia; el servidor usa su propia llave de IA guardada en la VM).
+  (máx. `IA_LIMITE_DIARIO` por día por familia, 10 por defecto; el servidor usa su propia llave guardada en la VM, de cualquier proveedor:
+  Claude, Gemini, OpenAI u otro compatible con OpenAI. A la IA solo se envían los apodos y el tema, sin correos ni otros datos.
+  Si no hay IA configurada o el proveedor falla: `503 { error: 'Los cuentos mágicos no están disponibles ahora' }`).
 
 ## Jugar en línea (Construye tu Mundo)
 
@@ -58,5 +60,5 @@ Salas: máximo 6 jugadores; se borran 10 minutos después de que sale el último
 
 ## Otros
 
-- `GET /api/salud` → `{ ok, version }`.
+- `GET /api/salud` → `{ ok, version, ia: { disponible, proveedor, nombre, modelo } }`.
 - Errores: 400 datos, 401 sin sesión, 402 necesita plan familia, 404, 409 correo ya usado, 413 muy grande, 415 tipo, 429 muchos intentos, 502/503 servicio externo.

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.mjs';
 import { db } from './db.mjs';
 import { ErrorUsuario, aleatorio, log } from './util.mjs';
+import { configIA, completar, extraerJSON, ErrorIA, tapar } from './ia.mjs';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'cuentos');
 export const CUENTOS = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()
@@ -34,6 +35,11 @@ Responde SOLO con JSON válido, sin texto antes ni después, con esta forma exac
 {"titulo": "...", "emoji": "...", "paginas": [{"texto": "...", "dibujo": "..."}], "moraleja": "..."}`;
 
 const limpia = (s, max) => String(s || '').replace(/[<>]/g, '').trim().slice(0, max);
+// privacidad: a la IA solo van apodos y el tema, sin correos, teléfonos ni números largos
+const sinDatos = s => String(s || '')
+  .replace(/[^\s@]+@[^\s@]+/g, '').replace(/\+?\d[\d\s().-]{5,}\d/g, '').replace(/https?:\/\/\S+/g, '')
+  .replace(/[<>{}\[\]`]/g, '').replace(/\s+/g, ' ').trim();
+const NO_DISPONIBLE = 'Los cuentos mágicos no están disponibles ahora';
 function validar(c) {
   if (!c || typeof c !== 'object' || !Array.isArray(c.paginas)) return null;
   const paginas = c.paginas.slice(0, 10).map(p => ({ texto: limpia(p?.texto, 200), dibujo: limpia(p?.dibujo, 8) || '⭐' })).filter(p => p.texto);
@@ -54,30 +60,27 @@ function cuentoFalso(nombres, tema) {
 }
 
 export async function crearCuentoIA(cuentaId, { protagonistas, tema, moraleja }) {
-  const nombres = (Array.isArray(protagonistas) ? protagonistas : []).map(n => limpia(n, 24)).filter(Boolean).slice(0, 4);
+  const nombres = (Array.isArray(protagonistas) ? protagonistas : []).map(n => sinDatos(n).slice(0, 24)).filter(Boolean).slice(0, 4);
   if (!nombres.length) throw new ErrorUsuario('Dime al menos un nombre para el cuento.');
-  const temaL = limpia(tema, 120), moralejaL = limpia(moraleja, 120);
+  const temaL = sinDatos(tema).slice(0, 80), moralejaL = sinDatos(moraleja).slice(0, 80);
+  const ia = configIA();
+  if (!ia.disponible) throw new ErrorUsuario(NO_DISPONIBLE, 503);
   const dia = new Date().toISOString().slice(0, 10);
   const hechos = db.prepare('SELECT COUNT(*) AS n FROM cuentos_ia WHERE cuenta_id = ? AND dia = ?').get(cuentaId, dia).n;
   if (hechos >= config.limiteIaDia) throw new ErrorUsuario(`Hoy ya creaste ${config.limiteIaDia} cuentos. ¡Mañana hay más!`, 429);
   let cuento;
-  if (config.iaFalsa) cuento = cuentoFalso(nombres, temaL);
+  if (ia.falsa) cuento = cuentoFalso(nombres, temaL);
   else {
-    if (!config.anthropicKey) throw new ErrorUsuario('Los cuentos con IA aún no están configurados.', 503);
     const pedido = `Protagonistas: ${nombres.join(', ')}.` + (temaL ? ` Tema: ${temaL}.` : '') + (moralejaL ? ` Moraleja deseada: ${moralejaL}.` : '');
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', signal: AbortSignal.timeout(60000),
-      headers: { 'x-api-key': config.anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: config.claudeModel, max_tokens: 1500, system: SISTEMA, messages: [{ role: 'user', content: pedido }] }),
-    });
-    if (!r.ok) { log('ia_error', { status: r.status }); throw new ErrorUsuario('La magia de los cuentos está cansada. Prueba en un rato.', 502); }
-    const j = await r.json();
-    const texto = (j.content || []).map(b => b.text || '').join('');
-    const m = texto.match(/\{[\s\S]*\}/);
-    try { cuento = JSON.parse(m ? m[0] : texto); } catch (e) { cuento = null; }
+    try {
+      cuento = extraerJSON(await completar(ia, { sistema: SISTEMA, usuario: pedido, json: true }));
+    } catch (e) {
+      log('ia_error', { proveedor: ia.proveedor, tipo: e instanceof ErrorIA ? e.tipo : 'otro', status: e.status || 0, msg: tapar(e.message, ia.key) });
+      throw new ErrorUsuario(NO_DISPONIBLE, 503);
+    }
   }
   const ok = validar(cuento);
-  if (!ok) throw new ErrorUsuario('No salió bien el cuento. Prueba otra vez.', 502);
+  if (!ok) { log('ia_error', { proveedor: ia.proveedor, tipo: 'formato' }); throw new ErrorUsuario('No salió bien el cuento. Prueba otra vez.', 502); }
   const id = 'ia_' + aleatorio(8);
   db.prepare('INSERT INTO cuentos_ia (id, cuenta_id, datos, dia, creado) VALUES (?, ?, ?, ?, ?)').run(id, cuentaId, JSON.stringify(ok), dia, new Date().toISOString());
   return { ...ok, id, premium: true, ia: true, bloqueado: false };

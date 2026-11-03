@@ -13,6 +13,7 @@ import { ErrorUsuario, log, hashClave, claveCorrecta, limitar, emailValido, text
 import { crearSuscripcion, cancelarSuscripcion, webhook, revisar } from './lib/pagos.mjs';
 import { listaCuentos, crearCuentoIA } from './lib/cuentos.mjs';
 import { instalarSalas } from './lib/salas.mjs';
+import { configIA, resumenIA } from './lib/ia.mjs';
 
 const MAX_JSON = 600 * 1024, MAX_VOZ = 1024 * 1024;
 const TIPOS_VOZ = ['audio/wav', 'audio/x-wav', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4'];
@@ -69,7 +70,7 @@ const dirVoces = id => path.join(config.dataDir, 'voces', id);
 const rutas = [];
 const ruta = (metodo, patron, fn) => rutas.push({ metodo, patron: new RegExp('^' + patron + '$'), fn });
 
-ruta('GET', '/api/salud', async () => ({ ok: true, version: VERSION }));
+ruta('GET', '/api/salud', async () => ({ ok: true, version: VERSION, ia: resumenIA(configIA()) }));
 
 ruta('POST', '/api/registro', async (req) => {
   if (!limitar('reg:' + ipDe(req), 10, 60000)) throw new ErrorUsuario('Muchos intentos. Espera un minuto.', 429);
@@ -98,6 +99,7 @@ ruta('POST', '/api/entrar', async (req) => {
 ruta('GET', '/api/config', async () => ({
   ok: true, googleClientId: config.google.clientId || null, pagos: config.pagos,
   precio: config.mp.precio, moneda: config.mp.moneda,
+  ia: resumenIA(configIA()),
 }));
 
 ruta('POST', '/api/google', async (req) => {
@@ -231,7 +233,7 @@ ruta('GET', '/api/cuentos', async (req) => {
 });
 ruta('POST', '/api/cuentos/ia', async (req) => {
   const c = necesitaCuenta(req); necesitaFamilia(c);
-  if (!limitar('ia:' + c.id, 3, 60000)) throw new ErrorUsuario('Espera un ratito antes de pedir otro cuento.', 429);
+  if (!limitar('ia:' + c.id, Number(process.env.IA_POR_MINUTO || 3), 60000)) throw new ErrorUsuario('Espera un ratito antes de pedir otro cuento.', 429);
   return { ok: true, cuento: await crearCuentoIA(c.id, await leerJSON(req)) };
 });
 

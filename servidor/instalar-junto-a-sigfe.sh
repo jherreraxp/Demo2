@@ -26,7 +26,7 @@ sudo docker network inspect "$RED" >/dev/null 2>&1 || sudo docker network create
 
 echo "==> Programa y datos de Avelu"
 sudo mkdir -p "$APP" "$DATOS" "$ETC"
-sudo cp -r "$ORIGEN"/servidor.mjs "$ORIGEN"/lib "$ORIGEN"/cuentos "$ORIGEN"/package.json "$ORIGEN"/package-lock.json "$APP"/
+sudo cp -r "$ORIGEN"/servidor.mjs "$ORIGEN"/probar-ia.mjs "$ORIGEN"/lib "$ORIGEN"/cuentos "$ORIGEN"/package.json "$ORIGEN"/package-lock.json "$APP"/
 sudo docker run --rm -v "$APP":/app -w /app "$IMAGEN" npm ci --omit=dev --no-audit --no-fund >/dev/null
 sudo chown -R 1000:1000 "$DATOS"; sudo chmod 700 "$DATOS"
 if [[ ! -f "$ETC/avelu.env" ]]; then sudo cp "$ORIGEN/avelu.env.ejemplo" "$ETC/avelu.env"; echo "   Creé $ETC/avelu.env"; fi
@@ -151,7 +151,7 @@ cd $ORIGEN/.. && sudo -u $(id -un) git fetch -q origin $RAMA
 antes=\$(git rev-parse HEAD:servidor 2>/dev/null || true)
 sudo -u $(id -un) git reset -q --hard origin/$RAMA
 [ "\$antes" = "\$(git rev-parse HEAD:servidor)" ] && exit 0
-cp -r servidor/servidor.mjs servidor/lib servidor/cuentos servidor/package.json servidor/package-lock.json $APP/
+cp -r servidor/servidor.mjs servidor/probar-ia.mjs servidor/lib servidor/cuentos servidor/package.json servidor/package-lock.json $APP/
 docker run --rm -v $APP:/app -w /app $IMAGEN npm ci --omit=dev --no-audit --no-fund >/dev/null
 docker restart avelu >/dev/null
 echo "\$(date) servidor actualizado a \$(git rev-parse --short HEAD)" >> /var/log/avelu-actualizar.log
