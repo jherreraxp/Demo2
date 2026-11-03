@@ -101,8 +101,8 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     <div class="lista" id="lista"></div>
   </section>
 
-  <section class="card">
-    <h2>🌐 Publicar en la web</h2>
+  <section class="card" id="publicar-card" hidden>
+    <h2>🌐 Publicar en la web (voces de la casa)</h2>
     <p>Publica tus grabaciones en GitHub para que suenen en cualquier celular o tablet que abra el juego, sin configurar nada.</p>
     <p>Necesitas una <b>llave de GitHub</b> (se crea una sola vez y se guarda solo en este navegador). Créala en <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>: en <i>Repository access</i> elige solo <code id="repo-nombre">Demo2</code>, y en <i>Permissions → Contents</i> elige <b>Read and write</b>. Copia la llave y pégala aquí.</p>
     <div class="row"><label for="token">Llave de GitHub</label><input type="password" id="token" autocomplete="off" placeholder="github_pat_…"></div>
@@ -126,13 +126,13 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 
   <section class="card" id="nube" hidden>
     <h2>☁️ Mis voces en mi cuenta</h2>
-    <p>Con el plan Familia, tus grabaciones se guardan en tu cuenta (privadas, no se publican) y aparecen en todos tus aparatos al entrar con la misma cuenta.</p>
+    <p><b>Cada grabación se guarda sola en tu cuenta</b>, en el servidor y privada: solo tu familia la escucha, en todos los aparatos donde entres con tu cuenta.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="nube-subir">☁️ Guardar mis voces en mi cuenta</button><button id="nube-bajar">⬇ Traer mis voces de la cuenta</button></div>
     <p id="nube-msg" role="status"></p>
   </section>
   <section class="card" id="nube-plan" hidden>
-    <h2>☁️ Voces en la nube</h2>
-    <p>Con el <a href="cuenta.html">plan Familia</a> tus voces se guardan en tu cuenta y se usan en todos tus aparatos.</p>
+    <h2>☁️ Tus voces en tu cuenta</h2>
+    <p id="nube-plan-txt">Por ahora tus grabaciones quedan solo en este aparato. Con el <a href="cuenta.html">plan Familia</a> se guardan en tu cuenta y suenan en todos tus aparatos.</p>
   </section>
 </main>
 
@@ -266,26 +266,19 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 // ---------- voces en la cuenta (plan Familia; aparte del flujo de GitHub) ----------
 (async () => {
   const J = window.Juego, C = window.Cuenta, $ = s => document.querySelector(s);
-  if (!C || !C.servidor() || !C.token()) return;
+  // publicar en GitHub queda solo para quien ya tiene la llave de GitHub (las voces de la casa, públicas)
+  if (window.Herr && Herr.token()) $('#publicar-card').hidden = false;
+  if (!C || !C.servidor()) { $('#publicar-card').hidden = false; return; }
+  if (!C.token()) { $('#nube-plan').hidden = false; $('#nube-plan-txt').innerHTML = 'Tus grabaciones quedan solo en este aparato. <a href="cuenta.html">Entra a tu cuenta</a> para guardarlas en ella.'; return; }
   await C.yo(true);
   if (!C.esFamilia()) { $('#nube-plan').hidden = false; return; }
   $('#nube').hidden = false;
   const msg = t => { $('#nube-msg').textContent = t; };
-  const subidas = () => { try { return JSON.parse(localStorage.getItem('bl-voces-nube') || '{}'); } catch (e) { return {}; } };
   const bajar = silencio => C.bajarVoces(!silencio);
   $('#nube-subir').onclick = async () => {
-    const hechas = subidas(); let n = 0;
-    try {
-      const keys = await J.voices.keys();
-      for (const k of keys) {
-        const b = await J.voices.get(k); if (!b || hechas[k] === b.size) continue;
-        if (b.size > 1e6) continue;
-        msg(`Subiendo ${++n}…`);
-        await C.api('/api/voces/' + encodeURIComponent(k), { method: 'PUT', body: b, headers: { 'Content-Type': b.type || 'audio/wav' } });
-        hechas[k] = b.size; try { localStorage.setItem('bl-voces-nube', JSON.stringify(hechas)); } catch (e) {}
-      }
-      msg(n ? `✅ ${n} voces guardadas en tu cuenta.` : '✅ Tus voces ya estaban en tu cuenta.');
-    } catch (e) { msg('😕 ' + e.message); }
+    msg('Revisando…');
+    try { const n = await C.subirPendientes(); msg(n ? `✅ ${n} voces guardadas en tu cuenta.` : '✅ Todas tus voces ya están en tu cuenta.'); }
+    catch (e) { msg('😕 ' + e.message); }
   };
   $('#nube-bajar').onclick = async () => {
     msg('Trayendo tus voces…');

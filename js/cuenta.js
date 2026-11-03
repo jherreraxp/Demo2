@@ -44,7 +44,7 @@
     if (!r.ok || !data || data.ok === false) throw new ErrorCuenta((data && data.error) || ERRORES[r.status] || ERRORES[500], r.status);
     return data;
   }
-  function guardarCache(c) { cache = c; LS.set('bl-cuenta', c ? JSON.stringify(c) : ''); dispatchEvent(new CustomEvent('cuenta', { detail: c })); }
+  function guardarCache(c) { cache = c; LS.set('bl-cuenta', c ? JSON.stringify(c) : ''); dispatchEvent(new CustomEvent('cuenta', { detail: c })); if (c) vocesDeLaCuenta(c).catch(() => {}); }
 
   async function yo(forzar = false) {
     if (!servidor() || !token()) return null;
@@ -68,9 +68,11 @@
   async function salir() {
     try { if (token()) await api('/api/salir', { body: {} }); } catch (e) {}
     LS.set('bl-cuenta-token', ''); guardarCache(null);
+    // las grabaciones son de esa cuenta: se quitan de este aparato (siguen guardadas en el servidor)
+    await borrarVocesLocales().catch(() => {}); LS.set('bl-voces-de', '');
   }
   async function guardarPerfiles(perfiles) { const d = await api('/api/perfiles', { method: 'PUT', body: { perfiles } }); guardarCache(d.cuenta); return d.cuenta; }
-  async function borrarCuenta(clave) { await api('/api/cuenta', { method: 'DELETE', body: { clave } }); LS.set('bl-cuenta-token', ''); guardarCache(null); }
+  async function borrarCuenta(clave) { await api('/api/cuenta', { method: 'DELETE', body: { clave } }); LS.set('bl-cuenta-token', ''); guardarCache(null); await borrarVocesLocales().catch(() => {}); LS.set('bl-voces-de', ''); }
 
   // ---------- progreso en la nube ----------
   // se sube solo (con pausa) cuando cambia; al entrar se puede traer el de la nube
@@ -109,25 +111,65 @@
   }
   async function cancelarPlan() { await api('/api/suscripcion/cancelar', { body: {} }); return yo(true); }
 
-  // ---------- voces en la nube (plan Familia) ----------
-  // trae a este aparato las grabaciones de la cuenta que falten (las de este aparato mandan)
+  // ---------- voces de cada cuenta (plan Familia) ----------
+  // Cada grabación del Estudio de voz se guarda sola en la cuenta (en el servidor, privada).
+  // En este aparato solo quedan las voces de la cuenta conectada; al cambiar de cuenta se cambian.
+  let bajando = false;
+  const subidas = () => { try { return JSON.parse(localStorage.getItem('bl-voces-nube') || '{}'); } catch (e) { return {}; } };
+  const marcar = (k, v) => { const h = subidas(); if (v == null) delete h[k]; else h[k] = v; try { localStorage.setItem('bl-voces-nube', JSON.stringify(h)); } catch (e) {} };
+  async function subirVoz(k, blob) {
+    if (!conectado() || !esFamilia() || !blob || blob.size > 1e6) return false;
+    await api('/api/voces/' + encodeURIComponent(k), { method: 'PUT', body: blob, headers: { 'Content-Type': blob.type || 'audio/wav' } });
+    marcar(k, blob.size); return true;
+  }
+  async function subirPendientes() {
+    if (!conectado() || !esFamilia() || !J || !J.voices) return 0;
+    const h = subidas(); let n = 0;
+    for (const k of await J.voices.keys()) { const b = await J.voices.get(k); if (b && h[k] !== b.size) { try { if (await subirVoz(k, b)) n++; } catch (e) {} } }
+    return n;
+  }
+  async function borrarVocesLocales() {
+    if (!J || !J.voices) return;
+    for (const k of await J.voices.keys()) { await J.voices.del(k); await J.voices.refresh(k); }
+    try { localStorage.removeItem('bl-voces-nube'); } catch (e) {}
+  }
+  if (J && J.voices) {
+    // al grabar o borrar en el estudio, la cuenta se entera sola
+    const set = J.voices.set, del = J.voices.del;
+    J.voices.set = async (k, blob) => { const r = await set(k, blob); if (!bajando) subirVoz(k, blob).catch(() => {}); return r; };
+    J.voices.del = async k => { const r = await del(k); if (!bajando && conectado() && esFamilia()) { api('/api/voces/' + encodeURIComponent(k), { method: 'DELETE' }).catch(() => {}); marcar(k, null); } return r; };
+  }
+  async function vocesDeLaCuenta(c) {
+    if (!J || !J.voices) return;
+    const antes = LS.get('bl-voces-de');
+    if (antes && antes !== c.id) await borrarVocesLocales();   // eran de otra cuenta
+    if (antes !== c.id) { LS.set('bl-voces-de', c.id); try { localStorage.removeItem('bl-voces-nube-bajadas'); } catch (e) {} }
+    if (!esFamilia()) return;
+    if (!antes) await subirPendientes();                         // lo grabado antes de entrar pasa a la cuenta
+    bajarVocesDeVezEnCuando();
+  }
+  // trae a este aparato las grabaciones de la cuenta que falten
   async function bajarVoces(reemplazar = false) {
     if (!esFamilia() || !J || !J.voices) return 0;
     await J.voices.ready;
     const d = await api('/api/voces');
     const lista = d.lista || {}, ya = new Set(await J.voices.keys());
     let n = 0;
-    for (const [k, url] of Object.entries(lista)) {
-      if (ya.has(k) && !reemplazar) continue;
-      const r = await api(String(url).replace(/^https?:\/\/[^/]+/, ''), { raw: true });
-      await J.voices.set(k, await r.blob()); await J.voices.refresh(k); n++;
-    }
+    bajando = true;
+    try {
+      for (const [k, url] of Object.entries(lista)) {
+        if (ya.has(k) && !reemplazar) continue;
+        const r = await api(String(url).replace(/^https?:\/\/[^/]+/, ''), { raw: true });
+        const b = await r.blob();
+        await J.voices.set(k, b); await J.voices.refresh(k); marcar(k, b.size); n++;
+      }
+    } finally { bajando = false; }
     try { localStorage.setItem('bl-voces-nube-bajadas', String(Date.now())); } catch (e) {}
     return n;
   }
   function bajarVocesDeVezEnCuando() {
     let t = 0; try { t = +localStorage.getItem('bl-voces-nube-bajadas') || 0; } catch (e) {}
-    if (Date.now() - t > 6 * 3600e3) bajarVoces().catch(() => {});
+    if (Date.now() - t > 30 * 60e3) bajarVoces().catch(() => {});
   }
 
   // ---------- WebSocket (jugar en línea) ----------
@@ -140,8 +182,8 @@
     servidor, setServidor: v => { LS.set('bl-servidor', (v || '').trim().replace(/\/+$/, '')); },
     token, api, yo, esFamilia, conectado, actual: () => cache,
     entrar, registro, salir, guardarPerfiles, borrarCuenta,
-    subirProgreso, bajarProgreso, usarProgreso, abrirPago, cancelarPlan, wsUrl, ErrorCuenta, bajarVoces,
+    subirProgreso, bajarProgreso, usarProgreso, abrirPago, cancelarPlan, wsUrl, ErrorCuenta, bajarVoces, subirPendientes,
   };
   // al abrir cualquier página, refrescamos el plan en silencio
-  if (servidor() && token()) setTimeout(() => yo(true).then(() => { if (esFamilia()) bajarVocesDeVezEnCuando(); }), 800);
+  if (servidor() && token()) setTimeout(() => yo(true), 800);
 })();
