@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Honda de Cuyes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; background: #87c6ec; }
+#lienzo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.modos-l { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.modos-l button { border-radius: 16px; padding: 8px 16px; font-size: 18px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.modos-l button.on { background: var(--gold); }
+.mision-l { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 66px); z-index: 5; display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.94); border-radius: 22px; padding: 6px 8px 6px 16px; box-shadow: 0 5px 0 rgba(43,23,64,.25); max-width: calc(100vw - 24px); }
+.mision-l .etq { font-size: 15px; font-weight: 800; color: #6b2fb3; text-transform: uppercase; letter-spacing: .04em; }
+.mision-l .palabra { font-family: Andika, sans-serif; font-weight: 700; font-size: clamp(30px, 6vw, 46px); color: #2b1740; line-height: 1; }
+.mision-l button { width: 48px; height: 48px; border-radius: 50%; background: #9a6ee0; color: #fff; font-size: 24px; box-shadow: 0 4px 0 #6b4fd8; }
+.cuyes-l { position: fixed; left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 5; }
+.aviso-girar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6; background: rgba(43,23,64,.8); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 15px; font-weight: 700; display: none; white-space: nowrap; }
+@media (orientation: portrait) and (max-width: 700px) { .aviso-girar { display: block; } .mision-l { top: calc(env(safe-area-inset-top, 0px) + 112px); } }
+.fin-l { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(43,23,64,.45); }
+.fin-l .caja { background: #fff; border-radius: 28px; padding: 22px 26px; text-align: center; max-width: min(420px, 92vw); box-shadow: 0 10px 0 rgba(0,0,0,.25); }
+.fin-l h2 { margin: 0 0 6px; font-size: 34px; }
+.fin-l .estrellas { font-size: 52px; letter-spacing: 6px; margin: 4px 0 10px; }
+.fin-l .fila { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.fin-l button { border-radius: 18px; padding: 10px 18px; font-size: 20px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.fin-l button.si { background: var(--go, #4cb87a); color: #fff; box-shadow: 0 4px 0 var(--go-dark, #2e8a57); }
+[hidden] { display: none !important; }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+<script src="vendor/matter/matter.min.js"></script>
+</head>
+<body>
+<canvas id="lienzo" aria-label="Honda de cuyes: arrastra el cuy hacia atrás y suéltalo"></canvas>
+
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+    <div class="pill" aria-label="Monedas">🪙 <span id="monedas">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+
+<div class="mision-l" id="mision" hidden>
+  <span class="etq">Tumba al que dice</span>
+  <span class="palabra" id="m-palabra"></span>
+  <button id="m-say" aria-label="Escuchar otra vez">🔊</button>
+</div>
+<div class="pill cuyes-l" id="cuyes" aria-label="Cuyes que quedan"></div>
+<div class="aviso-girar">↻ Gira el teléfono para ver mejor</div>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="fin-l" id="fin" hidden><div class="caja" id="fin-caja"></div></div>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:60px;line-height:1">🐹🎯🦜🐺</div>
+    <h1>Honda de Cuyes</h1>
+    <p>Estira la honda, apunta y <b>lanza a los cuyes</b>. Escucha la palabra y tumba al loro o al lobo que tiene ese <b>letrero</b>.</p>
+    <div class="modos-l" id="modos" aria-label="Modo de juego">
+      <button data-modo="aprender" class="on">📖 Aprender</button>
+      <button data-modo="libre">🎯 Solo jugar</button>
+    </div>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+
+<script src="js/lanzar.js"></script>
+</body>
+</html>
