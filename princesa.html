@@ -18,9 +18,21 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 .titulo { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 64px); text-align: center; z-index: 5; pointer-events: none; }
 .titulo h1 { margin: 0; font-size: clamp(26px, 6.5vw, 40px); line-height: 1.05; }
 .titulo p { margin: 2px 0 0; font-size: 18px; }
-.tabs { display: flex; gap: 6px; margin: 6px auto 0; pointer-events: auto; flex-wrap: nowrap; overflow-x: auto; max-width: min(100%, 1100px); padding: 2px 12px 8px; scrollbar-width: thin; }
-.tabs button { min-height: 44px; background: rgba(255,255,255,.6); border-radius: 999px; padding: 3px 14px; font-size: 17px; font-weight: 800; flex: none; white-space: nowrap; }
-.tabs button.on { background: #fff; box-shadow: 0 4px 0 var(--shadow); }
+/* carrusel de personajes en miniatura: flechas, deslizar con el dedo, el elegido grande al centro */
+.carru { display: flex; align-items: center; gap: 6px; margin: 8px auto 0; pointer-events: auto; width: min(100%, 860px); padding: 0 8px; box-sizing: border-box; }
+.carru .flecha { flex: none; width: 48px; height: 48px; border-radius: 50%; background: #fff; font-size: 22px; box-shadow: 0 4px 0 var(--shadow); color: #9a6ee0; }
+.carru .flecha:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
+.carru .marco { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.carru .pista { display: flex; gap: 10px; padding: 10px 0 6px; transition: transform .35s cubic-bezier(.2, .9, .3, 1); will-change: transform; }
+.carru .pista.arrastrando { transition: none; }
+.carru .mini { flex: none; width: 76px; height: 92px; border-radius: 18px; background: rgba(255,255,255,.55); display: grid; place-items: center; position: relative; transition: transform .25s, background .25s, box-shadow .25s; padding: 0; overflow: hidden; }
+.carru .mini img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.carru .mini .emo { font-size: 38px; pointer-events: none; }
+.carru .mini.on { background: #fff; transform: scale(1.18); box-shadow: 0 5px 0 var(--shadow), 0 0 0 4px #ffd23f; z-index: 1; }
+.carru .mini .candado { position: absolute; top: 4px; right: 4px; font-size: 14px; background: #fff; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.nombre-pj { margin-top: 8px; font: 800 clamp(18px, 4vw, 24px) var(--font-display, sans-serif); color: #23324a; background: rgba(255,255,255,.85); display: inline-block; padding: 2px 16px; border-radius: 999px; pointer-events: auto; }
+@media (max-width: 520px) { .carru .flecha { width: 44px; height: 44px; } .carru .mini { width: 62px; height: 76px; } }
+@media (prefers-reduced-motion: reduce) { .carru .pista, .carru .mini { transition: none; } }
 .paleta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .colores { display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 4px 4px 8px; }
 .c { flex: none; width: 50px; height: 50px; border-radius: 50%; box-shadow: inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 0 var(--shadow); }
@@ -46,7 +58,12 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 <div class="titulo">
   <h1>Pinta a tu princesa</h1>
   <p>Elige un color y toca el vestido, el pelo o la corona</p>
-  <div class="tabs" id="tabs"></div>
+  <div class="carru" aria-label="Elige a quién pintar">
+    <button class="flecha" id="pj-ant" aria-label="Personaje anterior">◀</button>
+    <div class="marco" id="marco"><div class="pista" id="pista"></div></div>
+    <button class="flecha" id="pj-sig" aria-label="Personaje siguiente">▶</button>
+  </div>
+  <div class="nombre-pj" id="nombre-pj"></div>
 </div>
 <div class="paleta">
   <div class="colores partes" id="partes" aria-label="Partes para pintar"></div>
@@ -60,7 +77,7 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, pintarParte, PINTABLES as IDS, EMOJI, nombrePersonaje, FIGURAS } from './js/personajes.js';
+import { crearPersonaje, pintarParte, PINTABLES as IDS, EMOJI, nombrePersonaje, FIGURAS, esPremium } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -104,13 +121,76 @@ async function load(id) {
   scene.add(char.group);
   render();
 }
+// ---------- carrusel de miniaturas ----------
+const fotos = {};             // id → imagen del personaje (se dibujan de a poco)
+const nombreDe = id => J.CHARS[id]?.name || nombrePersonaje(id);
+const bloqueado = id => typeof esPremium === 'function' && esPremium(id) && window.Cuenta?.personalizacion?.() === 'demo';
+let arrastre = 0;
+function pintarCarrusel() {
+  const pista = $('#pista');
+  if (!pista.children.length) pista.innerHTML = PINTABLES.map(([id]) => `<button class="mini" data-id="${id}" aria-label="${J.esc(nombreDe(id))}"><span class="emo">${J.CHARS[id]?.emoji || EMOJI[id] || '⭐'}</span>${bloqueado(id) ? '<span class="candado">🔒</span>' : ''}</button>`).join('');
+  [...pista.children].forEach(b => {
+    b.classList.toggle('on', b.dataset.id === charId);
+    if (fotos[b.dataset.id] && !b.querySelector('img')) { const e = b.querySelector('.emo'); if (e) e.outerHTML = `<img src="${fotos[b.dataset.id]}" alt="">`; }
+  });
+  centrar();
+  $('#nombre-pj').textContent = (J.CHARS[charId]?.emoji || EMOJI[charId] || '') + ' ' + nombreDe(charId);
+}
+function centrar(extra = 0) {
+  const pista = $('#pista'), marco = $('#marco'), i = PINTABLES.findIndex(p => p[0] === charId), b = pista.children[i];
+  if (!b) return;
+  const x = b.offsetLeft + b.offsetWidth / 2 - marco.clientWidth / 2;
+  pista.style.transform = `translateX(${-x + extra}px)`;
+}
+function mover(d) {
+  const i = PINTABLES.findIndex(p => p[0] === charId), n = PINTABLES.length;
+  J.sfx('pop'); load(PINTABLES[(i + d + n) % n][0]);
+}
+$('#pj-ant').onclick = () => mover(-1);
+$('#pj-sig').onclick = () => mover(1);
+addEventListener('keydown', e => { if (e.key === 'ArrowLeft') mover(-1); if (e.key === 'ArrowRight') mover(1); });
+addEventListener('resize', () => centrar());
+// deslizar con el dedo: al soltar se elige el que quedó al centro
+{
+  const marco = $('#marco'), pista = $('#pista'); let x0 = null, dx = 0;
+  marco.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; arrastre = 0; pista.classList.add('arrastrando'); marco.setPointerCapture(e.pointerId); });
+  marco.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; arrastre = Math.abs(dx); centrar(dx); });
+  const soltar = e => {
+    if (x0 == null) return; pista.classList.remove('arrastrando'); x0 = null;
+    if (arrastre < 8) { const b = document.elementFromPoint(e.clientX, e.clientY)?.closest('.mini'); if (b && b.dataset.id !== charId) { J.sfx('pop'); load(b.dataset.id); } else centrar(); return; }
+    const paso = (pista.children[0]?.offsetWidth || 76) + 10, saltos = Math.round(-dx / paso);
+    if (saltos) mover(saltos); else centrar();
+  };
+  marco.addEventListener('pointerup', soltar); marco.addEventListener('pointercancel', soltar);
+}
+// fotitos 3D de cada personaje, primero las que se ven, después las demás (sin trabar la pantalla)
+async function hacerFotos() {
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setSize(120, 146); r.setPixelRatio(1); r.outputColorSpace = THREE.SRGBColorSpace;
+  const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0xf0d8ff, 2.3));
+  const luz = new THREE.DirectionalLight(0xffffff, 1.5); luz.position.set(2, 4, 5); sc.add(luz);
+  const cam = new THREE.PerspectiveCamera(30, 120 / 146, .1, 50);
+  const i0 = Math.max(0, PINTABLES.findIndex(p => p[0] === charId));
+  const orden = PINTABLES.map((p, i) => [p[0], Math.min(Math.abs(i - i0), PINTABLES.length - Math.abs(i - i0))]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+  for (const id of orden) {
+    try {
+      const c = await crearPersonaje(id); c.update && c.update(.016, 'quieto');
+      const caja = new THREE.Box3().setFromObject(c.group), alto = caja.max.y - caja.min.y || 1, cy = (caja.max.y + caja.min.y) / 2;
+      cam.position.set(0, cy + alto * .05, alto * 2.15 + .4); cam.lookAt(0, cy, 0);
+      sc.add(c.group); r.render(sc, cam); fotos[id] = r.domElement.toDataURL('image/png'); sc.remove(c.group);
+      c.group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+      pintarCarrusel();
+    } catch (e) {}
+    await new Promise(ok => setTimeout(ok, 30));
+  }
+  r.dispose();
+}
 function render() {
-  $('#tabs').innerHTML = PINTABLES.map(([id, n]) => `<button class="${id === charId ? 'on' : ''}" data-id="${id}">${n}</button>`).join('');
-  $('#tabs .on')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  pintarCarrusel();
   $('#partes').innerHTML = Object.keys(char?.parts || {}).filter(p => PARTS[p]).map(p => `<button data-p="${p}">${PARTE_EMOJI[p] || ''} ${PARTS[p][0].split(' ').slice(1).join(' ')}</button>`).join('');
   $('#colores').innerHTML = COLORS.map((c, i) => `<button class="c ${c.v === 'arcoiris' ? 'arco' : ''} ${c === color ? 'on' : ''}" data-i="${i}" aria-label="${c.name}" style="${c.v !== 'arcoiris' ? 'background:' + c.v : ''}"></button>`).join('');
 }
-$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) { J.sfx('pop'); load(b.dataset.id); } });
+
 $('#colores').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; color = COLORS[+b.dataset.i]; J.sfx('pop2'); J.say(color.name); render(); });
 
 // tocar para pintar, arrastrar para girar
@@ -168,6 +248,7 @@ W.onFrame((dt, t) => {
   fx.update(dt);
 });
 await load(charId);
+setTimeout(() => hacerFotos(), 600);
 W.start(); J.refreshMusic();
 setTimeout(() => J.say('¡Pinta a tu princesa!'), 400);
 </script>

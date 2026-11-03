@@ -1,0 +1,26 @@
+# Publica solo: cada cambio que llega a la rama del juego se mezcla en gh-pages (la página y la VM la toman sola).
+# Así se puede editar desde github.com (o con Claude) sin correr comandos. Las voces de gh-pages se conservan.
+name: Publicar el juego
+on:
+  push:
+    branches: [claude/reading-game-children-zpv3xw]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: publicar
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Mezclar en gh-pages sin borrar las voces
+        run: |
+          git config user.name "Publicador del juego"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch -q origin gh-pages
+          git checkout -q -B gh-pages origin/gh-pages
+          # en un choque, gana lo que ya está en gh-pages (voces y juegos publicados desde la app)
+          git merge -q --no-edit -X ours "origin/${GITHUB_REF_NAME}"
+          test -s assets/voz/lista.json || { echo "lista.json vacía: no publico"; exit 1; }
+          git push -q origin gh-pages
