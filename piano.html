@@ -19,6 +19,19 @@ body { background: radial-gradient(circle at 50% 20%, #fff4fb, #ffc6e6 45%, #b79
 .bailarin { font-size: min(22vh, 170px); line-height: 1; transition: transform .12s; filter: drop-shadow(0 8px 0 rgba(107,71,168,.25)); }
 .bailarin.salta { animation: baile .45s ease-out; }
 @keyframes baile { 0% { transform: translateY(0) rotate(0) } 35% { transform: translateY(-38px) rotate(-12deg) scale(1.08) } 70% { transform: translateY(0) rotate(8deg) } 100% { transform: rotate(0) } }
+.nota-grande.con-texto { transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: min(14vh, 96px); animation: sube 1.4s ease-out forwards; }
+.nota-grande.con-texto b { font: 800 min(7vh, 46px) var(--font-display); text-shadow: 0 3px 0 #fff, 0 0 12px #fff; }
+.tecla { position: relative; }
+.tecla .atajo { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font: 700 11px system-ui, sans-serif; color: rgba(255,255,255,.9); background: rgba(0,0,0,.18); border-radius: 6px; padding: 1px 5px; pointer-events: none; }
+@media (hover: none) { .tecla .atajo { display: none; } }
+.progreso .vel { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.progreso .vel .pill { min-width: 44px; min-height: 44px; font-size: 20px; padding: 0 8px; }
+.progreso .vel b { font: 800 15px var(--font-display); color: #23324a; background: rgba(255,255,255,.8); border-radius: 999px; padding: 2px 8px; }
+.progreso .fila-chips { width: 100%; overflow-x: auto; white-space: nowrap; padding: 6px 4px; -webkit-overflow-scrolling: touch; }
+.progreso .chips { display: inline-flex; gap: 6px; }
+.progreso .chip { min-height: 40px; font-size: 14px; }
+.progreso .chip.on { background: #ffe27a; color: #23324a; }
+.progreso .puntos { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
 .nota-grande { position: absolute; font: 800 min(9vh, 64px) var(--font-display); color: #fff; text-shadow: 0 4px 0 #9a6ee0, 0 0 18px #ff5dab; animation: sube 1s ease-out forwards; }
 @keyframes sube { from { opacity: 1; transform: translateY(0) scale(.6) } to { opacity: 0; transform: translateY(-80px) scale(1.2) } }
 .modos { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); display: flex; gap: 8px; justify-content: safe center; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; z-index: 6; padding: 0 10px 6px; }
@@ -36,7 +49,7 @@ body { background: radial-gradient(circle at 50% 20%, #fff4fb, #ffc6e6 45%, #b79
 .tecla.on { transform: translateY(8px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, #000); filter: brightness(1.15); }
 .tecla.guia { animation: guia .9s ease-in-out infinite; }
 @keyframes guia { 0%, 100% { box-shadow: 0 10px 0 color-mix(in srgb, var(--c) 55%, #000), 0 0 0 0 #fff; } 50% { box-shadow: 0 10px 0 color-mix(in srgb, var(--c) 55%, #000), 0 0 0 10px rgba(255,255,255,.9); } }
-.progreso { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 116px); display: flex; gap: 6px; z-index: 6; }
+.progreso { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 116px); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; z-index: 6; width: min(96vw, 900px); }
 .progreso i { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,.5); }
 .progreso i.on { background: #ffd23f; box-shadow: 0 0 8px #fff; }
 /* canciones: notas que caen hacia su tecla */
@@ -103,7 +116,19 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
   const VOC = ['a', 'e', 'i', 'o', 'u'];
   // Estrellita (canción tradicional): índices de NOTAS
   const ESTRELLITA = [0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0];
-  const state = { modo: 'canciones', melo: 0, esperando: false, aciertos: 0 };
+  const state = { modo: 'canciones', melo: 0, esperando: false, aciertos: 0, libre: null };
+  // velocidad elegida con 🐢 / 🐇 (se recuerda en este aparato)
+  const VELS = [.5, .75, 1, 1.25, 1.5, 2];
+  let velX = (() => { try { const v = parseFloat(localStorage.getItem('bl-piano-vel')); return VELS.includes(v) ? v : 1; } catch (e) { return 1; } })();
+  function cambiarVel(d) {
+    const i = Math.max(0, Math.min(VELS.length - 1, VELS.indexOf(velX) + d)); velX = VELS[i];
+    try { localStorage.setItem('bl-piano-vel', String(velX)); } catch (e) {}
+    J.sfx('pop'); message(d < 0 ? '🐢 Más lento' : '🐇 Más rápido', 1); progreso();
+  }
+  const controlVel = () => `<span class="vel"><button class="pill" data-vel="-1" aria-label="Más lento">🐢</button><b>x${velX}</b><button class="pill" data-vel="1" aria-label="Más rápido">🐇</button></span>`;
+  // melodía elegida para "Sigue la melodía" y "Notas" (todas las canciones, sin candado)
+  const melodia = () => state.libre == null ? ESTRELLITA : partitura(CANCIONES[state.libre].notas).map(n => n.k);
+  const chipsCanciones = () => `<span class="chips">${CANCIONES.map((c, i) => `<button class="pill chip ${state.libre === i || (state.libre == null && i === 1 && state.modo === 'melodia') ? 'on' : ''}" data-libre="${i}">${c.emoji} ${J.esc(c.nombre)}</button>`).join('')}</span>`;
   // ---------- canciones con notas que caen ----------
   // cada canción: notas (índices de NOTAS, '-' alarga la nota), velocidad en tiempos por segundo
   // y cuántas teclas se ven (las primeras canciones usan pocas teclas).
@@ -115,6 +140,14 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     { nombre: 'Cumpleaños feliz', emoji: '🎂', teclas: 8, vel: .65, notas: '0 0 1- 0- 3- 2-- 0 0 1- 0- 4- 3-- 0 0 7- 5- 3- 2- 1-- 5 5 5- 3- 4- 3--' },
     { nombre: 'Himno de la alegría', emoji: '🎉', teclas: 5, vel: .7, notas: '2 2 3 4 4 3 2 1 0 0 1 2 2- 1 1- 2 2 3 4 4 3 2 1 0 0 1 2 1- 0 0-' },
     { nombre: 'Estrellita completa', emoji: '🌟', teclas: 6, vel: .75, notas: '0 0 4 4 5 5 4- 3 3 2 2 1 1 0- 4 4 3 3 2 2 1- 4 4 3 3 2 2 1- 0 0 4 4 5 5 4- 3 3 2 2 1 1 0-' },
+    // más melodías tradicionales (de dominio público), adaptadas a las teclas del piano
+    { nombre: 'Marina y su corderito', emoji: '🐑', teclas: 5, vel: .7, notas: '2 1 0 1 2 2 2- 1 1 1- 2 4 4- 2 1 0 1 2 2 2 2 1 1 2 1 0-' },
+    { nombre: 'Martinillo', emoji: '🔔', teclas: 6, vel: .7, notas: '0 1 2 0 0 1 2 0 2 3 4- 2 3 4- 4 5 4 3 2 0 4 5 4 3 2 0 0 4 0- 0 4 0-' },
+    { nombre: 'La arañita', emoji: '🕷️', teclas: 6, vel: .7, notas: '0 3 3 3 4 5- 5 5 4 3 4 5 3- 3 3 4 5- 5 5 4 3 4 5 3-' },
+    { nombre: 'Cucú cantaba la rana', emoji: '🐸', teclas: 5, vel: .7, notas: '4 2- 4 2- 4 4 3 2 1 0- 1 1 2 3 4- 4 2- 4 2- 4 4 3 2 1 0-' },
+    { nombre: 'La cucaracha', emoji: '🪳', teclas: 6, vel: .75, notas: '0 0 0 3 5- 0 0 0 3 5- 3 3 2 2 1 1 0- 0 0 0 2 4- 0 0 0 2 4- 4 5 4 3 2 1 0-' },
+    { nombre: 'Navidad, navidad', emoji: '🎄', teclas: 5, vel: .8, notas: '2 2 2- 2 2 2- 2 4 0 1 2-- 3 3 3 3 3 2 2 2 2 1 1 2 1- 4-' },
+    { nombre: 'Canción de cuna', emoji: '🌙', teclas: 8, vel: .6, notas: '2 2 4- 2 2 4- 2 4 7- 6 5- 5 4 1 2 3 1 1 2 3- 1 3 6 5 4 6 7-' },
   ];
   // convierte '0 1 2-' en [{ k, t (tiempo en el que llega), d (duración) }]
   function partitura(txt) {
@@ -150,7 +183,7 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     J.say('Ahora tú. Toca la que brilla.');
   }
   function progresoCancion() {
-    $('#progreso').innerHTML = state.modo === 'canciones' && can.notas.length ? `<span class="pill">${CANCIONES[can.i].emoji} ${J.esc(CANCIONES[can.i].nombre)} · ${can.sig}/${can.notas.length}</span><button class="pill btn-lista" id="btn-lista">🎶 Canciones</button>` : '';
+    $('#progreso').innerHTML = state.modo === 'canciones' && can.notas.length ? `<span class="pill">${CANCIONES[can.i].emoji} ${J.esc(CANCIONES[can.i].nombre)} · ${can.sig}/${can.notas.length}</span><button class="pill btn-lista" id="btn-lista">🎶 Canciones</button>${controlVel()}` : '';
     const b = $('#btn-lista'); if (b) b.onclick = () => { J.sfx('pop'); lista(); };
   }
   function tocarCancion(i) {
@@ -186,7 +219,7 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     if (state.modo === 'canciones' && can.notas.length) {
       const c = CANCIONES[can.i], n = can.notas[can.sig];
       // el tiempo avanza solo hasta la nota que falta tocar: la nota espera a la niña
-      if (!can.fin) { can.t += dt * c.vel; if (n) can.t = Math.min(can.t, n.t); }
+      if (!can.fin) { can.t += dt * c.vel * velX; if (n) can.t = Math.min(can.t, n.t); }
       const W = innerWidth, H = can.h, linea = H - 34, px = Math.max(70, Math.min(130, H / 3.2));
       pc.clearRect(0, 0, W, H);
       for (let k = 0; k < c.teclas; k++) {
@@ -251,11 +284,18 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     $('#teclado').innerHTML = NOTAS.slice(0, n).map((x, i) => {
       const ico = state.modo === 'animales' ? ANIMALES[i][0] : state.modo === 'vocales' ? '' : '🎵';
       const nom = state.modo === 'animales' ? ANIMALES[i][1] : state.modo === 'vocales' ? VOC[i] : x.n;
-      return `<button class="tecla" data-i="${i}" style="--c:${x.c}" aria-label="${nom}">${ico ? `<span class="ico">${ico}</span>` : ''}<span class="nom" style="${state.modo === 'vocales' ? 'font-size:min(8vh,14vw,72px)' : ''}">${nom}</span></button>`;
+      return `<button class="tecla" data-i="${i}" style="--c:${x.c}" aria-label="${nom}"><kbd class="atajo">${i + 1}·${LETRAS[i].toUpperCase()}</kbd>${ico ? `<span class="ico">${ico}</span>` : ''}<span class="nom" style="${state.modo === 'vocales' ? 'font-size:min(8vh,14vw,72px)' : ''}">${nom}</span></button>`;
     }).join('');
   }
-  function bailar(texto, color) {
+  function bailar(texto, color, debajo) {
     const b = $('#bailarin'); b.classList.remove('salta'); void b.offsetWidth; b.classList.add('salta');
+    if (debajo) {
+      // animalitos: un solo dibujo a la vez, con su sonido escrito debajo ("¡Miau!")
+      $('#escena').querySelectorAll('.nota-grande').forEach(n => n.remove());
+      const s = document.createElement('div'); s.className = 'nota-grande con-texto'; s.style.left = '50%'; s.style.top = '34%';
+      s.innerHTML = `<span>${texto}</span><b style="color:${color}">${J.esc(debajo)}</b>`;
+      $('#escena').appendChild(s); setTimeout(() => s.remove(), 1400); return;
+    }
     const s = document.createElement('div'); s.className = 'nota-grande'; s.textContent = texto; s.style.color = color;
     s.style.left = (30 + Math.random() * 40) + '%'; s.style.top = '40%';
     $('#escena').appendChild(s); setTimeout(() => s.remove(), 1000);
@@ -266,24 +306,45 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 160); }
     if (state.modo === 'canciones') { piano(x.f); tocarCancion(i); return; }
     if (state.modo === 'notas' || state.modo === 'melodia') { piano(x.f); bailar(state.modo === 'notas' ? x.n : '♪', x.c); }
-    if (state.modo === 'animales') { animal(i, x.f); piano(x.f, .6); bailar(ANIMALES[i][0], x.c); J.say([ANIMALES[i][1], ANIMALES[i][2]]); }
+    if (state.modo === 'animales') { J.stopVoice(); bailar(ANIMALES[i][0], x.c, ANIMALES[i][2]); J.say(ANIMALES[i][2]); }
     if (state.modo === 'vocales') { piano(x.f, .8); bailar(VOC[i], x.c); J.say(VOC[i], { pitch: .8 + i * .2 }); }
     if (state.modo === 'notas' && Math.random() < .25) J.say(x.n);
     if (state.modo === 'melodia') revisar(i);
   }
   // ---------- sigue la melodía ----------
-  function progreso() { if (state.modo === 'canciones') return progresoCancion(); $('#progreso').innerHTML = state.modo === 'melodia' ? ESTRELLITA.map((_, k) => `<i class="${k < state.melo ? 'on' : ''}"></i>`).join('') : ''; }
+  function progreso() {
+    if (state.modo === 'canciones') return progresoCancion();
+    const m = melodia();
+    if (state.modo === 'melodia') $('#progreso').innerHTML = `<span class="puntos">${m.map((_, k) => `<i class="${k < state.melo ? 'on' : ''}"></i>`).join('')}</span>${controlVel()}<div class="fila-chips">${chipsCanciones()}</div>`;
+    else if (state.modo === 'notas') $('#progreso').innerHTML = `${controlVel()}<div class="fila-chips">${chipsCanciones()}</div>`;
+    else $('#progreso').innerHTML = '';
+  }
+  $('#progreso').addEventListener('click', e => {
+    const v = e.target.closest('[data-vel]'); if (v) { cambiarVel(+v.dataset.vel); return; }
+    const c = e.target.closest('[data-libre]'); if (!c) return;
+    state.libre = +c.dataset.libre; J.sfx('pop');
+    if (state.modo === 'melodia') empezarMelodia(); else tocarSola(state.libre);
+  });
+  // modo libre: la canción suena sola y las teclas se iluminan, para tocar encima
+  let demoT = [];
+  function tocarSola(i) {
+    demoT.forEach(clearTimeout); demoT = [];
+    let t = 300; const paso = 520 / velX;
+    partitura(CANCIONES[i].notas).forEach(n => { demoT.push(setTimeout(() => { if (state.modo !== 'notas') return; piano(NOTAS[n.k].f, .55); bailar(NOTAS[n.k].n, NOTAS[n.k].c); const el = $(`.tecla[data-i="${n.k}"]`); if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), Math.min(400, paso * n.d)); } }, t)); t += paso * n.d; });
+    progreso();
+  }
   function guia() {
     document.querySelectorAll('.tecla.guia').forEach(t => t.classList.remove('guia'));
-    const el = $(`.tecla[data-i="${ESTRELLITA[state.melo]}"]`); if (el) el.classList.add('guia');
+    const el = $(`.tecla[data-i="${melodia()[state.melo]}"]`); if (el) el.classList.add('guia');
   }
   function revisar(i) {
     if (!state.esperando) return;
-    if (i === ESTRELLITA[state.melo]) {
+    const m = melodia();
+    if (i === m[state.melo]) {
       state.melo++; progreso();
-      if (state.melo >= ESTRELLITA.length) {
+      if (state.melo >= m.length) {
         state.esperando = false; document.querySelectorAll('.tecla.guia').forEach(t => t.classList.remove('guia'));
-        setTimeout(() => { J.cheer(true); J.confetti(100); J.addStar(2); updatePlayer(); message('¡Tocaste Estrellita! ⭐', 2.2); J.say('¡Tocaste Estrellita!', { queue: true });
+        setTimeout(() => { J.cheer(true); J.confetti(100); J.addStar(2); updatePlayer(); message(state.libre == null ? '¡Tocaste Estrellita! ⭐' : `¡Tocaste ${CANCIONES[state.libre].nombre}! ⭐`, 2.2); J.say(state.libre == null ? '¡Tocaste Estrellita!' : J.pick(J.PRAISES), { queue: true });
           P.level.piano = Math.max(P.level.piano || 0, 1); J.save();
           setTimeout(() => J.nextTurn(empezarMelodia, { onShow: updatePlayer }), 3200); }, 500);
         return;
@@ -297,8 +358,9 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
     state.melo = 0; state.esperando = false; progreso();
     J.say(['Escucha', 'Ahora tú. Toca la que brilla.']);
     // primero suena la canción completa, despacito
-    ESTRELLITA.forEach((k, j) => setTimeout(() => { piano(NOTAS[k].f, .5); const el = $(`.tecla[data-i="${k}"]`); if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 220); } }, 900 + j * 420));
-    setTimeout(() => { if (state.modo !== 'melodia') return; state.esperando = true; guia(); }, 900 + ESTRELLITA.length * 420 + 300);
+    const m = melodia(), paso = 420 / velX;
+    m.forEach((k, j) => setTimeout(() => { if (state.modo !== 'melodia') return; piano(NOTAS[k].f, .5); const el = $(`.tecla[data-i="${k}"]`); if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 220); } }, 900 + j * paso));
+    setTimeout(() => { if (state.modo !== 'melodia') return; state.esperando = true; guia(); }, 900 + m.length * paso + 300);
   }
   function setModo(m) {
     state.modo = m; state.esperando = false;
@@ -321,7 +383,14 @@ body.canciones .btn-lista { display: inline-block; min-height: 44px; }
   });
   ['pointerup', 'pointercancel'].forEach(ev => addEventListener(ev, e => dedos.delete(e.pointerId)));
   // teclado de la compu: a s d f g h j k
-  addEventListener('keydown', e => { if (e.repeat) return; const i = 'asdfghjk'.indexOf(e.key.toLowerCase()); if (i >= 0 && i < document.querySelectorAll('.tecla').length) tocar(i); });
+  // teclado de la compu: números 1 al 8 o las letras a s d f g h j k
+  const LETRAS = 'asdfghjk';
+  addEventListener('keydown', e => {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    let i = LETRAS.indexOf(e.key.toLowerCase());
+    if (i < 0 && /^[1-8]$/.test(e.key)) i = +e.key - 1;
+    if (i >= 0 && i < document.querySelectorAll('.tecla').length) { e.preventDefault(); tocar(i); }
+  });
 
   (async () => {
     await J.ready;
