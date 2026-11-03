@@ -47,12 +47,38 @@ body { background: #1d1440; }
 @media (max-width: 700px) { .posiciones { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); left: 0; right: 0; width: auto; flex-direction: row; overflow-x: auto; padding: 0 10px; height: 54px; } .pos { flex: none; } .aplauso { bottom: calc(env(safe-area-inset-bottom, 0px) + 240px) !important; } }
 .aplauso { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); z-index: 6; background: #fff; border-radius: 999px; padding: 10px 16px; font-size: 22px; font-weight: 800; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
 .aplauso:active { transform: translateY(4px); }
+.cancion.bloq { background: rgba(255,255,255,.55); }
+.cancion.bloq span { filter: grayscale(1) opacity(.6); }
+.cancion .cand { font-size: 12px; font-weight: 800; color: #6b4fd8; }
+/* locuras: un botón 😜 que abre una fila de movimientos graciosos */
+.locuras-btn { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 210px); z-index: 7; width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #ffd23f, #ff7eb6); font-size: 32px; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
+.locuras-btn small { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); font: 800 12px var(--font-display, sans-serif); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.4); white-space: nowrap; }
+.locuras { position: fixed; right: 88px; bottom: calc(env(safe-area-inset-bottom, 0px) + 202px); z-index: 7; display: flex; gap: 6px; background: rgba(35,20,70,.72); padding: 8px; border-radius: 20px; backdrop-filter: blur(6px); }
+.locuras[hidden] { display: none; }
+.locura { position: relative; width: 60px; height: 64px; border-radius: 16px; background: rgba(255,255,255,.95); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+.locura span { font-size: 28px; }
+.locura b { font: 800 10px var(--font-display, sans-serif); color: #23324a; margin-top: 3px; white-space: nowrap; }
+.locura kbd { position: absolute; right: 4px; top: 2px; font: 800 10px system-ui, sans-serif; color: #8a7fb0; }
+.locura:disabled { background: rgba(255,255,255,.45); }
+.locura:disabled span { filter: grayscale(1) opacity(.55); }
+.locura .cand { font-size: 10px; color: #6b4fd8; }
+.locura:not(:disabled):active { transform: translateY(3px); }
+.limpiar { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 170px); z-index: 7; background: #fff; border-radius: 999px; padding: 10px 18px; font-size: 20px; font-weight: 800; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
+.limpiar[hidden] { display: none; }
+@media (max-width: 700px) {
+  .locuras-btn { bottom: calc(env(safe-area-inset-bottom, 0px) + 318px); width: 56px; height: 56px; font-size: 28px; }
+  .locuras { right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 392px); display: grid; grid-template-columns: repeat(4, 56px); }
+  .locura { width: 56px; height: 60px; }
+}
+@media (hover: none) { .locura kbd { display: none; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
+<script src="js/canciones-extra.js"></script>
 </head>
 <body>
 <canvas class="mundo" id="mundo" aria-label="Escenario de ballet en 3D"></canvas>
@@ -62,6 +88,9 @@ body { background: #1d1440; }
 </div>
 <div class="titulo"><h1 id="t-cancion">Escenario de Ballet</h1><p id="t-autor">Elige una canción y toca a tu bailarina</p></div>
 <button class="aplauso" id="aplauso">👏 ¡Bravo!</button>
+<button class="locuras-btn" id="locuras-btn" aria-label="Locuras" aria-expanded="false">😜<small>Locuras</small></button>
+<div class="locuras" id="locuras" hidden aria-label="Movimientos graciosos"></div>
+<button class="limpiar" id="limpiar" hidden>🧽 ¡Limpiar!</button>
 <div class="posiciones" id="posiciones" aria-label="Posiciones de ballet"></div>
 <div class="caritas" id="caritas" aria-label="Caritas"></div>
 <div class="dpad" id="dpad" aria-label="Mover a la bailarina">
@@ -71,7 +100,7 @@ body { background: #1d1440; }
   <button class="der" data-d="derecha" aria-label="Derecha">➡️</button>
   <button class="aba" data-d="abajo" aria-label="Adelante">⬇️</button>
 </div>
-<div class="teclas">⬅️➡️⬆️⬇️ mover · espacio saltar · números y letras: posiciones y caritas</div>
+<div class="teclas">⬅️➡️⬆️⬇️ mover · espacio saltar · números y letras: posiciones y caritas · Q W R Y U I O P: locuras</div>
 <div class="canciones" id="canciones" aria-label="Canciones"></div>
 
 <script type="module">
@@ -154,6 +183,8 @@ function setDeco(id) {
     paintSky('#2a1060', '#9a3fd6', 120);
   } else if (id === 'elisa') {
     paintSky('#3b2a1a', '#c9925a', 20);
+  } else if (J.SONGS[id] && J.SONGS[id].cielo) {
+    paintSky(...J.SONGS[id].cielo);
   } else {
     paintSky('#152a5c', '#3f8ee8', 100);
   }
@@ -168,6 +199,9 @@ async function makeDancers() {
     const d = await crearPersonaje(id);
     d.group.scale.setScalar(1.5);
     d.group.position.set(ids.length > 1 ? (i ? 1.6 : -1.6) : 0, 0, 0);
+    d.group.updateMatrixWorld(true);
+    const caja = new THREE.Box3().setFromObject(d.group);
+    d.alto = Math.max(1, caja.max.y - caja.min.y); d.altoLocal = d.alto / 1.5; d._ox = 0;
     scene.add(d.group); dancers.push(d);
   }
 }
@@ -181,20 +215,201 @@ $('#mundo').addEventListener('pointerdown', e => {
 $('#aplauso').onclick = () => { J.applause(2.4); J.say(J.pick(J.SHOUTS)); fx.burst(new THREE.Vector3(0, 3, 0), 80, 2); J.confetti(80); };
 
 // ---------- canciones ----------
-const SONG_IDS = ['cisnes', 'hada', 'elisa', 'alegria', 'estrellapop', 'estrellita', 'reino'];
+// las nuevas canciones (js/canciones-extra.js) se abren con estrellas; algunas son del plan Familia
+const SONG_IDS = ['cisnes', 'hada', 'elisa', 'alegria', 'estrellapop', 'estrellita', 'reino', ...(window.CANCIONES_EXTRA || [])];
+const familiaOk = () => !window.Cuenta || !window.Cuenta.personalizacion || window.Cuenta.personalizacion() === 'completa';
+function cancionAbierta(id) {
+  const s = J.SONGS[id]; if (!s) return true;
+  if (s.familia) return familiaOk();
+  return stars >= (s.estrellas || 0);
+}
+function aviso(html, ms = 2200) {
+  const n = document.createElement('div'); n.className = 'nueva'; n.innerHTML = html; document.body.appendChild(n); setTimeout(() => n.remove(), ms);
+}
 function renderSongs() {
-  const list = J.songList().filter(s => SONG_IDS.includes(s.id) || s.id === 'mia' || s.id === 'local');
+  const list = J.songList().filter(s => SONG_IDS.includes(s.id) || s.id === 'mia' || s.id === 'local')
+    .map(s => ({ ...s, abierta: cancionAbierta(s.id), info: J.SONGS[s.id] || {} }))
+    .sort((a, b) => b.abierta - a.abierta);
   const cur = J.currentSong();
-  $('#canciones').innerHTML = list.map(s => `<button class="cancion ${s.id === cur && J.isMusicOn() ? 'on' : ''}" data-id="${s.id}"><span>${s.emoji}</span><b>${J.esc(s.nombre)}</b><small>${J.esc(s.autor)}</small></button>`).join('');
+  $('#canciones').innerHTML = list.map(s => s.abierta
+    ? `<button class="cancion ${s.id === cur && J.isMusicOn() ? 'on' : ''}" data-id="${s.id}"><span>${s.emoji}</span><b>${J.esc(s.nombre)}</b><small>${J.esc(s.autor)}</small></button>`
+    : `<button class="cancion bloq" data-id="${s.id}" data-bloq="1" aria-label="${J.esc(s.nombre)} (bloqueada)"><span>${s.emoji}</span><b>🔒 ${J.esc(s.nombre)}</b><small class="cand">${s.info.familia ? '⭐ Plan Familia' : 'con ⭐ ' + s.info.estrellas}</small></button>`).join('');
   const s = list.find(x => x.id === cur) || list[0];
   $('#t-cancion').textContent = s.emoji + ' ' + s.nombre;
   $('#t-autor').textContent = s.autor === 'original' ? 'Toca a tu bailarina para que salte' : s.autor + ' · toca a tu bailarina para que salte';
 }
 $('#canciones').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if (!b) return;
+  if (b.dataset.bloq) {
+    const s = J.SONGS[b.dataset.id] || {};
+    J.boing(); J.say('¡Casi!');
+    aviso(s.familia ? `🔒 ${J.esc(s.nombre)}<br><small style="font-size:17px">Con el plan Familia · <a href="cuenta.html">ver plan</a></small>` : `🔒 ${J.esc(s.nombre)}<br><small style="font-size:17px">Se abre con ⭐ ${s.estrellas}. ¡Sigue jugando!</small>`, 2600);
+    return;
+  }
   J.audio(); J.setSong(b.dataset.id); setDeco(b.dataset.id); renderSongs();
   J.sfx('pop');
 });
+
+// ---------- locuras: movimientos graciosos ----------
+const LOCURAS = [
+  { id: 'cabeza', emoji: '🙃', nombre: 'De cabeza', tecla: 'q', estrellas: 0, dur: 3.6, decir: '¡De cabeza!' },
+  { id: 'tomates', emoji: '🍅', nombre: 'Tomates', tecla: 'w', estrellas: 0, dur: 4.2, decir: '¡Tomates!' },
+  { id: 'chiquita', emoji: '🐜', nombre: 'Chiquita', tecla: 'r', estrellas: 0, dur: 5, decir: '¡Soy chiquitita!' },
+  { id: 'gigante', emoji: '🦒', nombre: 'Gigante', tecla: 'y', estrellas: 6, dur: 4.5, decir: '¡Soy gigante!' },
+  { id: 'voltereta', emoji: '🤸', nombre: 'Voltereta', tecla: 'u', estrellas: 8, dur: 1.3, decir: '¡Hop!' },
+  { id: 'trompo', emoji: '🌀', nombre: 'Trompo', tecla: 'i', estrellas: 10, dur: 4.6, decir: '¡Qué mareo!' },
+  { id: 'globo', emoji: '🎈', nombre: 'Globo', tecla: 'o', estrellas: 20, dur: 5.5, decir: '¡Estoy volando!' },
+  { id: 'gelatina', emoji: '🥴', nombre: 'Gelatina', tecla: 'p', estrellas: 30, dur: 2.6, decir: '¡Soy gelatina!' },
+];
+const LOC = Object.fromEntries(LOCURAS.map(l => [l.id, l]));
+const locuraAbierta = l => stars >= l.estrellas;
+function renderLocuras() {
+  $('#locuras').innerHTML = LOCURAS.map(l => locuraAbierta(l)
+    ? `<button class="locura" data-loc="${l.id}" aria-label="${l.nombre}"><span>${l.emoji}</span><b>${l.nombre}</b><kbd>${l.tecla.toUpperCase()}</kbd></button>`
+    : `<button class="locura" disabled aria-label="${l.nombre} (bloqueada)"><span>${l.emoji}</span><b class="cand">🔒 ⭐${l.estrellas}</b></button>`).join('');
+}
+$('#locuras-btn').onclick = () => {
+  const p = $('#locuras'), abrir = p.hidden; p.hidden = !abrir;
+  $('#locuras-btn').setAttribute('aria-expanded', String(abrir)); J.sfx('pop');
+  if (abrir) J.say('¡Locuras!');
+};
+$('#locuras').addEventListener('click', e => {
+  const b = e.target.closest('[data-loc]'); if (!b) return;
+  hacerLocura(b.dataset.loc);
+  // en el celular el panel tapa a la bailarina: se cierra para ver la locura
+  if (innerWidth <= 700) { $('#locuras').hidden = true; $('#locuras-btn').setAttribute('aria-expanded', 'false'); }
+});
+// cosas que se pegan a la bailarina mientras dura la locura (estrellitas de mareo, globo)
+function estrellasMareo(d) {
+  const g = new THREE.Group();
+  for (let k = 0; k < 3; k++) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(.09), new THREE.MeshBasicMaterial({ color: 0xffd23f })); st.position.set(Math.cos(k * 2.1) * .32, 0, Math.sin(k * 2.1) * .32); g.add(st); }
+  g.position.y = d.altoLocal + .12; d.group.add(g); return g;
+}
+function globoDe(d) {
+  const g = new THREE.Group();
+  const gl = new THREE.Mesh(new THREE.SphereGeometry(.32, 20, 16), new THREE.MeshStandardMaterial({ color: 0xff5d8f, roughness: .25, metalness: .1 })); gl.scale.y = 1.18; gl.position.y = .95; g.add(gl);
+  const hilo = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .9, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); hilo.position.y = .4; g.add(hilo);
+  g.position.set(.38, d.altoLocal * .62, 0); d.group.add(g); return g;
+}
+function terminarLocura(d) {
+  const L = d.loc; if (!L) return;
+  (L.cosas || []).forEach(c => c.parent && c.parent.remove(c));
+  d.loc = null; d.group.rotation.z = 0; d.group.rotation.x = 0; d.group.scale.setScalar(1.5);
+  if (d.setCara) d.setCara(L.caraAntes || 'feliz');
+}
+function hacerLocura(id) {
+  const l = LOC[id]; if (!l) return;
+  if (!locuraAbierta(l)) { J.boing(); aviso(`🔒 ${l.nombre}<br><small style="font-size:17px">Se abre con ⭐ ${l.estrellas}</small>`); return; }
+  J.audio(); manualT = Math.max(manualT, l.dur);
+  dancers.forEach(d => {
+    terminarLocura(d);
+    d.loc = { id, t: 0, dur: l.dur, cosas: [], caraAntes: d.cara || 'feliz' };
+    if (id === 'trompo') d.loc.cosas.push(estrellasMareo(d));
+    if (id === 'globo') d.loc.cosas.push(globoDe(d));
+    if (id === 'gigante' && d.setCara) d.setCara('sorpresa');
+    if (id === 'chiquita' && d.setCara) d.setCara('feliz');
+  });
+  if (id === 'tomates') lanzarTomates();
+  else if (id === 'chiquita') J.say(l.decir, { pitch: 2, rate: 1.2 });
+  else if (id === 'gigante') { J.say(l.decir, { pitch: .5, rate: .85 }); J.tones([196, 147, 98], .18, 'triangle', .08); }
+  else J.say(l.decir);
+  if (id === 'cabeza' || id === 'voltereta') J.efecto('salto');
+  if (id === 'trompo') J.tones([523, 659, 784, 1047, 1319], .07, 'sine', .07);
+  if (id === 'globo') J.efecto('abrir');
+  if (id === 'gelatina') J.boing();
+  fx.burst(new THREE.Vector3(pasoX, 2.2, pasoZ), 30, 1);
+}
+// cada cuadro: mueve, gira y estira a la bailarina según su locura (sobre lo que hace al bailar)
+function aplicarLocura(d, dt) {
+  const L = d.loc; if (!L) return;
+  L.t += dt;
+  const k = Math.min(1, L.t / L.dur), f = Math.max(0, Math.min(1, L.t / .35, (L.dur - L.t) / .35));
+  let esc = 1, rz = 0, rx = 0, dy = 0;
+  if (L.id === 'cabeza') { rz = Math.PI * f; rx = Math.sin(L.t * 10) * .16 * f; }
+  else if (L.id === 'chiquita') { esc = 1 - .6 * f; dy = Math.abs(Math.sin(L.t * 9)) * .22 * f; }
+  else if (L.id === 'gigante') { esc = 1 + .9 * f; if (L.t > 1 && !L.rio) { L.rio = true; d.setCara && d.setCara('feliz'); } }
+  else if (L.id === 'voltereta') { rz = -Math.PI * 2 * k; dy = Math.sin(k * Math.PI) * 1.3; }
+  else if (L.id === 'trompo') {
+    if (L.t < 2.2) d.group.rotation.y += dt * 26 * Math.min(1, L.t / .5);
+    else { rz = Math.sin(L.t * 7) * .2 * f; if (!L.mareada) { L.mareada = true; d.setCara && d.setCara('sorpresa'); } }
+    const st = L.cosas[0]; if (st) { st.visible = L.t >= 2.2; st.rotation.y += dt * 5; }
+  }
+  else if (L.id === 'globo') { dy = Math.sin(k * Math.PI) * 2.3; rz = Math.sin(L.t * 2.2) * .12; }
+  else if (L.id === 'gelatina') { const a = Math.exp(-L.t * 1.1) * .38, w = Math.sin(L.t * 16); d.group.scale.set(1.5 * (1 + a * w), 1.5 * (1 - a * w), 1.5 * (1 + a * w)); }
+  if (L.id !== 'gelatina') d.group.scale.setScalar(1.5 * esc);
+  // girar alrededor del centro del cuerpo (no de los pies): se corrige la posición
+  const c = d.alto * esc / 2;
+  d._ox = c * Math.sin(rz);
+  d.group.position.x += d._ox;
+  d.group.position.y += dy + (c - c * Math.cos(rz));
+  d.group.rotation.z = rz; d.group.rotation.x = rx;
+  if (L.t >= L.dur) terminarLocura(d);
+}
+// tomates que vuelan desde el público y dejan manchas que gotean
+const tomates = [], manchas = [];
+const texMancha = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#e02a2a';
+  g.beginPath(); g.arc(64, 54, 30, 0, 7); g.fill();
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, r = 30 + Math.random() * 16; g.beginPath(); g.arc(64 + Math.cos(a) * r, 54 + Math.sin(a) * r * .8, 6 + Math.random() * 8, 0, 7); g.fill(); }
+  for (let i = 0; i < 3; i++) { const x = 46 + i * 16; g.fillRect(x - 4, 60, 8, 34 + i * 10); g.beginPath(); g.arc(x, 96 + i * 10, 6, 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(52, 44, 7, 0, 7); g.fill();
+  g.fillStyle = '#ffd23f'; for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(50 + Math.random() * 28, 48 + Math.random() * 16, 2.5, 4, Math.random() * 3, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const matTomate = new THREE.MeshStandardMaterial({ color: 0xe8332e, roughness: .35 }), matTallo = new THREE.MeshStandardMaterial({ color: 0x3fae4a });
+function hacerTomate() {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.SphereGeometry(.17, 14, 10), matTomate); b.scale.y = .85; g.add(b);
+  const h = new THREE.Mesh(new THREE.ConeGeometry(.08, .08, 6), matTallo); h.position.y = .16; h.rotation.x = Math.PI; g.add(h);
+  return g;
+}
+function lanzarTomates() {
+  dancers.forEach(d => {
+    for (let k = 0; k < 4; k++) setTimeout(() => {
+      const e = d.loc && d.loc.id === 'tomates' ? 1 : 1;
+      const from = new THREE.Vector3((Math.random() - .5) * 7, .4, 7.5);
+      const to = d.group.position.clone().add(new THREE.Vector3((Math.random() - .5) * .45, d.alto * e * (.4 + Math.random() * .5), .35));
+      const m = hacerTomate(); m.position.copy(from); scene.add(m);
+      tomates.push({ m, from, to, t: 0, dur: .7, d });
+      J.tones([880 - k * 60, 660 - k * 60], .06, 'sine', .04);
+    }, 120 + k * 360);
+    setTimeout(() => d.setCara && d.setCara('sorpresa'), 800);
+    setTimeout(() => d.setCara && d.setCara('llora'), 1900);
+    setTimeout(() => d.setCara && d.setCara('feliz'), 3500);
+  });
+  setTimeout(() => J.say('¡Uy, me mancharon!'), 1900);
+  setTimeout(() => { J.say('¡Jajaja!'); J.applause(1.4); }, 3500);
+}
+function pegarMancha(tm) {
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: texMancha, transparent: true, depthTest: true }));
+  const local = tm.d.group.worldToLocal(tm.to.clone()); local.z = Math.max(local.z, .22);
+  spr.position.copy(local); const s = .26 + Math.random() * .16; spr.scale.set(s, s, 1);
+  tm.d.group.add(spr); manchas.push({ spr, t: 0 });
+  J.efecto('popo'); fx.burst(tm.to.clone(), 14, .35);
+  $('#limpiar').hidden = false;
+}
+function limpiarManchas(conBrillo = true) {
+  manchas.splice(0).forEach(m => m.spr.parent && m.spr.parent.remove(m.spr));
+  $('#limpiar').hidden = true;
+  if (conBrillo) { J.sparkle(); dancers.forEach(d => fx.burst(d.group.position.clone().setY(d.alto * .6), 40, .8)); }
+}
+$('#limpiar').onclick = () => { limpiarManchas(); J.efecto('pop'); J.say('¡Como nueva!'); };
+function moverTomates(dt) {
+  for (let i = tomates.length - 1; i >= 0; i--) {
+    const tm = tomates[i]; tm.t += dt; const k = Math.min(1, tm.t / tm.dur);
+    tm.m.position.lerpVectors(tm.from, tm.to, k); tm.m.position.y += Math.sin(k * Math.PI) * 2.6; tm.m.rotation.x += dt * 12;
+    if (k >= 1) { scene.remove(tm.m); tomates.splice(i, 1); pegarMancha(tm); }
+  }
+  // las manchas gotean un poquito y se secan solas después de un rato
+  for (let i = manchas.length - 1; i >= 0; i--) {
+    const m = manchas[i]; m.t += dt;
+    if (m.t < 2.5) m.spr.position.y -= dt * .025;
+    if (m.t > 7) { m.spr.material.opacity = Math.max(0, 1 - (m.t - 7)); if (m.t > 8) { m.spr.parent && m.spr.parent.remove(m.spr); manchas.splice(i, 1); } }
+  }
+  if (!manchas.length && !$('#limpiar').hidden) $('#limpiar').hidden = true;
+}
+let zoomLoc = 0;
 
 W.onFrame((dt, t) => {
   const beat = J.musicBeat();
@@ -207,6 +422,7 @@ W.onFrame((dt, t) => {
   const lim = narrow() ? 1.4 : 3.6;
   if (moviendo) { pasoX = Math.max(-lim, Math.min(lim, pasoX + mx * dt * 3)); pasoZ = Math.max(-1.6, Math.min(2.4, pasoZ + mz * dt * 2.4)); manualT = Math.max(manualT, 1.5); }
   dancers.forEach((d, i) => {
+    if (d._ox) { d.group.position.x -= d._ox; d._ox = 0; }
     if (d.leap > 0) { d.leap -= dt * 1.4; d.group.position.y = Math.sin((1 - Math.max(0, d.leap)) * Math.PI) * 1.2; }
     else d.group.position.y = 0;
     const baseX = dancers.length > 1 ? (i ? 1.6 : -1.6) : 0;
@@ -214,7 +430,7 @@ W.onFrame((dt, t) => {
     d.group.position.z += (pasoZ - d.group.position.z) * Math.min(1, dt * 8);
     const rotT = moviendo ? Math.atan2(mx, mz) : 0;
     let dr = rotT - d.group.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr));
-    d.group.rotation.y += dr * Math.min(1, dt * 8);
+    if (!(d.loc && d.loc.id === 'trompo' && d.loc.t < 2.2)) d.group.rotation.y += dr * Math.min(1, dt * 8);
     if (moviendo && d.ballet && d.poseK !== 'mov') { d.poseK = 'mov'; d.setPose(unlocked.includes('releve') ? 'releve' : 'primera'); }
     if (d.ballet) {
       // coreografía: cambia de posición cada 2 tiempos; si la niña elige una, la mantiene un ratito
@@ -222,7 +438,13 @@ W.onFrame((dt, t) => {
       d.update(dt, d.leap > 0 ? 'festejar' : (sonando || manualT) ? 'ballet' : 'saludar', beat + i * 2);
     }
     else d.update(dt, d.leap > 0 ? 'festejar' : sonando ? 'bailar' : 'saludar');
+    aplicarLocura(d, dt);
   });
+  moverTomates(dt);
+  // gigante o globo: la cámara se aleja un poco para que se vea entera
+  const zt = dancers.some(d => d.loc && d.loc.id === 'gigante') ? 1 : dancers.some(d => d.loc && d.loc.id === 'globo') ? .7 : 0;
+  zoomLoc += (zt - zoomLoc) * Math.min(1, dt * 3);
+  if (zoomLoc > .001 || zt) { const n = narrow(); camera.position.set(0, (n ? 3.4 : 2.6) + zoomLoc * 1.8, (n ? 11 : 9) + zoomLoc * 5); camera.lookAt(0, 1.4 + zoomLoc * 1.2, 0); }
   beams.forEach((b, i) => { b.rotation.z = Math.sin(t * .6 + i * 2) * .35; });
   swans.forEach((s, i) => { s.position.x = ((t * .5 + i * 3) % 12) - 6; s.position.y = Math.sin(t * 2 + i) * .03; });
   deco.children.forEach(c => { if (c.userData.ph !== undefined) { c.position.y += Math.sin(t * 1.5 + c.userData.ph) * .004; c.rotation.z = Math.sin(t + c.userData.ph) * .3; } });
@@ -295,7 +517,8 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (k === ' ') { saltar(); e.preventDefault(); return; }
   const i = TECLAS_POSE.indexOf(k); if (i >= 0) { elegirPose(POSE_KEYS[i]); return; }
-  if (TECLAS_CARA[k]) elegirCara(TECLAS_CARA[k]);
+  if (TECLAS_CARA[k]) { elegirCara(TECLAS_CARA[k]); return; }
+  const loc = LOCURAS.find(l => l.tecla === k); if (loc) hacerLocura(loc.id);
 });
 addEventListener('keyup', e => { const k = FLECHAS[e.key.toLowerCase()]; if (k) mover[k] = false; });
 addEventListener('blur', () => Object.keys(mover).forEach(k => { mover[k] = false; }));
@@ -308,12 +531,19 @@ const visto = P.balletVisto || 0;
 const nuevas = Object.values(POSES).filter(p => p.estrellas > visto && p.estrellas <= stars);
 if (nuevas.length && visto) { const n = document.createElement('div'); n.className = 'nueva'; n.innerHTML = `🩰 ¡Nueva posición!<br>${nuevas.map(p => p.nombre).join('<br>')}`; document.body.appendChild(n); J.cheer(true); setTimeout(() => n.remove(), 3500); }
 P.balletVisto = stars; J.save();
-const start = SONG_IDS.includes(J.currentSong()) && J.currentSong() !== 'reino' ? J.currentSong() : 'cisnes';
+// avisar cuando se abre una canción nueva
+const vistoC = P.balletCancionesVisto || 0;
+const cancionesNuevas = (window.CANCIONES_EXTRA || []).map(id => J.SONGS[id]).filter(c => c && !c.familia && c.estrellas > vistoC && c.estrellas <= stars);
+if (cancionesNuevas.length && vistoC) setTimeout(() => { aviso(`🎶 ¡Nueva canción!<br>${cancionesNuevas.map(c => c.emoji + ' ' + J.esc(c.nombre)).join('<br>')}`, 3600); J.cheer(true); }, nuevas.length && visto ? 3700 : 300);
+P.balletCancionesVisto = stars; J.save();
+renderLocuras();
+const start = SONG_IDS.includes(J.currentSong()) && J.currentSong() !== 'reino' && cancionAbierta(J.currentSong()) ? J.currentSong() : 'cisnes';
 setDeco(start);
 if (J.currentSong() !== start || !J.isMusicOn()) J.setSong(start);
 renderSongs();
 W.start(); J.refreshMusic();
 setTimeout(() => J.say('¡A bailar!'), 500);
+if (location.hash === '#prueba') window.__bal = { dancers, hacerLocura, LOCURAS, tomates, manchas, limpiarManchas, renderSongs, cancionAbierta, get stars() { return stars; } };
 </script>
 </body>
 </html>
