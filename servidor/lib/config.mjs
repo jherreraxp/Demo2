@@ -28,6 +28,10 @@ export const config = {
     backUrl: env.PAYPAL_BACK_URL || env.MP_BACK_URL || 'https://jherreraxp.github.io/Demo2/cuenta.html',
     get api() { return env.PAYPAL_API || (this.modo === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com'); },
   },
+  google: {
+    clientId: (env.GOOGLE_CLIENT_ID || '').trim(),
+    jwksUrl: env.GOOGLE_JWKS_URL || 'https://www.googleapis.com/oauth2/v3/certs',
+  },
   gratisPara: lista(env.PLAN_GRATIS_PARA).map(e => e.toLowerCase()),
   // límites
   limiteIaDia: Number(env.LIMITE_IA_DIA || 5),

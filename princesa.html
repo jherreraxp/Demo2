@@ -30,6 +30,7 @@ body { background: radial-gradient(circle at 50% 35%, #fff4fb, #ffd0e6 55%, #c9b
 </script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body>
 <canvas class="mundo" id="mundo" aria-label="Princesa en 3D para pintar"></canvas>
@@ -135,7 +136,9 @@ function paint(part, point) {
   let c = color;
   if (c.v === 'arcoiris') { rainbowI = rainbowI % (COLORS.length - 1) + 1; c = COLORS[rainbowI]; }
   pintarParte(char, part, c.v);
-  P.colors[charId] = P.colors[charId] || {}; P.colors[charId][part] = c.v; J.save();
+  // sin plan Familia se pinta para probar, pero no se guarda
+  if (window.Cuenta && Cuenta.esDemo && Cuenta.esDemo()) { if (!paint.avisado) { paint.avisado = true; Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar los colores.'); } }
+  else { P.colors[charId] = P.colors[charId] || {}; P.colors[charId][part] = c.v; J.save(); }
   if (point) fx.burst(point, 18, .4);
   J.sparkle();
   const [nombre, g] = PARTS[part] || [part, 'm'];
@@ -144,7 +147,7 @@ function paint(part, point) {
 }
 $('#partes').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) paint(b.dataset.p, null); });
 $('#girar').onclick = () => { autoSpin = !autoSpin; J.sfx('pop'); };
-$('#limpiar').onclick = async () => { delete P.colors[charId]; J.save(); J.sfx('pop2'); await load(charId); J.say('¡Como nueva!'); };
+$('#limpiar').onclick = async () => { if (!(window.Cuenta && Cuenta.esDemo && Cuenta.esDemo())) { delete P.colors[charId]; J.save(); } J.sfx('pop2'); await load(charId); J.say('¡Como nueva!'); };
 $('#foto').onclick = () => {
   renderer.render(scene, camera);
   const a = document.createElement('a'); a.href = renderer.domElement.toDataURL('image/png'); a.download = `mi-${charId}.png`;

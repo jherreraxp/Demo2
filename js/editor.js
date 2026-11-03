@@ -245,6 +245,8 @@ $('#opciones').addEventListener('click', e => {
 
 $('#deshacer').onclick = () => { st.spec = JSON.parse(JSON.stringify(st.original)); J.sfx('pop2'); renderOpciones(); armar(); };
 $('#guardar').onclick = () => {
+  // sin plan Familia el taller es para probar: se ve y se juega aquí, pero no se guarda
+  if (window.Cuenta && Cuenta.esDemo && Cuenta.esDemo()) { J.cheer(); festejo = 2; Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar tus personajes.'); return; }
   const id = registrarPersonaje(st.editId, st.spec);
   P.caras = P.caras || {}; P.caras[id] = st.cara; J.save();
   st.editId = id; st.original = JSON.parse(JSON.stringify(st.spec)); $('#borrar').hidden = false;

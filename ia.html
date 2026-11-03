@@ -71,6 +71,7 @@ main { box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: calc(e
 </script>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
 <script src="js/herramientas.js"></script>
 <script src="js/ia.js"></script>
 </head>
@@ -226,11 +227,14 @@ async function crearPersonajeIA(pedido) {
   const t = await IA.llamar({ sistema, mensaje: `La niña pidió: "${pedido}"`, json: true });
   const spec = normalizar(IA.sacarJSON(t));
   const guardar = { nombre: spec.nombre, emoji: spec.emoji, base: spec.base, estilo: spec.estilo, fig: spec.fig };
-  if (typeof PJ.registrarPersonaje === 'function') spec.id = PJ.registrarPersonaje(spec.id, guardar) || spec.id;
+  // sin plan Familia se ve el personaje creado, pero no se guarda
+  if (window.Cuenta && Cuenta.esDemo && Cuenta.esDemo() && typeof PJ.vistaPrevia === 'function') { spec.id = PJ.vistaPrevia(guardar); spec.demo = true; }
+  else if (typeof PJ.registrarPersonaje === 'function') spec.id = PJ.registrarPersonaje(spec.id, guardar) || spec.id;
   else { P.personajesCustom = P.personajesCustom || {}; P.personajesCustom[spec.id] = guardar; J.save(); }
   J.CHARS[spec.id] = { name: spec.nombre, emoji: spec.emoji };
   await mostrarPersonaje(spec);
   J.cheer(true); J.say(['¡Listo!', spec.nombre]);
+  if (spec.demo) Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar tus personajes.');
   if (spec.frase) setTimeout(() => J.say(spec.frase, { queue: true }), 300);
 }
 // vista 3D que gira
@@ -252,7 +256,7 @@ async function mostrarPersonaje(spec) {
     <h2>${J.esc(spec.emoji)} ${J.esc(spec.nombre)}</h2><div class="frase">${frase}</div>
     <div class="botones"><button class="btn2" id="elegir">⭐ ¡Es mi personaje!</button><a class="btn2 claro" href="personajes.html">👀 Ver con los demás</a></div></div></div>`;
   r.querySelector('.frase').addEventListener('click', e => { const b = e.target.closest('.pal'); if (b) J.say(b.textContent.replace(/[^\p{L}\p{N}\s]/gu, '')); });
-  $('#elegir').onclick = () => { J.player().char = spec.id; J.save(); J.cheer(); J.say(['¡Hola!', spec.nombre]); $('#elegir').textContent = '✔ ¡Elegido!'; };
+  $('#elegir').onclick = () => { if (spec.demo) return Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para jugar con tu personaje.'); J.player().char = spec.id; J.save(); J.cheer(); J.say(['¡Hola!', spec.nombre]); $('#elegir').textContent = '✔ ¡Elegido!'; };
   if (vista) vista.parar();
   const canvas = $('#vista3d');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -294,7 +298,11 @@ EMOJI: <un emoji>
   const t = await IA.llamar({ sistema, mensaje: `La niña pidió: "${pedido}"` });
   const g = IA.leerJuego(t);
   const id = IA.slug(g.titulo) + '-' + Date.now().toString(36).slice(-4);
-  const j = IA.guardarJuego({ id, ...g, pedido, fecha: new Date().toISOString() });
+  const nuevo = { id, ...g, pedido, fecha: new Date().toISOString() };
+  // sin plan Familia el jueguito se juega ahora, pero no queda guardado en el menú
+  const demoJ = !!(window.Cuenta && Cuenta.esDemo && Cuenta.esDemo());
+  const j = demoJ ? nuevo : IA.guardarJuego(nuevo);
+  if (demoJ) setTimeout(() => Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar tus jueguitos.'), 1200);
   mostrarJuego(j);
   J.cheer(true); J.say(['¡Listo!', j.titulo]);
 }

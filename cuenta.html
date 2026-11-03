@@ -54,6 +54,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .pie { color: var(--muted); font-size: 14px; text-align: center; line-height: 1.6; }
 .pie a { color: var(--accent); font-weight: 700; }
 @media (max-width: 520px) { .perfil { grid-template-columns: 1fr 1fr; } .perfil button { grid-column: span 2; } }
+.o-separador { text-align: center; opacity: .6; margin: 12px 0 4px; font-size: 14px; }
+#google-btn { display: flex; justify-content: center; min-height: 44px; }
 </style>
 <script>window.SIN_MUSICA = true;</script>
 <script src="js/comun.js"></script>
@@ -79,6 +81,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
     <div class="pestanas" role="tablist">
       <button class="on" data-p="entrar" role="tab" aria-selected="true">Entrar</button>
       <button data-p="registro" role="tab" aria-selected="false">Crear cuenta</button>
+    </div>
+    <div id="google" hidden>
+      <div id="google-btn"></div>
+      <div id="google-acepto" hidden>
+        <p>Es la primera vez que entras con Google como <b id="g-email"></b>.</p>
+        <label class="check"><input type="checkbox" id="g-acepto"><span>Soy mayor de edad y acepto los <a href="terminos.html" target="_blank">términos</a> y la <a href="privacidad.html" target="_blank">política de privacidad</a>.</span></label>
+        <div class="acciones"><button class="primary" id="g-crear">Crear mi cuenta con Google</button></div>
+      </div>
+      <p class="o-separador">o con tu correo</p>
     </div>
     <form id="f-entrar">
       <p>Entra con la cuenta de mamá, papá o el adulto que cuida a los niños.</p>
@@ -138,7 +149,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   <section class="card" id="borrar" hidden>
     <h2>🗑️ Borrar la cuenta</h2>
     <p>Se borran la cuenta, los perfiles, el progreso en la nube y las voces guardadas. Lo que está en este aparato no se toca. Si tienes el plan Familia, primero cancélalo.</p>
-    <label for="b-clave">Escribe tu contraseña para confirmar</label><input id="b-clave" type="password" autocomplete="current-password">
+    <label for="b-clave" id="b-clave-txt">Escribe tu contraseña para confirmar</label><input id="b-clave" type="password" autocomplete="current-password">
     <div class="acciones"><button class="danger" id="borrar-cuenta">Borrar mi cuenta y mis datos</button></div>
     <div class="msg" id="borrar-msg" role="status"></div>
   </section>
@@ -167,6 +178,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
     $('#plan-familia').classList.toggle('actual', fam);
     $('#plan-gratis').classList.toggle('actual', !fam);
     $('#suscribir').hidden = fam; $('#cancelar').hidden = !fam;
+    const sinClave = c.conClave === false;
+    $('#b-clave-txt').textContent = sinClave ? 'Escribe BORRAR para confirmar' : 'Escribe tu contraseña para confirmar';
+    $('#b-clave').type = sinClave ? 'text' : 'password';
     $('#plan-estado').textContent = fam ? '✅ Tienes el plan Familia' + (c.planHasta ? ' hasta el ' + new Date(c.planHasta).toLocaleDateString('es-PE') : '') + '.' : '';
   }
 
@@ -176,6 +190,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
     if (!/^https?:\/\//.test(v)) return msg('#srv-msg', 'Debe empezar con https://', false);
     C.setServidor(v); msg('#srv-msg', ''); mostrar();
   };
+
+  // ---------- entrar con Google ----------
+  // el botón oficial de Google solo aparece si el servidor tiene configurado su "Client ID"
+  let credPendiente = null;
+  async function iniciarGoogle() {
+    const cfg = await C.configServidor();
+    if (!cfg || !cfg.googleClientId || C.token()) return;
+    await new Promise((ok, no) => { if (window.google && google.accounts) return ok(); const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client?hl=es'; sc.async = true; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }).catch(() => null);
+    if (!window.google || !google.accounts || !google.accounts.id) return;
+    google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: r => conGoogle(r.credential, false), ux_mode: 'popup', locale: 'es' });
+    google.accounts.id.renderButton($('#google-btn'), { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: 'es', width: Math.min(360, $('#acceso').clientWidth - 48) });
+    $('#google').hidden = false;
+  }
+  async function conGoogle(credential, acepto) {
+    msg('#acceso-msg', 'Entrando con Google…');
+    try {
+      const r = await C.entrarGoogle(credential, acepto);
+      if (r.necesitaAcepto) { credPendiente = credential; $('#g-email').textContent = r.email || ''; $('#google-acepto').hidden = false; msg('#acceso-msg', ''); return; }
+      credPendiente = null; $('#google-acepto').hidden = true; msg('#acceso-msg', '');
+      await despuesDeEntrar();
+    } catch (err) { msg('#acceso-msg', err.message, false); }
+  }
+  $('#g-crear').onclick = () => {
+    if (!$('#g-acepto').checked) return msg('#acceso-msg', 'Necesitamos que aceptes los términos y la privacidad.', false);
+    if (credPendiente) conGoogle(credPendiente, true);
+  };
+  window.__conGoogle = conGoogle;
 
   // ---------- entrar / registro ----------
   document.querySelectorAll('.pestanas button').forEach(b => b.onclick = () => {
@@ -209,7 +250,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
       C.subirProgreso(true); msg('#acceso-msg', ''); mostrar();
     } catch (err) { msg('#acceso-msg', err.message, false); }
   };
-  $('#salir').onclick = async () => { await C.salir(); document.querySelector('.pestanas [data-p=entrar]').click(); mostrar(); };
+  $('#salir').onclick = async () => { await C.salir(); document.querySelector('.pestanas [data-p=entrar]').click(); mostrar(); iniciarGoogle(); };
   $('#subir').onclick = async () => {
     try { await C.api('/api/progreso', { method: 'PUT', body: { datos: J.progress } }); msg('#familia-msg', '✅ Progreso guardado en tu cuenta.'); }
     catch (e) { msg('#familia-msg', e.message, false); }
@@ -258,7 +299,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   // ---------- borrar cuenta ----------
   $('#borrar-cuenta').onclick = async () => {
     const clave = $('#b-clave').value;
-    if (!clave) return msg('#borrar-msg', 'Escribe tu contraseña.', false);
+    if (!clave) return msg('#borrar-msg', C.actual() && C.actual().conClave === false ? 'Escribe BORRAR.' : 'Escribe tu contraseña.', false);
     if (!confirm('Esto borra la cuenta y todos sus datos en el servidor. ¿Seguro?')) return;
     try { await C.borrarCuenta(clave); msg('#borrar-msg', ''); mostrar(); alert('Tu cuenta y tus datos fueron borrados.'); }
     catch (e) { msg('#borrar-msg', e.message, false); }
@@ -267,6 +308,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   addEventListener('cuenta', mostrar);
   mostrar();
   C.yo(true).then(mostrar);
+  iniciarGoogle();
   if (location.hash === '#prueba') window.__cuenta = { mostrar };
 })();
 </script>

@@ -12,7 +12,11 @@
   const K_TEMA = 'bl-tema', K_FOTO = 'bl-foto', K_TODOS = 'bl-foto-todos';
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const put = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); return true; } catch (e) { return false; } };
-  const actual = () => (PALETAS[get(K_TEMA)] ? get(K_TEMA) : 'rosa');
+  // sin plan Familia (modo demostración) los colores se prueban solo en esta visita y la foto no se guarda
+  const demo = () => !!(window.Cuenta && window.Cuenta.esDemo && window.Cuenta.esDemo());
+  const avisar = t => { if (window.Cuenta && window.Cuenta.avisoDemo) window.Cuenta.avisoDemo(t); };
+  let temaPrueba = null;
+  const actual = () => temaPrueba && PALETAS[temaPrueba] ? temaPrueba : (PALETAS[get(K_TEMA)] ? get(K_TEMA) : 'rosa');
   const esMenu = () => document.body && document.body.classList.contains('menu');
 
   const css = `
@@ -49,9 +53,14 @@
     el.style.backgroundImage = `url("${foto}")`;
     document.body.classList.add('con-foto');
   }
-  function set(id) { if (PALETAS[id]) { put(K_TEMA, id); aplicar(); } }
+  function set(id) {
+    if (!PALETAS[id]) return;
+    if (demo()) { temaPrueba = id; aplicar(); avisar('Modo demostración: suscríbete al plan Familia para guardar tus colores.'); return; }
+    temaPrueba = null; put(K_TEMA, id); aplicar();
+  }
   // achica la foto a ~1280 px y la guarda como JPEG
   function setFoto(file) {
+    if (demo()) { avisar('Modo demostración: suscríbete al plan Familia para poner tu foto de fondo.'); return Promise.reject(new Error('La foto de fondo es parte del plan Familia.')); }
     return new Promise((ok, no) => {
       const img = new Image(), url = URL.createObjectURL(file);
       img.onload = () => {

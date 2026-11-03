@@ -13,6 +13,10 @@ pintarParque($('#parque'));
 const pedido = new URLSearchParams(location.search).get('p');
 const id = PERSONAJES.includes(pedido) ? pedido : PERSONAJES.includes(J.player().char) ? J.player().char : 'nieve';
 P.adornos = P.adornos || {};
+// sin plan Familia se puede decorar y cambiar la carita para probar, pero no se guarda
+const demo = () => !!(window.Cuenta && Cuenta.esDemo && Cuenta.esDemo());
+let avisado = false;
+const avisarDemo = () => { if (!avisado) { avisado = true; Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar cómo lo decoras.'); } };
 
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera } = W;
@@ -100,7 +104,7 @@ function ponerAdorno(k, on, silencio = false) {
     puestos[k].parent.remove(puestos[k]); delete puestos[k]; state.adornos.delete(k);
     if (!silencio) J.sfx('pop2');
   }
-  P.adornos[id] = [...state.adornos]; J.save();
+  if (demo()) { if (!silencio) avisarDemo(); } else { P.adornos[id] = [...state.adornos]; J.save(); }
 }
 [...state.adornos].forEach(k => ponerAdorno(k, true, true));
 
@@ -268,7 +272,7 @@ $('#herr').addEventListener('click', e => {
   if (c) {
     // la carita se guarda y se usa en todos los juegos
     const k = c.dataset.c; ch.setCara && ch.setCara(k);
-    P.caras = P.caras || {}; P.caras[id] = k; J.save();
+    if (demo()) avisarDemo(); else { P.caras = P.caras || {}; P.caras[id] = k; J.save(); }
     J.sfx('pop'); J.say(CARAS[k].nombre);
     hacer({ feliz: 'festejar', sorpresa: 'saludar' }[k] || 'quieto', 1.5);
     renderHerr(); return;

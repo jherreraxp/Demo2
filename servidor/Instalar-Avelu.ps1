@@ -31,16 +31,18 @@ bash servidor/instalar-junto-a-sigfe.sh "__DOM__" "__MAIL__"
   if ($LASTEXITCODE -ne 0) { throw "La instalación terminó con error (código $LASTEXITCODE). Copia las últimas líneas y envíalas." }
 
   Write-Host ""
-  $r = Read-Host "¿Quieres poner ahora las llaves de Mercado Pago y de Claude? (s/n)"
+  $r = Read-Host "¿Quieres poner ahora las llaves de Mercado Pago, Claude y Google? (s/n)"
   if ($r -match '^[sS]') {
     function Pedir($t) { $s = Read-Host $t -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)) }
     $mp = Pedir "Access Token de Mercado Pago (APP_USR-... o TEST-...; Enter para omitir)"
     $precio = Read-Host "Precio mensual en soles (Enter = 19.90)"
     $ia = Pedir "Llave NUEVA de Claude para los cuentos (sk-ant-...; Enter para omitir)"
+    $gid = Read-Host "ID de cliente de Google para 'Entrar con Google' (termina en .apps.googleusercontent.com; Enter para omitir)"
     $lineas = @("PLAN_GRATIS_PARA=$Correo")
     if ($mp) { $lineas += "MP_ACCESS_TOKEN=$mp"; $lineas += "PAGOS_PROVEEDOR=mercadopago" }
     if ($precio) { $lineas += "MP_PLAN_PRECIO=$precio" }
     if ($ia) { $lineas += "ANTHROPIC_API_KEY=$ia" }
+    if ($gid) { $lineas += "GOOGLE_CLIENT_ID=$($gid.Trim())" }
     ($lineas -join "`n") + "`n" | ssh @op $destino "sudo install -m 600 /dev/stdin /etc/avelu/secretos.tmp && sudo bash ~/Demo2/servidor/configurar.sh"
     Write-Host "Llaves guardadas solo en la VM (/etc/avelu/avelu.env)."
   }

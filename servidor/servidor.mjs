@@ -6,8 +6,9 @@ import path from 'node:path';
 import { config, VERSION } from './lib/config.mjs';
 import {
   db, nuevaCuenta, cuentaPorEmail, cuentaPorId, crearSesion, cuentaDeToken, borrarSesion, limpiarSesionesVencidas,
-  cuentaPublica, planDe, borrarCuenta,
+  cuentaPublica, planDe, borrarCuenta, cuentaPorGoogle, unirGoogle, nuevaCuentaGoogle,
 } from './lib/db.mjs';
+import { verificarGoogle } from './lib/google.mjs';
 import { ErrorUsuario, log, hashClave, claveCorrecta, limitar, emailValido, textoCorto, aleatorio } from './lib/util.mjs';
 import { crearSuscripcion, cancelarSuscripcion, webhook, revisar } from './lib/pagos.mjs';
 import { listaCuentos, crearCuentoIA } from './lib/cuentos.mjs';
@@ -93,6 +94,30 @@ ruta('POST', '/api/entrar', async (req) => {
   return { ok: true, token: crearSesion(c.id), cuenta: cuentaPublica(c) };
 });
 
+// datos públicos para que la página sepa qué mostrar (botón de Google, precio del plan)
+ruta('GET', '/api/config', async () => ({
+  ok: true, googleClientId: config.google.clientId || null, pagos: config.pagos,
+  precio: config.mp.precio, moneda: config.mp.moneda,
+}));
+
+ruta('POST', '/api/google', async (req) => {
+  if (!limitar('ggl:' + ipDe(req), 20, 60000)) throw new ErrorUsuario('Muchos intentos. Espera un minuto.', 429);
+  const { credential, acepto } = await leerJSON(req);
+  const g = await verificarGoogle(credential);
+  let c = cuentaPorGoogle(g.sub);
+  if (!c) {
+    const mismo = cuentaPorEmail(g.email);
+    if (mismo) { unirGoogle(mismo.id, g.sub); c = cuentaPorId(mismo.id); log('google_unido', { cuenta: c.id }); }
+    else {
+      // la primera vez, el adulto debe aceptar los términos (igual que al crear cuenta con correo)
+      if (acepto !== true) return { ok: false, necesitaAcepto: true, nombre: g.nombre, email: g.email };
+      const id = nuevaCuentaGoogle({ email: g.email, nombre: g.nombre || g.email.split('@')[0], sub: g.sub });
+      c = cuentaPorId(id); log('registro_google', { cuenta: id });
+    }
+  }
+  return { ok: true, token: crearSesion(c.id), cuenta: cuentaPublica(c) };
+});
+
 ruta('POST', '/api/salir', async (req) => { borrarSesion(tokenDe(req)); return { ok: true }; });
 ruta('GET', '/api/yo', async (req) => ({ ok: true, cuenta: cuentaPublica(necesitaCuenta(req)) }));
 
@@ -127,8 +152,9 @@ ruta('GET', '/api/progreso', async (req) => {
 
 ruta('DELETE', '/api/cuenta', async (req) => {
   const c = necesitaCuenta(req);
-  const { clave } = await leerJSON(req);
-  if (typeof clave !== 'string' || !claveCorrecta(clave, c.sal, c.hash)) throw new ErrorUsuario('La clave no coincide.', 401);
+  const { clave, confirmo } = await leerJSON(req);
+  if (c.hash === '!') { if (confirmo !== 'BORRAR') throw new ErrorUsuario('Escribe BORRAR para confirmar.', 401); }
+  else if (typeof clave !== 'string' || !claveCorrecta(clave, c.sal, c.hash)) throw new ErrorUsuario('La clave no coincide.', 401);
   if (c.suscripcion_id && !/cancel/i.test(c.suscripcion_estado || '')) { try { await cancelarSuscripcion(c); } catch (e) { log('cancelar_al_borrar', { cuenta: c.id }); } }
   borrarCuenta(c.id);
   log('cuenta_borrada', { cuenta: c.id });

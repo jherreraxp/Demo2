@@ -98,3 +98,34 @@ Qué hace:
   y se renueva solo con los mismos ganchos de SIGFE.
 - **Ojo:** si vuelves a correr `Activar-HTTPS.ps1` de SIGFE, ese script reescribe `nginx.conf`; después vuelve a correr
   `Instalar-Avelu.ps1` para agregar otra vez el sitio de Avelu.
+
+
+## Entrar con Google
+
+Las familias pueden entrar con su cuenta de Google (sin crear otra contraseña). El servidor revisa con las llaves
+públicas de Google que el inicio de sesión es real; no se guarda ninguna contraseña de Google.
+
+1. Entra a https://console.cloud.google.com con tu cuenta de Google y crea un proyecto (por ejemplo "Avelu y Amara").
+2. Menú → **APIs y servicios** → **Pantalla de consentimiento de OAuth** (o "Google Auth Platform" → **Branding**):
+   - Tipo de usuario: **Externo**. Nombre de la app: "Avelu y Amara". Correo de asistencia: el tuyo.
+   - Dominios autorizados: `arcillita.com`. Enlaces: `https://abu.arcillita.com/privacidad.html` y `https://abu.arcillita.com/terminos.html`.
+   - Permisos (scopes): solo los básicos (`openid`, `email`, `profile`). Publica la app (**Publicar** / "En producción").
+3. **APIs y servicios** → **Credenciales** → **Crear credenciales** → **ID de cliente de OAuth**:
+   - Tipo: **Aplicación web**. Nombre: "Avelu web".
+   - **Orígenes de JavaScript autorizados**: `https://abu.arcillita.com`
+   - No hace falta "URI de redireccionamiento".
+4. Copia el **ID de cliente** (termina en `.apps.googleusercontent.com`). Es público: **no** necesitas el "secreto del cliente".
+5. Ponlo en la VM: vuelve a correr `Instalar-Avelu.ps1` y pégalo cuando lo pida (o `GOOGLE_CLIENT_ID=...` en
+   `/etc/avelu/avelu.env` y `sudo docker restart avelu`).
+
+El botón "Continuar con Google" aparece solo en la página de la cuenta cuando el servidor tiene ese ID.
+La primera vez, el adulto marca que es mayor de edad y acepta los términos. Si ya tenía una cuenta con el mismo
+correo, se une a esa cuenta. Para borrar una cuenta creada con Google se escribe la palabra BORRAR.
+
+## Personalización: completa con el plan Familia, demostrativa sin él
+
+Sin el plan Familia (o sin entrar a una cuenta) se puede **probar** todo, pero no se guarda:
+voces del Estudio (se escuchan, no se guardan), Taller de personajes, pintar el personaje, decorar y caritas,
+colores y foto de fondo, y lo que crea el Estudio Mágico. Aparece el aviso "Modo demostración" con el botón al plan.
+Los correos de `PLAN_GRATIS_PARA` (tu familia) tienen siempre la personalización completa.
+La copia de respaldo en GitHub Pages (sin servidor) funciona como siempre, completa.

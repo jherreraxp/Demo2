@@ -41,6 +41,7 @@
     let data = null;
     try { data = await r.json(); } catch (e) { data = null; }
     if (r.status === 401 && token()) { LS.set('bl-cuenta-token', ''); guardarCache(null); }
+    if (r.ok && data && data.necesitaAcepto) return data;
     if (!r.ok || !data || data.ok === false) throw new ErrorCuenta((data && data.error) || ERRORES[r.status] || ERRORES[500], r.status);
     return data;
   }
@@ -65,6 +66,20 @@
     LS.set('bl-cuenta-token', d.token); guardarCache(d.cuenta);
     return d.cuenta;
   }
+  // "Entrar con Google": el navegador recibe un token de Google y el servidor lo verifica
+  let configCache = null;
+  async function configServidor() {
+    if (configCache) return configCache;
+    if (!servidor()) return {};
+    try { configCache = await api('/api/config'); } catch (e) { configCache = {}; }
+    return configCache;
+  }
+  async function entrarGoogle(credential, acepto = false) {
+    const d = await api('/api/google', { body: { credential, acepto: !!acepto } });
+    if (d.necesitaAcepto) return { necesitaAcepto: true, nombre: d.nombre, email: d.email };
+    LS.set('bl-cuenta-token', d.token); guardarCache(d.cuenta);
+    return { cuenta: d.cuenta };
+  }
   async function salir() {
     try { if (token()) await api('/api/salir', { body: {} }); } catch (e) {}
     LS.set('bl-cuenta-token', ''); guardarCache(null);
@@ -72,7 +87,7 @@
     await borrarVocesLocales().catch(() => {}); LS.set('bl-voces-de', '');
   }
   async function guardarPerfiles(perfiles) { const d = await api('/api/perfiles', { method: 'PUT', body: { perfiles } }); guardarCache(d.cuenta); return d.cuenta; }
-  async function borrarCuenta(clave) { await api('/api/cuenta', { method: 'DELETE', body: { clave } }); LS.set('bl-cuenta-token', ''); guardarCache(null); await borrarVocesLocales().catch(() => {}); LS.set('bl-voces-de', ''); }
+  async function borrarCuenta(clave) { await api('/api/cuenta', { method: 'DELETE', body: cache && cache.conClave === false ? { confirmo: clave } : { clave } }); LS.set('bl-cuenta-token', ''); guardarCache(null); await borrarVocesLocales().catch(() => {}); LS.set('bl-voces-de', ''); }
 
   // ---------- progreso en la nube ----------
   // se sube solo (con pausa) cuando cambia; al entrar se puede traer el de la nube
@@ -134,10 +149,21 @@
     try { localStorage.removeItem('bl-voces-nube'); } catch (e) {}
   }
   if (J && J.voices) {
-    // al grabar o borrar en el estudio, la cuenta se entera sola
-    const set = J.voices.set, del = J.voices.del;
-    J.voices.set = async (k, blob) => { const r = await set(k, blob); if (!bajando) subirVoz(k, blob).catch(() => {}); return r; };
-    J.voices.del = async k => { const r = await del(k); if (!bajando && conectado() && esFamilia()) { api('/api/voces/' + encodeURIComponent(k), { method: 'DELETE' }).catch(() => {}); marcar(k, null); } return r; };
+    // al grabar o borrar en el estudio, la cuenta se entera sola.
+    // En modo demostración la grabación se escucha, pero solo vive en la memoria (no se guarda ni se sube).
+    const get = J.voices.get, set = J.voices.set, del = J.voices.del, keys = J.voices.keys;
+    const memoria = new Map();
+    J.voices.get = k => memoria.has(k) ? Promise.resolve(memoria.get(k)) : get(k);
+    J.voices.keys = async () => [...new Set([...(await keys()), ...memoria.keys()])];
+    J.voices.set = async (k, blob) => {
+      if (!bajando && esDemo()) { memoria.set(k, blob); return; }
+      const r = await set(k, blob); if (!bajando) subirVoz(k, blob).catch(() => {}); return r;
+    };
+    J.voices.del = async k => {
+      memoria.delete(k);
+      const r = await del(k); if (!bajando && conectado() && esFamilia()) { api('/api/voces/' + encodeURIComponent(k), { method: 'DELETE' }).catch(() => {}); marcar(k, null); } return r;
+    };
+    J.voices.demo = () => esDemo();
   }
   async function vocesDeLaCuenta(c) {
     if (!J || !J.voices) return;
@@ -178,7 +204,32 @@
     return base.replace(/^http/, 'ws') + '/ws?token=' + encodeURIComponent(token());
   }
 
+  // ---------- personalización: completa con el plan Familia; si no, demostrativa ----------
+  // 'completa': plan Familia, o el juego sin servidor (copia de respaldo en github.io, como siempre)
+  // 'demo': hay servidor pero la cuenta es gratis o nadie entró: se puede probar, pero no se guarda
+  function personalizacion() {
+    if (!servidor()) return 'completa';
+    return token() && esFamilia() ? 'completa' : 'demo';
+  }
+  const esDemo = () => personalizacion() === 'demo';
+  function avisoDemo(texto = 'Modo demostración: suscríbete al plan Familia para guardar tus cambios.') {
+    if (!document.body) return;
+    let el = document.getElementById('aviso-demo');
+    if (!el) {
+      const st = document.createElement('style');
+      st.textContent = '#aviso-demo{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translate(-50%,140%);z-index:90;max-width:min(560px,calc(100vw - 24px));background:#23324a;color:#fff;border-radius:18px;padding:10px 12px 10px 16px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25);font:600 15px/1.3 system-ui,sans-serif;transition:transform .3s}#aviso-demo.ver{transform:translate(-50%,0)}#aviso-demo a{flex:none;background:#ffd23f;color:#23324a;border-radius:999px;padding:8px 14px;text-decoration:none;font-weight:800}#aviso-demo button{flex:none;background:none;border:0;color:#fff;font-size:20px;cursor:pointer}';
+      document.head.appendChild(st);
+      el = document.createElement('div'); el.id = 'aviso-demo'; el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `<span>⭐ ${texto.replace(/[<>&]/g, '')}</span><a href="cuenta.html">Ver plan</a><button aria-label="Cerrar">✕</button>`;
+    el.querySelector('button').onclick = () => el.classList.remove('ver');
+    requestAnimationFrame(() => el.classList.add('ver'));
+    clearTimeout(avisoDemo.t); avisoDemo.t = setTimeout(() => el.classList.remove('ver'), 7000);
+  }
+
   window.Cuenta = {
+    personalizacion, esDemo, avisoDemo, configServidor, entrarGoogle,
     servidor, setServidor: v => { LS.set('bl-servidor', (v || '').trim().replace(/\/+$/, '')); },
     token, api, yo, esFamilia, conectado, actual: () => cache,
     entrar, registro, salir, guardarPerfiles, borrarCuenta,

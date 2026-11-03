@@ -38,11 +38,24 @@ CREATE TABLE IF NOT EXISTS pagos_eventos (
 );
 `);
 
+// columnas que se agregaron después (bases ya creadas)
+if (!db.prepare('PRAGMA table_info(cuentas)').all().some(c => c.name === 'google_sub')) db.exec('ALTER TABLE cuentas ADD COLUMN google_sub TEXT');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_cuentas_google ON cuentas(google_sub) WHERE google_sub IS NOT NULL');
+
 const ahoraISO = () => new Date().toISOString();
 export function nuevaCuenta({ email, nombre, sal, hash }) {
   const id = 'c' + aleatorio(9);
   db.prepare('INSERT INTO cuentas (id, email, nombre, sal, hash, creada, acepto) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(id, email, nombre, sal, hash, ahoraISO(), ahoraISO());
+  return id;
+}
+export const cuentaPorGoogle = sub => db.prepare('SELECT * FROM cuentas WHERE google_sub = ?').get(sub);
+export const unirGoogle = (id, sub) => db.prepare('UPDATE cuentas SET google_sub = ? WHERE id = ?').run(sub, id);
+// cuenta creada con Google: no tiene clave propia (hash '!' nunca coincide con ninguna clave)
+export function nuevaCuentaGoogle({ email, nombre, sub }) {
+  const id = 'c' + aleatorio(9);
+  db.prepare('INSERT INTO cuentas (id, email, nombre, sal, hash, creada, acepto, google_sub) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, email, nombre, '-', '!', ahoraISO(), ahoraISO(), sub);
   return id;
 }
 export const cuentaPorEmail = email => db.prepare('SELECT * FROM cuentas WHERE email = ?').get(email);
@@ -73,7 +86,7 @@ export function planDe(c) {
 }
 export function cuentaPublica(c) {
   const p = planDe(c);
-  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta };
+  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta, google: !!c.google_sub, conClave: c.hash !== '!' };
 }
 export function guardarPlan(id, { plan, hasta, proveedor, suscripcionId, estado }) {
   const c = cuentaPorId(id); if (!c) return;

@@ -70,6 +70,11 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 </head>
 <body>
 <main>
+  <section class="card" id="demo-voces" hidden style="background:#fff7d6;border:2px solid #ffd23f">
+    <h2>⭐ Modo demostración</h2>
+    <p>Puedes grabar y escuchar tus voces para probar cómo suenan en el juego. <b>Suscríbete al plan Familia para guardar tus voces</b> en tu cuenta y que suenen siempre, en todos tus aparatos.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="primary" href="cuenta.html" style="display:inline-block;padding:10px 16px;border-radius:12px;background:#ff5dab;color:#fff;font-weight:800;text-decoration:none">⭐ Ver el plan Familia</a></div>
+  </section>
   <div class="top"><a href="admin.html" aria-label="Volver al modo admin">⬅</a><h1>🎙️ Estudio de voz</h1></div>
 
   <section class="card">
@@ -189,7 +194,8 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
       const wav = await r.stop();
       const it = GRUPOS[g].items[idx];
       await J.voices.set(it.key, wav); await J.voices.refresh(it.key); local.add(it.key);
-      estado('¡Guardada! ' + it.texto);
+      if (J.voices.demo && J.voices.demo()) { estado('Lista para probar (no se guarda): ' + it.texto); window.Cuenta && Cuenta.avisoDemo('Modo demostración: suscríbete al plan Familia para guardar tus voces.'); }
+      else estado('¡Guardada! ' + it.texto);
       new Audio(URL.createObjectURL(wav)).play().catch(() => {});
       if ($('#auto').checked) { const next = GRUPOS[g].items.findIndex((x, i) => i > idx && !stateOf(x.key)); if (next >= 0) idx = next; }
       renderAll(); busy = false;
@@ -266,6 +272,8 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 // ---------- voces en la cuenta (plan Familia; aparte del flujo de GitHub) ----------
 (async () => {
   const J = window.Juego, C = window.Cuenta, $ = s => document.querySelector(s);
+  const pintarDemo = () => { $('#demo-voces').hidden = !(C && C.esDemo && C.esDemo()); };
+  pintarDemo(); addEventListener('cuenta', pintarDemo);
   // publicar en GitHub queda solo para quien ya tiene la llave de GitHub (las voces de la casa, públicas)
   if (window.Herr && Herr.token()) $('#publicar-card').hidden = false;
   if (!C || !C.servidor()) { $('#publicar-card').hidden = false; return; }

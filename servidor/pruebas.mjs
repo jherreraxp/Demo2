@@ -4,10 +4,29 @@ import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
+import http from 'node:http';
+import crypto from 'node:crypto';
+
+// Google falso: llaves RSA propias y un JWKS local, para probar "Entrar con Google" sin internet
+const llaveG = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const otraLlave = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const jwkG = { ...llaveG.publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' };
+const jwksSrv = http.createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' }); res.end(JSON.stringify({ keys: [jwkG] })); });
+await new Promise(ok => jwksSrv.listen(0, '127.0.0.1', ok));
+const CLIENTE_G = 'prueba.apps.googleusercontent.com';
+const b64u = o => Buffer.from(typeof o === 'string' ? o : JSON.stringify(o)).toString('base64url');
+function tokenGoogle(datos = {}, { llave = llaveG.privateKey, kid = 'k1' } = {}) {
+  const ahora = Math.floor(Date.now() / 1000);
+  const cuerpo = { iss: 'https://accounts.google.com', aud: CLIENTE_G, sub: '1234567890', email: 'mama@gmail.com', email_verified: true, given_name: 'Lupe', iat: ahora, exp: ahora + 600, ...datos };
+  const inicio = b64u({ alg: 'RS256', kid, typ: 'JWT' }) + '.' + b64u(cuerpo);
+  return inicio + '.' + crypto.sign('RSA-SHA256', Buffer.from(inicio), llave).toString('base64url');
+}
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'avelu-'));
 Object.assign(process.env, {
   DATA_DIR: dir, IA_FALSA: '1', PAGOS_PROVEEDOR: 'ninguno', PLAN_GRATIS_PARA: 'papa@prueba.pe',
   ORIGENES: 'https://jherreraxp.github.io', LATIDO_MS: '200000',
+  GOOGLE_CLIENT_ID: CLIENTE_G, GOOGLE_JWKS_URL: `http://127.0.0.1:${jwksSrv.address().port}/certs`,
 });
 const { crearServidor } = await import('./servidor.mjs');
 const { default: WebSocket } = await import('ws');
@@ -154,13 +173,52 @@ await prueba('borrar cuenta borra todo', async () => {
   assert.equal((await api('GET', '/api/yo', { token: papa })).status, 401);
   assert.equal(fs.existsSync(path.join(dir, 'voces', yo.id)), false);
 });
+await prueba('configuración pública', async () => {
+  const r = await api('GET', '/api/config'); assert.equal(r.json.ok, true); assert.equal(r.json.googleClientId, CLIENTE_G);
+});
+await prueba('entrar con Google: primera vez pide aceptar, luego crea la cuenta', async () => {
+  const ip = '7.7.7.1';
+  const r1 = await api('POST', '/api/google', { cuerpo: { credential: tokenGoogle() }, ip });
+  assert.equal(r1.json.ok, false); assert.equal(r1.json.necesitaAcepto, true);
+  const r2 = await api('POST', '/api/google', { cuerpo: { credential: tokenGoogle(), acepto: true }, ip });
+  assert.equal(r2.json.ok, true); assert.ok(r2.json.token); assert.equal(r2.json.cuenta.email, 'mama@gmail.com'); assert.equal(r2.json.cuenta.google, true);
+  // la segunda vez entra directo a la misma cuenta
+  const r3 = await api('POST', '/api/google', { cuerpo: { credential: tokenGoogle() }, ip });
+  assert.equal(r3.json.ok, true); assert.equal(r3.json.cuenta.id, r2.json.cuenta.id);
+  // una cuenta de Google no entra con clave
+  const r4 = await api('POST', '/api/entrar', { cuerpo: { email: 'mama@gmail.com', clave: '!' }, ip }); assert.equal(r4.status, 401);
+  // borrar una cuenta sin clave pide escribir BORRAR
+  const no = await api('DELETE', '/api/cuenta', { token: r3.json.token, cuerpo: {} }); assert.equal(no.status, 401);
+  const si = await api('DELETE', '/api/cuenta', { token: r3.json.token, cuerpo: { confirmo: 'BORRAR' } }); assert.equal(si.json.ok, true);
+});
+await prueba('entrar con Google une la cuenta que ya tenía ese correo', async () => {
+  const ip = '7.7.7.2';
+  const reg = await api('POST', '/api/registro', { cuerpo: { email: 'tio@gmail.com', clave: 'clave-tio-12', nombre: 'Tío', acepto: true }, ip });
+  const r = await api('POST', '/api/google', { cuerpo: { credential: tokenGoogle({ sub: '999', email: 'tio@gmail.com' }) }, ip });
+  assert.equal(r.json.ok, true); assert.equal(r.json.cuenta.id, reg.json.cuenta.id);
+  const e = await api('POST', '/api/entrar', { cuerpo: { email: 'tio@gmail.com', clave: 'clave-tio-12' }, ip }); assert.equal(e.json.ok, true);
+});
+await prueba('entrar con Google rechaza tokens malos', async () => {
+  const ip = '7.7.7.3';
+  const malos = [
+    tokenGoogle({ aud: 'otra-app.apps.googleusercontent.com' }),
+    tokenGoogle({ exp: Math.floor(Date.now() / 1000) - 3600, iat: Math.floor(Date.now() / 1000) - 7200 }),
+    tokenGoogle({}, { llave: otraLlave.privateKey }),
+    tokenGoogle({ iss: 'https://malo.example.com' }),
+    tokenGoogle({}, { kid: 'no-existe' }),
+    'esto.no.esunjwt', '',
+  ];
+  for (const t of malos) { const r = await api('POST', '/api/google', { cuerpo: { credential: t, acepto: true }, ip }); assert.equal(r.json.ok, false); assert.ok(r.status >= 400, 'estado ' + r.status); }
+  const sinVerificar = await api('POST', '/api/google', { cuerpo: { credential: tokenGoogle({ sub: '555', email: 'nv@gmail.com', email_verified: false }), acepto: true }, ip });
+  assert.equal(sinVerificar.status, 401); assert.match(sinVerificar.json.error, /verificado/);
+});
 await prueba('rutas desconocidas y JSON malo', async () => {
   assert.equal((await api('GET', '/api/nada')).status, 404);
   const r = await fetch(base + '/api/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '5.5.5.5' }, body: '{malo' });
   assert.equal(r.status, 400); const j = await r.json(); assert.equal(j.ok, false); assert.ok(!/at |Error/.test(j.error));
 });
 
-servidor.close();
+servidor.close(); jwksSrv.close();
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(`\n${pasaron} pasaron, ${fallos} fallaron`);
 process.exit(fallos ? 1 : 0);

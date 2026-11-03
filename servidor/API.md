@@ -10,15 +10,17 @@ La dirección del servidor se configura en el admin (`localStorage 'bl-servidor'
 |---|---|---|---|
 | POST | `/api/registro` | `{ email, clave, nombre, acepto: true }` (acepto = términos y privacidad, adulto mayor de 18) | `{ ok, token, cuenta }` |
 | POST | `/api/entrar` | `{ email, clave }` | `{ ok, token, cuenta }` |
+| GET | `/api/config` | — | `{ ok, googleClientId, pagos, precio, moneda }` (público) |
+| POST | `/api/google` | `{ credential, acepto? }` (ID token de Google Identity Services) | `{ ok, token, cuenta }` o, la primera vez sin `acepto`, `{ ok: false, necesitaAcepto: true, email, nombre }` |
 | POST | `/api/salir` | — | `{ ok }` |
 | GET | `/api/yo` | — | `{ ok, cuenta }` |
 | PUT | `/api/perfiles` | `{ perfiles: [{ id, nombre, personaje }] }` (máx. 6) | `{ ok, cuenta }` |
 | PUT | `/api/progreso` | `{ datos }` (JSON del progreso del juego, máx. 512 KB) | `{ ok }` |
 | GET | `/api/progreso` | — | `{ ok, datos }` |
-| DELETE | `/api/cuenta` | `{ clave }` | `{ ok }` (borra la cuenta y todos sus datos) |
+| DELETE | `/api/cuenta` | `{ clave }` (o `{ confirmo: 'BORRAR' }` si la cuenta es solo de Google) | `{ ok }` (borra la cuenta y todos sus datos) |
 
 Autenticación: cabecera `Authorization: Bearer <token>`.
-`cuenta = { id, email, nombre, perfiles: [...], plan: 'gratis' | 'familia', planHasta: ISO | null }`.
+`cuenta = { id, email, nombre, perfiles: [...], plan: 'gratis' | 'familia', planHasta: ISO | null, google: bool, conClave: bool }`.
 
 ## Suscripción (plan "familia", mensual)
 

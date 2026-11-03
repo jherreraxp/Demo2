@@ -13,6 +13,7 @@ export function hashClave(clave, sal = crypto.randomBytes(16).toString('hex')) {
   return { sal, hash: h };
 }
 export function claveCorrecta(clave, sal, hash) {
+  if (!hash || hash === '!') return false;
   const h = crypto.scryptSync(clave, sal, 64, { N: 16384, r: 8, p: 1 });
   const b = Buffer.from(hash, 'hex');
   return b.length === h.length && crypto.timingSafeEqual(b, h);
