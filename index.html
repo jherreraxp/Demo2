@@ -125,6 +125,7 @@ details.credits a { color: inherit; }
 <script src="js/tema.js"></script>
 <script src="js/juegos.js"></script>
 <script src="js/juegos-ia.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body class="menu">
 <div class="wrap">
@@ -138,6 +139,7 @@ details.credits a { color: inherit; }
         <a class="ico btn" href="personajes.html" aria-label="Mi personaje">👗</a>
         <button class="ico" id="dos" aria-label="Jugar de a 2">👭</button>
         <button class="ico" id="papas" aria-label="Para mamá y papá">🔒</button>
+        <button class="ico" id="cuenta" aria-label="Cuenta de la familia" hidden>👤</button>
       </div>
     </div>
     <div class="secciones">
@@ -299,6 +301,16 @@ const clock = new THREE.Clock();
   modeT -= dt; if (modeT <= 0) mode = 'bailar';
   if (ch && document.body.contains(renderer.domElement)) { ch.update(dt, mode); renderer.render(scene, cam); }
   requestAnimationFrame(loop);
+})();
+</script>
+<script>
+// cuenta de la familia (solo si hay servidor configurado): 👤, o ⭐ con el plan Familia
+(() => {
+  const b = document.getElementById('cuenta'), C = window.Cuenta;
+  if (!b || !C || !C.servidor()) return;
+  const pintar = () => { b.hidden = false; b.textContent = C.esFamilia() ? '⭐' : '👤'; b.setAttribute('aria-label', C.conectado() ? 'Cuenta de la familia' + (C.esFamilia() ? ' (plan Familia)' : '') : 'Entrar a la cuenta de la familia'); };
+  pintar(); addEventListener('cuenta', pintar);
+  b.addEventListener('click', () => window.Juego.pedirPin(() => { location.href = 'cuenta.html'; }));
 })();
 </script>
 </body>

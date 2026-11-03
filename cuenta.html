@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cuenta de la Familia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Andika:wght@700&display=swap">
+<style>
+/* Layout: página para adultos — tarjetas apiladas: entrar o registrarse, perfiles de los niños, plan, datos y privacidad. */
+:root {
+  --bg1: var(--tema-bg1, #ffe3f3); --bg2: var(--tema-bg2, #e3dcff); --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #e4e0f0;
+  --accent: var(--tema-acento, #9a6ee0); --accent2: var(--tema-acento2, #ff7eb6); --ok: #2f8a58; --warn: #c0392b;
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, var(--bg1), var(--bg2)); color: var(--ink); font-family: var(--font-body); font-size: 16px; }
+main { box-sizing: border-box; max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 60px; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top a.casa { text-decoration: none; font-size: 22px; background: var(--card); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 3px 0 rgba(35,50,74,.15); flex: none; }
+h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; }
+h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 8px; }
+.card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 4px 0 rgba(35,50,74,.08), 0 6px 18px rgba(35,50,74,.06); }
+.card > p { margin: 4px 0 12px; color: var(--muted); line-height: 1.5; }
+label { font-weight: 600; display: block; margin: 10px 0 4px; }
+input, select { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; width: 100%; box-sizing: border-box; background: #fff; color: var(--ink); }
+input[type=checkbox] { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
+.check { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-weight: 500; line-height: 1.4; }
+button, .boton { font: inherit; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 12px; padding: 10px 16px; font-weight: 600; text-decoration: none; display: inline-block; }
+button.primary, .boton.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 800; }
+button.danger { color: var(--warn); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.pestanas { display: flex; gap: 6px; margin-bottom: 6px; }
+.pestanas button { border-radius: 999px; }
+.pestanas button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.msg { min-height: 1.4em; font-weight: 700; margin-top: 10px; }
+.msg.ok { color: var(--ok); } .msg.err { color: var(--warn); }
+.hola { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hola .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: grid; place-items: center; font-size: 30px; color: #fff; }
+.hola b { font-family: var(--font-display); font-size: 22px; display: block; }
+.hola small { color: var(--muted); }
+.perfil { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 8px; }
+.planes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.plan { border: 2px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.plan.actual { border-color: var(--accent); background: #faf6ff; }
+.plan h3 { margin: 0; font-family: var(--font-display); font-size: 22px; }
+.plan .precio { color: var(--muted); font-weight: 700; }
+.plan ul { margin: 4px 0 8px; padding-left: 20px; line-height: 1.6; }
+.plan .tag { align-self: flex-start; background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 800; }
+.pie { color: var(--muted); font-size: 14px; text-align: center; line-height: 1.6; }
+.pie a { color: var(--accent); font-weight: 700; }
+@media (max-width: 520px) { .perfil { grid-template-columns: 1fr 1fr; } .perfil button { grid-column: span 2; } }
+</style>
+<script>window.SIN_MUSICA = true;</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
+</head>
+<body>
+<main>
+  <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>👤 Cuenta de la familia</h1></div>
+
+  <!-- sin servidor configurado -->
+  <section class="card" id="sin-servidor" hidden>
+    <h2>🌐 Falta el servidor</h2>
+    <p>Las cuentas, el plan Familia y jugar en línea usan un servidor propio. Escribe su dirección (te la da quien instaló el juego) o configúrala en el modo admin. Sin servidor, el juego funciona igual, guardando todo solo en este aparato.</p>
+    <label for="srv">Dirección del servidor</label>
+    <input id="srv" placeholder="https://juego.midominio.com" inputmode="url" autocomplete="off">
+    <div class="acciones"><button class="primary" id="srv-guardar">Guardar</button></div>
+    <div class="msg" id="srv-msg"></div>
+  </section>
+
+  <!-- entrar / registrarse -->
+  <section class="card" id="acceso" hidden>
+    <div class="pestanas" role="tablist">
+      <button class="on" data-p="entrar" role="tab" aria-selected="true">Entrar</button>
+      <button data-p="registro" role="tab" aria-selected="false">Crear cuenta</button>
+    </div>
+    <form id="f-entrar">
+      <p>Entra con la cuenta de mamá, papá o el adulto que cuida a los niños.</p>
+      <label for="e-email">Correo</label><input id="e-email" type="email" autocomplete="email" required>
+      <label for="e-clave">Contraseña</label><input id="e-clave" type="password" autocomplete="current-password" required>
+      <div class="acciones"><button class="primary" type="submit">Entrar</button></div>
+    </form>
+    <form id="f-registro" hidden>
+      <p>La cuenta la crea un adulto. Los niños juegan como perfiles dentro de la familia, solo con su nombre.</p>
+      <label for="r-nombre">Tu nombre</label><input id="r-nombre" autocomplete="name" required maxlength="40">
+      <label for="r-email">Correo</label><input id="r-email" type="email" autocomplete="email" required>
+      <label for="r-clave">Contraseña (mínimo 8 letras o números)</label><input id="r-clave" type="password" autocomplete="new-password" minlength="8" required>
+      <label class="check"><input type="checkbox" id="r-acepto" required><span>Soy mayor de edad y acepto los <a href="terminos.html" target="_blank">términos</a> y la <a href="privacidad.html" target="_blank">política de privacidad</a>.</span></label>
+      <div class="acciones"><button class="primary" type="submit">Crear cuenta</button></div>
+    </form>
+    <div class="msg" id="acceso-msg" role="status"></div>
+  </section>
+
+  <!-- con sesión -->
+  <section class="card" id="familia" hidden>
+    <div class="hola"><div class="avatar">👨‍👩‍👧</div><div><b id="f-nombre"></b><small id="f-email"></small></div><span style="flex:1"></span><button id="salir">Salir</button></div>
+    <div class="acciones" id="sync">
+      <button id="subir">☁️ Guardar el progreso ahora</button>
+      <button id="bajar">⬇️ Traer el progreso de la nube</button>
+    </div>
+    <div class="msg" id="familia-msg" role="status"></div>
+  </section>
+
+  <section class="card" id="perfiles" hidden>
+    <h2>🧒 Perfiles de los niños</h2>
+    <p>Solo el nombre (o un apodo) y su personaje. Se usan en los juegos y en los cuentos con sus nombres. Hasta 6.</p>
+    <div id="lista-perfiles"></div>
+    <div class="acciones"><button id="agregar">➕ Agregar niño o niña</button><button class="primary" id="guardar-perfiles">💾 Guardar perfiles</button></div>
+    <div class="msg" id="perfiles-msg" role="status"></div>
+  </section>
+
+  <section class="card" id="plan" hidden>
+    <h2>⭐ Plan</h2>
+    <div class="planes">
+      <div class="plan" id="plan-gratis">
+        <h3>Gratis</h3>
+        <span class="precio">Para siempre</span>
+        <ul><li>Todos los juegos para aprender a leer</li><li>Jugar en línea con amigos</li><li>3 fábulas para leer</li><li>Progreso guardado en la nube</li></ul>
+      </div>
+      <div class="plan" id="plan-familia">
+        <span class="tag">Plan Familia</span>
+        <h3>Familia · mensual</h3>
+        <span class="precio" id="precio">Pago mensual · cancelas cuando quieras</span>
+        <ul><li>🎙️ <b>Voces propias en la nube</b>: graba la voz de mamá o papá y úsala en todos sus aparatos</li><li>📚 <b>Más cuentos</b>: fábulas nuevas cada mes</li><li>✨ <b>Cuentos con IA con sus nombres</b>: los niños, papá y mamá como protagonistas</li></ul>
+        <div class="acciones"><button class="primary" id="suscribir">⭐ Suscribirme</button><button class="danger" id="cancelar" hidden>Cancelar el plan</button></div>
+        <small id="plan-estado"></small>
+      </div>
+    </div>
+    <div class="msg" id="plan-msg" role="status"></div>
+  </section>
+
+  <section class="card" id="borrar" hidden>
+    <h2>🗑️ Borrar la cuenta</h2>
+    <p>Se borran la cuenta, los perfiles, el progreso en la nube y las voces guardadas. Lo que está en este aparato no se toca. Si tienes el plan Familia, primero cancélalo.</p>
+    <label for="b-clave">Escribe tu contraseña para confirmar</label><input id="b-clave" type="password" autocomplete="current-password">
+    <div class="acciones"><button class="danger" id="borrar-cuenta">Borrar mi cuenta y mis datos</button></div>
+    <div class="msg" id="borrar-msg" role="status"></div>
+  </section>
+
+  <p class="pie"><a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a><br><span id="pie-srv"></span></p>
+</main>
+<script>
+(() => {
+  const J = window.Juego, C = window.Cuenta;
+  const $ = s => document.querySelector(s);
+  const msg = (id, text, ok = true) => { const el = $(id); el.textContent = text || ''; el.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); };
+  let perfiles = [];
+
+  function mostrar() {
+    const srv = C.servidor(), c = C.actual(), dentro = !!(srv && C.token() && c);
+    $('#sin-servidor').hidden = !!srv;
+    $('#acceso').hidden = !srv || dentro;
+    ['#familia', '#perfiles', '#plan', '#borrar'].forEach(s => { $(s).hidden = !dentro; });
+    $('#pie-srv').textContent = srv ? 'Servidor: ' + srv : '';
+    if (!dentro) return;
+    $('#f-nombre').textContent = c.nombre || 'Familia';
+    $('#f-email').textContent = c.email || '';
+    perfiles = (c.perfiles || []).map(p => ({ ...p }));
+    pintarPerfiles();
+    const fam = C.esFamilia();
+    $('#plan-familia').classList.toggle('actual', fam);
+    $('#plan-gratis').classList.toggle('actual', !fam);
+    $('#suscribir').hidden = fam; $('#cancelar').hidden = !fam;
+    $('#plan-estado').textContent = fam ? '✅ Tienes el plan Familia' + (c.planHasta ? ' hasta el ' + new Date(c.planHasta).toLocaleDateString('es-PE') : '') + '.' : '';
+  }
+
+  // ---------- servidor ----------
+  $('#srv-guardar').onclick = () => {
+    const v = $('#srv').value.trim();
+    if (!/^https?:\/\//.test(v)) return msg('#srv-msg', 'Debe empezar con https://', false);
+    C.setServidor(v); msg('#srv-msg', ''); mostrar();
+  };
+
+  // ---------- entrar / registro ----------
+  document.querySelectorAll('.pestanas button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.pestanas button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+    $('#f-entrar').hidden = b.dataset.p !== 'entrar'; $('#f-registro').hidden = b.dataset.p !== 'registro'; msg('#acceso-msg', '');
+  });
+  async function despuesDeEntrar() {
+    // ¿traer el progreso guardado en la nube?
+    try {
+      const datos = await C.bajarProgreso();
+      if (datos && JSON.stringify(datos) !== JSON.stringify(J.progress) && confirm('Hay un progreso guardado en tu cuenta. ¿Usarlo en este aparato? (Si dices que no, se guarda el de este aparato en la cuenta.)')) C.usarProgreso(datos);
+      else C.subirProgreso(true);
+    } catch (e) {}
+    mostrar();
+  }
+  $('#f-entrar').onsubmit = async e => {
+    e.preventDefault(); msg('#acceso-msg', 'Entrando…');
+    try { await C.entrar($('#e-email').value.trim(), $('#e-clave').value); msg('#acceso-msg', ''); await despuesDeEntrar(); }
+    catch (err) { msg('#acceso-msg', err.message, false); }
+  };
+  $('#f-registro').onsubmit = async e => {
+    e.preventDefault();
+    if ($('#r-clave').value.length < 8) return msg('#acceso-msg', 'La contraseña debe tener al menos 8 letras o números.', false);
+    if (!$('#r-acepto').checked) return msg('#acceso-msg', 'Necesitamos que aceptes los términos y la privacidad.', false);
+    msg('#acceso-msg', 'Creando la cuenta…');
+    try {
+      await C.registro($('#r-email').value.trim(), $('#r-clave').value, $('#r-nombre').value.trim(), true);
+      // los jugadores de este aparato pasan a ser los perfiles de la familia
+      const ps = J.progress.players.map((p, i) => ({ id: 'p' + (i + 1), nombre: p.name, personaje: p.char }));
+      try { await C.guardarPerfiles(ps); } catch (err) {}
+      C.subirProgreso(true); msg('#acceso-msg', ''); mostrar();
+    } catch (err) { msg('#acceso-msg', err.message, false); }
+  };
+  $('#salir').onclick = async () => { await C.salir(); document.querySelector('.pestanas [data-p=entrar]').click(); mostrar(); };
+  $('#subir').onclick = async () => {
+    try { await C.api('/api/progreso', { method: 'PUT', body: { datos: J.progress } }); msg('#familia-msg', '✅ Progreso guardado en tu cuenta.'); }
+    catch (e) { msg('#familia-msg', e.message, false); }
+  };
+  $('#bajar').onclick = async () => {
+    try {
+      const d = await C.bajarProgreso();
+      if (!d) return msg('#familia-msg', 'Todavía no hay progreso guardado en la cuenta.', false);
+      if (confirm('¿Reemplazar el progreso de este aparato por el de la cuenta?')) { C.usarProgreso(d); msg('#familia-msg', '✅ Listo, ya tienes el progreso de la cuenta.'); }
+    } catch (e) { msg('#familia-msg', e.message, false); }
+  };
+
+  // ---------- perfiles ----------
+  const opciones = sel => Object.entries(J.CHARS).map(([id, c]) => `<option value="${id}" ${id === sel ? 'selected' : ''}>${c.emoji} ${J.esc(c.name)}</option>`).join('');
+  function pintarPerfiles() {
+    $('#lista-perfiles').innerHTML = perfiles.map((p, i) => `<div class="perfil" data-i="${i}">
+      <input aria-label="Nombre" value="${J.esc(p.nombre || '')}" maxlength="24" data-k="nombre">
+      <select aria-label="Personaje" data-k="personaje">${opciones(p.personaje)}</select>
+      <button class="danger" data-quitar="${i}" aria-label="Quitar ${J.esc(p.nombre || '')}">Quitar</button></div>`).join('') || '<p>Todavía no hay perfiles.</p>';
+    $('#agregar').disabled = perfiles.length >= 6;
+  }
+  $('#lista-perfiles').addEventListener('input', e => { const f = e.target.closest('.perfil'); if (f) perfiles[f.dataset.i][e.target.dataset.k] = e.target.value; });
+  $('#lista-perfiles').addEventListener('click', e => { const b = e.target.closest('[data-quitar]'); if (b) { perfiles.splice(+b.dataset.quitar, 1); pintarPerfiles(); } });
+  $('#agregar').onclick = () => { if (perfiles.length < 6) { perfiles.push({ id: 'p' + Date.now().toString(36), nombre: '', personaje: 'amara' }); pintarPerfiles(); } };
+  $('#guardar-perfiles').onclick = async () => {
+    const ps = perfiles.map(p => ({ ...p, nombre: (p.nombre || '').trim() })).filter(p => p.nombre);
+    try {
+      await C.guardarPerfiles(ps); msg('#perfiles-msg', '✅ Perfiles guardados.');
+      // los dos primeros perfiles son los jugadores del juego en este aparato
+      ps.slice(0, 2).forEach((p, i) => { if (J.progress.players[i]) { J.progress.players[i].name = p.nombre; J.progress.players[i].char = p.personaje; } });
+      J.save(); mostrar();
+    } catch (e) { msg('#perfiles-msg', e.message, false); }
+  };
+
+  // ---------- plan ----------
+  $('#suscribir').onclick = async () => {
+    msg('#plan-msg', 'Abriendo la página de pago…');
+    try { await C.abrirPago(); } catch (e) { msg('#plan-msg', e.message, false); }
+  };
+  $('#cancelar').onclick = async () => {
+    if (!confirm('¿Cancelar el plan Familia? Seguirás teniéndolo hasta el fin del mes pagado.')) return;
+    try { await C.cancelarPlan(); msg('#plan-msg', 'Plan cancelado. Gracias por acompañarnos.'); mostrar(); }
+    catch (e) { msg('#plan-msg', e.message, false); }
+  };
+
+  // ---------- borrar cuenta ----------
+  $('#borrar-cuenta').onclick = async () => {
+    const clave = $('#b-clave').value;
+    if (!clave) return msg('#borrar-msg', 'Escribe tu contraseña.', false);
+    if (!confirm('Esto borra la cuenta y todos sus datos en el servidor. ¿Seguro?')) return;
+    try { await C.borrarCuenta(clave); msg('#borrar-msg', ''); mostrar(); alert('Tu cuenta y tus datos fueron borrados.'); }
+    catch (e) { msg('#borrar-msg', e.message, false); }
+  };
+
+  addEventListener('cuenta', mostrar);
+  mostrar();
+  C.yo(true).then(mostrar);
+  if (location.hash === '#prueba') window.__cuenta = { mostrar };
+})();
+</script>
+</body>
+</html>

@@ -70,12 +70,13 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <script src="js/tema.js"></script>
 <script src="js/herramientas.js"></script>
 <script src="js/ia.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body>
 <main id="main" hidden>
   <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
   <nav class="indice" aria-label="Secciones">
-    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#servidor">Servidor y cuentas</a><a href="#publicar">Publicar</a><a href="#sesion">Sesión</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
   </nav>
 
   <section class="card" id="jugadores">
@@ -139,6 +140,14 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     <h2>🎙️ Voces de todo el juego</h2>
     <p>En el Estudio de voz grabas, una por una, todas las frases e instrucciones del juego. Lo que no esté grabado lo dice la voz del dispositivo.</p>
     <a class="primary" href="voces.html" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:12px">Abrir el Estudio de voz →</a>
+  </section>
+
+  <section class="card" id="servidor">
+    <h2>🌐 Servidor y cuentas</h2>
+    <p>Dirección del servidor propio (la VM) para las cuentas de las familias, el plan Familia y jugar en línea con amigos. Si lo dejas vacío, el juego funciona igual que siempre, sin cuentas.</p>
+    <div class="row"><label for="srv-url">Dirección del servidor</label><span class="llave"><input type="text" id="srv-url" placeholder="https://juego.midominio.com" autocomplete="off" inputmode="url"><button type="button" id="srv-probar">Probar</button></span></div>
+    <div class="row"><label></label><small id="srv-estado"></small></div>
+    <div class="acciones"><a href="cuenta.html" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:12px">👤 Cuenta de la familia →</a></div>
   </section>
 
   <section class="card" id="ia">
@@ -402,6 +411,24 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     conGas(e.target, async () => { const r = await IA.traerDeDrive(); say('#gas-estado', `<span class="ok">¡Copia traída!</span> (${r.fecha ? new Date(r.fecha).toLocaleString('es-PE') : ''}) Recargando…`); setTimeout(() => location.reload(), 1500); });
   };
   pintar();
+})();
+</script>
+<script>
+(() => {
+  // dirección del servidor (cuentas y jugar en línea)
+  const url = document.getElementById('srv-url'), est = document.getElementById('srv-estado');
+  if (!url || !window.Cuenta) return;
+  url.value = Cuenta.servidor();
+  const guardar = () => { Cuenta.setServidor(url.value); url.value = Cuenta.servidor(); };
+  url.addEventListener('change', () => { guardar(); est.textContent = url.value ? 'Guardado.' : 'Sin servidor: el juego funciona sin cuentas.'; est.className = 'ok'; });
+  document.getElementById('srv-probar').onclick = async () => {
+    guardar();
+    if (!url.value) { est.textContent = 'Escribe la dirección primero.'; est.className = 'err'; return; }
+    if (location.protocol === 'https:' && url.value.startsWith('http:')) { est.textContent = 'El juego está en https: el servidor también debe usar https.'; est.className = 'err'; return; }
+    est.textContent = 'Probando…'; est.className = '';
+    try { const r = await fetch(url.value + '/api/salud'); est.textContent = r.ok ? '✅ El servidor responde.' : '⚠️ Responde, pero con error ' + r.status + '.'; est.className = r.ok ? 'ok' : 'err'; }
+    catch (e) { est.textContent = '❌ No se pudo conectar. Revisa la dirección, el https y el firewall de la VM.'; est.className = 'err'; }
+  };
 })();
 </script>
 </body>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plan Familia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
+<style>
+:root { color-scheme: light; --ink: #23324a; --muted: #5b6b82; --accent: var(--tema-acento, #9a6ee0); }
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: linear-gradient(160deg, var(--tema-bg1, #ffe3f3), var(--tema-bg2, #e3dcff)); color: var(--ink); font-family: "Baloo 2", system-ui, sans-serif; }
+.caja { box-sizing: border-box; width: min(92vw, 460px); background: #fff; border-radius: 28px; padding: 26px 22px; text-align: center; box-shadow: 0 8px 0 rgba(35,50,74,.12); }
+.caja .e { font-size: 76px; line-height: 1; }
+h1 { margin: 8px 0 4px; font-size: 30px; line-height: 1.1; }
+p { margin: 6px 0 14px; color: var(--muted); font-family: system-ui, sans-serif; line-height: 1.5; }
+a.b { display: inline-block; margin: 4px; padding: 10px 20px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 800; text-decoration: none; font-size: 20px; }
+a.b.sec { background: #eef0f6; color: var(--ink); }
+</style>
+<script>window.SIN_MUSICA = true;</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
+</head>
+<body>
+<div class="caja" role="status">
+  <div class="e" id="e">⏳</div>
+  <h1 id="t">Revisando el pago…</h1>
+  <p id="p">Un momentito, estamos preguntando si el pago ya llegó.</p>
+  <div><a class="b" href="index.html">🏠 Ir a jugar</a><a class="b sec" href="cuenta.html">👤 Mi cuenta</a></div>
+</div>
+<script>
+(async () => {
+  const C = window.Cuenta, $ = s => document.querySelector(s);
+  const pon = (e, t, p) => { $('#e').textContent = e; $('#t').textContent = t; $('#p').textContent = p; };
+  const fallo = /fail|rechaz|cancel/i.test(location.search);
+  if (fallo) return pon('😕', 'El pago no se completó', 'No se cobró nada. Puedes intentarlo otra vez desde tu cuenta.');
+  // el aviso del pago puede tardar unos segundos en llegar al servidor
+  for (let i = 0; i < 8; i++) {
+    // le pedimos al servidor que pregunte el estado del pago al proveedor
+    try { await C.api('/api/suscripcion/revisar', { body: {} }); } catch (e) {}
+    const c = await C.yo(true);
+    if (C.esFamilia()) { pon('🎉', '¡Ya tienes el plan Familia!', 'Gracias. Ya puedes guardar sus voces en la nube y leer los cuentos nuevos y los cuentos con sus nombres.'); window.Juego && Juego.confetti(120); return; }
+    if (!c && i === 0 && !C.token()) break;
+    await new Promise(r => setTimeout(r, 2500));
+  }
+  pon('⏳', 'El pago está en camino', 'A veces tarda unos minutos. Si ya pagaste, en un ratito aparecerá el plan Familia en tu cuenta.');
+})();
+</script>
+</body>
+</html>

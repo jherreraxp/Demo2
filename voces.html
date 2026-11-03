@@ -66,6 +66,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <script src="js/tema.js"></script>
 <script src="js/frases.js"></script>
 <script src="js/herramientas.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body>
 <main>
@@ -121,6 +122,17 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
     <h2>Copia de seguridad</h2>
     <p>Descarga todas tus grabaciones en un archivo, o cárgalas en otro navegador.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="exportar">⬇ Descargar copia</button><button id="importar-btn">⬆ Cargar copia</button><input type="file" id="importar" accept=".json,application/json" hidden></div>
+  </section>
+
+  <section class="card" id="nube" hidden>
+    <h2>☁️ Mis voces en mi cuenta</h2>
+    <p>Con el plan Familia, tus grabaciones se guardan en tu cuenta (privadas, no se publican) y aparecen en todos tus aparatos al entrar con la misma cuenta.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="nube-subir">☁️ Guardar mis voces en mi cuenta</button><button id="nube-bajar">⬇ Traer mis voces de la cuenta</button></div>
+    <p id="nube-msg" role="status"></p>
+  </section>
+  <section class="card" id="nube-plan" hidden>
+    <h2>☁️ Voces en la nube</h2>
+    <p>Con el <a href="cuenta.html">plan Familia</a> tus voces se guardan en tu cuenta y se usan en todos tus aparatos.</p>
   </section>
 </main>
 
@@ -248,6 +260,40 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   }
   idx = Math.max(0, GRUPOS[0].items.findIndex(it => !stateOf(it.key)));
   renderAll();
+})();
+</script>
+<script>
+// ---------- voces en la cuenta (plan Familia; aparte del flujo de GitHub) ----------
+(async () => {
+  const J = window.Juego, C = window.Cuenta, $ = s => document.querySelector(s);
+  if (!C || !C.servidor() || !C.token()) return;
+  await C.yo(true);
+  if (!C.esFamilia()) { $('#nube-plan').hidden = false; return; }
+  $('#nube').hidden = false;
+  const msg = t => { $('#nube-msg').textContent = t; };
+  const subidas = () => { try { return JSON.parse(localStorage.getItem('bl-voces-nube') || '{}'); } catch (e) { return {}; } };
+  const bajar = silencio => C.bajarVoces(!silencio);
+  $('#nube-subir').onclick = async () => {
+    const hechas = subidas(); let n = 0;
+    try {
+      const keys = await J.voices.keys();
+      for (const k of keys) {
+        const b = await J.voices.get(k); if (!b || hechas[k] === b.size) continue;
+        if (b.size > 1e6) continue;
+        msg(`Subiendo ${++n}…`);
+        await C.api('/api/voces/' + encodeURIComponent(k), { method: 'PUT', body: b, headers: { 'Content-Type': b.type || 'audio/wav' } });
+        hechas[k] = b.size; try { localStorage.setItem('bl-voces-nube', JSON.stringify(hechas)); } catch (e) {}
+      }
+      msg(n ? `✅ ${n} voces guardadas en tu cuenta.` : '✅ Tus voces ya estaban en tu cuenta.');
+    } catch (e) { msg('😕 ' + e.message); }
+  };
+  $('#nube-bajar').onclick = async () => {
+    msg('Trayendo tus voces…');
+    try { const n = await bajar(false); msg(n ? `✅ ${n} voces listas en este aparato.` : 'No hay voces guardadas en tu cuenta todavía.'); setTimeout(() => location.reload(), 900); }
+    catch (e) { msg('😕 ' + e.message); }
+  };
+  // al abrir, trae en silencio las voces que falten en este aparato
+  try { await bajar(true); } catch (e) {}
 })();
 </script>
 </body>

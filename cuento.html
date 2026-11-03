@@ -21,7 +21,8 @@
   color-scheme: light;
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; margin: 0; }
+html, body { min-height: 100%; margin: 0; }
+body { background-attachment: fixed; }
 body { background: radial-gradient(circle at 50% 0%, #3c64b0, var(--cover) 70%); color: var(--ink); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; }
 .page { min-height: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 14px); }
 button, a.btn { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; }
@@ -60,30 +61,69 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
 @keyframes brilla { 0%,100% { filter: drop-shadow(0 0 6px #fff6b0); transform: translate(-50%,-50%) scale(1) } 50% { filter: drop-shadow(0 0 22px #fff6b0); transform: translate(-50%,-50%) scale(1.08) } }
 @keyframes vuela { 0%,100% { transform: translate(-50%, -50%) rotate(-6deg) } 50% { transform: translate(-30%, -70%) rotate(6deg) } }
 @keyframes gira { to { transform: translate(-50%, -50%) rotate(360deg) } }
+/* biblioteca */
+.biblio { display: flex; flex-direction: column; gap: 14px; }
+.biblio h2 { margin: 6px 0 0; color: #fff; font-size: 24px; }
+.estantes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tapa { position: relative; border-radius: 22px; padding: 14px 10px 12px; background: linear-gradient(160deg, #fff, #ffe9f6); box-shadow: 0 6px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 18px; font-weight: 800; line-height: 1.1; min-height: 150px; justify-content: center; }
+.tapa .em { font-size: 54px; line-height: 1; }
+.tapa:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.tapa .tag { position: absolute; top: 8px; right: 8px; font-size: 13px; background: #9a6ee0; color: #fff; border-radius: 999px; padding: 1px 8px; }
+.tapa.bloq { background: linear-gradient(160deg, #eef0f6, #dfe3ee); color: #5b6b82; }
+.tapa.bloq .em { filter: grayscale(.6); opacity: .7; }
+.tapa.magia { background: linear-gradient(160deg, #ffe27a, #ff9ad5); }
+.tapa .quitar { position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.85); font-size: 15px; }
+.nota { color: #dfe8ff; font-family: system-ui, sans-serif; font-size: 15px; margin: 0; }
+.ia-form { background: #fff; border-radius: 24px; padding: 16px; box-shadow: 0 6px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 10px; }
+.ia-form h3 { margin: 0; font-size: 22px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border-radius: 999px; padding: 6px 14px; background: #eef0f6; font-size: 18px; font-weight: 800; }
+.chip.on { background: var(--hi); box-shadow: 0 3px 0 #c9a82e; }
+.ia-form input { font: inherit; font-size: 18px; padding: 8px 12px; border-radius: 14px; border: 2px solid #e4e0f0; }
+.ia-msg { min-height: 1.3em; font-weight: 800; }
+.moraleja { margin: 0 20px 18px; padding: 10px 14px; border-radius: 16px; background: #fff3c4; font-family: var(--font-letters); font-size: clamp(20px, 5vw, 26px); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 <script src="js/comun.js"></script>
 <script src="js/tema.js"></script>
+<script src="js/cuenta.js"></script>
 </head>
 <body>
 <div class="page">
   <div class="bar">
-    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
-    <h1>Lola y la Luna</h1>
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio" id="casa">🏠</a>
+    <button class="round-btn" id="a-biblio" aria-label="Volver a la biblioteca" hidden>📚</button>
+    <h1 id="titulo">Biblioteca</h1>
     <button class="round-btn" data-musica aria-label="Música">🎵</button>
   </div>
 
-  <article class="libro">
+  <section class="biblio" id="biblio" aria-label="Biblioteca de cuentos">
+    <div class="estantes" id="estantes"></div>
+    <h2 id="mis-titulo" hidden>✨ Mis cuentos con nombres</h2>
+    <div class="estantes" id="mis"></div>
+    <p class="nota" id="nota"></p>
+    <form class="ia-form" id="ia-form" hidden>
+      <h3>✨ Cuento con nuestros nombres</h3>
+      <div><b>¿Quiénes salen en el cuento?</b><div class="chips" id="nombres"></div></div>
+      <input id="otro" placeholder="Otro nombre (opcional)" maxlength="20" aria-label="Otro nombre">
+      <div><b>¿De qué trata?</b><div class="chips" id="temas"></div></div>
+      <button class="leer" type="submit" id="crear">✨ Crear el cuento</button>
+      <div class="ia-msg" id="ia-msg" role="status"></div>
+    </form>
+  </section>
+
+  <article class="libro" id="libro" hidden>
     <div class="escena" id="escena" aria-hidden="true"></div>
     <p class="texto" id="texto"></p>
+    <p class="moraleja" id="moraleja" hidden></p>
   </article>
 
-  <div class="nav">
+  <div class="nav" id="nav" hidden>
     <button class="flecha" id="atras" aria-label="Página anterior">⬅️</button>
     <button class="leer" id="leer">🔊 Leer</button>
     <button class="flecha" id="adelante" aria-label="Página siguiente">➡️</button>
   </div>
-  <div class="puntos" id="puntos"></div>
+  <div class="puntos" id="puntos" hidden></div>
 </div>
 
 <script>
@@ -99,7 +139,7 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
   const CUARTO = 'linear-gradient(#2a2f62, #4a4f8f)';
 
   // [emoji, x%, y%, tamaño en % del ancho, animación]
-  const PAGES = [
+  const LOLA = [
     { bg: DIA, text: 'Esta es Lola. Lola es una zorrita.',
       s: [['🌳', 14, 46, 22], ['🦊', 50, 66, 20, 'salta'], ['🌳', 86, 44, 24], ['🌼', 30, 82, 7], ['🌼', 70, 84, 6], ['☀️', 82, 14, 12, 'gira']] },
     { bg: NOCHE, text: 'Lola mira la luna. ¡Qué linda es la luna!',
@@ -120,12 +160,58 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
       s: [['🛏️', 46, 66, 34], ['🦊', 40, 54, 12], ['💤', 58, 34, 9, 'flota'], ['🌙', 84, 18, 13, 'brilla'], ['⭐', 14, 16, 5, 'brilla'], ['⭐', 26, 30, 4, 'brilla']] },
   ];
 
-  let page = 0, words = [], started = false;
+  const FONDOS = { dia: DIA, noche: NOCHE, cielo: CIELO, cielonoche: CIELO_NOCHE, casa: CASA, cuarto: CUARTO,
+    campo: 'linear-gradient(#bfe9ff, #e8f8ff 58%, #9ad86e 58%)', invierno: 'linear-gradient(#cfe3f5, #f3f8ff 60%, #ffffff 60%)',
+    bosque: 'linear-gradient(#a9dbc1, #dff3e6 60%, #6fbf73 60%)', mar: 'linear-gradient(#8fd6f8, #c9efff 55%, #3fa3d9 55%)' };
+  // fábulas de Esopo (dominio público) contadas con palabras nuestras, en frases cortitas para leer
+  const FABULAS = [
+    { id: 'liebre-tortuga', titulo: 'La liebre y la tortuga', emoji: '🐢', paginas: [
+      { texto: 'Esta es Tita, la tortuga. Tita camina despacito.', dibujo: '🐢 🌼 🌳', fondo: 'campo' },
+      { texto: 'Esta es Lía, la liebre. Lía corre muy rápido.', dibujo: '🐇 💨 🌷', fondo: 'campo' },
+      { texto: '—Tita, ¿hacemos una carrera? —dice Lía.', dibujo: '🐇 🐢 💬', fondo: 'campo' },
+      { texto: '¡Ya! Lía corre y corre. Tita camina paso a paso.', dibujo: '🐇 🐢 🏁', fondo: 'campo' },
+      { texto: 'Lía mira atrás. Tita está lejos. Lía se echa a dormir.', dibujo: '🐇 💤 🌳', fondo: 'campo' },
+      { texto: 'Tita no para. Paso a paso, pasa junto a Lía.', dibujo: '🐢 🐇 💤', fondo: 'campo' },
+      { texto: '¡Tita llega a la meta! Lía despierta. ¡Uy!', dibujo: '🐢 🏁 🎉 🐇', fondo: 'campo' },
+      { texto: 'Despacito y sin parar, también se puede ganar. ¡Fin!', dibujo: '🐢 ⭐ 🌈', fondo: 'dia' },
+    ], moraleja: 'Despacito y sin parar, también se puede ganar.' },
+    { id: 'leon-raton', titulo: 'El león y el ratón', emoji: '🦁', paginas: [
+      { texto: 'Este es Leo, el león. Leo duerme bajo un árbol.', dibujo: '🦁 💤 🌳', fondo: 'bosque' },
+      { texto: 'Un ratón pasa y sube por su cola. ¡Uy!', dibujo: '🐭 🦁 🌿', fondo: 'bosque' },
+      { texto: 'Leo despierta y lo atrapa. —¡No me comas! —dice el ratón.', dibujo: '🦁 🐭 💬', fondo: 'bosque' },
+      { texto: '—Un día te voy a ayudar. Leo se ríe y lo suelta.', dibujo: '🦁 😄 🐭', fondo: 'bosque' },
+      { texto: 'Otro día, Leo cae en una red. ¡No puede salir!', dibujo: '🦁 🕸️ 😢', fondo: 'bosque' },
+      { texto: 'El ratón oye a Leo y corre a ayudar.', dibujo: '🐭 💨 🌳', fondo: 'bosque' },
+      { texto: 'Con sus dientes, el ratón corta la red. ¡Leo sale!', dibujo: '🐭 🕸️ 🦁 ✨', fondo: 'bosque' },
+      { texto: 'Leo y el ratón son amigos. ¡Los chicos también ayudan! ¡Fin!', dibujo: '🦁 🐭 💖', fondo: 'dia' },
+    ], moraleja: 'Todos, grandes y chicos, podemos ayudar.' },
+    { id: 'cigarra-hormiga', titulo: 'La cigarra y la hormiga', emoji: '🐜', paginas: [
+      { texto: 'Es verano. Hace sol y calor.', dibujo: '☀️ 🌻 🌾', fondo: 'campo' },
+      { texto: 'La cigarra canta y canta todo el día.', dibujo: '🦗 🎵 🌻', fondo: 'campo' },
+      { texto: 'La hormiga lleva comida a su casa. Sube y baja sin parar.', dibujo: '🐜 🌽 🏠', fondo: 'campo' },
+      { texto: '—Ven a cantar —dice la cigarra. —Ahora no, guardo comida —dice la hormiga.', dibujo: '🦗 🐜 💬', fondo: 'campo' },
+      { texto: 'Llega el invierno. Hace frío y cae nieve.', dibujo: '⛄ ❄️ 🌨️', fondo: 'invierno' },
+      { texto: 'La cigarra tiene frío y hambre. Toca la puerta de la hormiga.', dibujo: '🦗 🥶 🚪', fondo: 'invierno' },
+      { texto: 'La hormiga le da sopa y una manta. ¡Qué rica sopa!', dibujo: '🐜 🍲 🦗', fondo: 'casa' },
+      { texto: 'La cigarra aprende: primero se trabaja y luego se canta. ¡Fin!', dibujo: '🦗 🐜 🎶', fondo: 'casa' },
+    ], moraleja: 'Primero se trabaja y luego se canta.' },
+  ];
+  // dibujo "🐢 🌼 🌳": el primero es el protagonista, grande; los demás alrededor
+  const POS = [[46, 64, 24, 'salta'], [76, 40, 16, 'flota'], [20, 38, 15, 'flota'], [82, 74, 12], [16, 76, 10], [56, 22, 9, 'brilla']];
+  function escenaDe(pg) {
+    if (pg.s) return pg;
+    const em = String(pg.dibujo || '📖').trim().split(/\s+/).slice(0, 6);
+    return { bg: FONDOS[pg.fondo] || (/[🌙⭐]/u.test(pg.dibujo || '') ? NOCHE : DIA), text: pg.texto, s: em.map((e, i) => [e, ...POS[i]]) };
+  }
+  const leerLocal = () => { try { return JSON.parse(localStorage.getItem('bl-cuentos-ia') || '[]'); } catch (e) { return []; } };
+  const guardarLocal = l => { try { localStorage.setItem('bl-cuentos-ia', JSON.stringify(l.slice(0, 30))); } catch (e) {} };
 
-  $('#puntos').innerHTML = PAGES.map(() => '<span class="punto"></span>').join('');
+  let PAGES = LOLA, cuento = null, page = 0, words = [], started = false;
 
   function render() {
     const pg = PAGES[page];
+    $('#moraleja').hidden = !(cuento && cuento.moraleja && page === PAGES.length - 1 && !pg.text.includes(cuento.moraleja));
+    if (cuento && cuento.moraleja) $('#moraleja').textContent = '💡 ' + cuento.moraleja;
     const esc = $('#escena');
     esc.style.background = pg.bg;
     esc.innerHTML = pg.s.map(([e, x, y, size, anim]) =>
@@ -183,9 +269,99 @@ button:focus-visible, a:focus-visible { outline: 4px solid #fff; outline-offset:
   $('#adelante').onclick = () => go(1);
   $('#leer').onclick = () => { J.stopVoice(); read(); };
 
-  render();
+  // ---------- biblioteca ----------
+  const LOLA_CUENTO = { id: 'lola', titulo: 'Lola y la Luna', emoji: '🦊', paginas: null };
+  let delServidor = [];
+  function abrir(c) {
+    J.audio();
+    if (c.bloq) { J.sfx('pop'); if (confirm('Este cuento es del plan Familia. ¿Ver el plan?')) location.href = 'cuenta.html'; return; }
+    cuento = c.id === 'lola' ? null : c;
+    PAGES = c.id === 'lola' ? LOLA : c.paginas.map(escenaDe);
+    page = 0;
+    $('#titulo').textContent = c.titulo; document.title = c.titulo;
+    $('#biblio').hidden = true; ['#libro', '#nav', '#puntos'].forEach(x => { $(x).hidden = false; });
+    $('#a-biblio').hidden = false; $('#casa').hidden = true;
+    $('#puntos').innerHTML = PAGES.map(() => '<span class="punto"></span>').join('');
+    J.sfx('pop2', .7); render(); setTimeout(read, 450);
+    history.replaceState(null, '', '#' + c.id);
+  }
+  function biblioteca() {
+    J.stopVoice();
+    $('#titulo').textContent = 'Biblioteca'; document.title = 'Biblioteca de cuentos';
+    $('#biblio').hidden = false; ['#libro', '#nav', '#puntos'].forEach(x => { $(x).hidden = true; });
+    $('#a-biblio').hidden = true; $('#casa').hidden = false;
+    pintarBiblioteca();
+    history.replaceState(null, '', location.pathname);
+  }
+  $('#a-biblio').onclick = biblioteca;
+  const fam = () => window.Cuenta && Cuenta.esFamilia();
+  function todos() {
+    const ids = new Set(), out = [];
+    [LOLA_CUENTO, ...FABULAS, ...delServidor].forEach(c => { if (!ids.has(c.id)) { ids.add(c.id); out.push({ ...c, bloq: !!c.bloqueado || !!(c.premium && !fam()) || (c.id !== 'lola' && !(c.paginas && c.paginas.length)) }); } });
+    return out;
+  }
+  const tapa = (c, extra = '') => `<button class="tapa ${c.bloq ? 'bloq' : ''} ${extra}" data-id="${J.esc(c.id)}"><span class="em">${c.emoji || '📖'}</span>${J.esc(c.titulo)}${c.premium ? `<span class="tag">${c.bloq ? '🔒 Familia' : '⭐'}</span>` : ''}</button>`;
+  function pintarBiblioteca() {
+    $('#estantes').innerHTML = todos().map(c => tapa(c)).join('');
+    const mis = leerLocal();
+    $('#mis-titulo').hidden = !mis.length && !fam();
+    $('#mis').innerHTML = mis.map(c => `<div style="position:relative">${tapa(c, 'magia')}<button class="quitar" data-quitar="${J.esc(c.id)}" aria-label="Borrar ${J.esc(c.titulo)}">🗑️</button></div>`).join('');
+    $('#ia-form').hidden = !fam();
+    const srv = window.Cuenta && Cuenta.servidor();
+    $('#nota').textContent = !srv ? '' : fam() ? '' : (Cuenta.conectado() ? '🔒 Los cuentos con candado y los cuentos con sus nombres son del plan Familia.' : 'Entra a tu cuenta para ver más cuentos.');
+    if (fam()) pintarForm();
+  }
+  $('#estantes').addEventListener('click', e => { const b = e.target.closest('.tapa'); if (b) abrir(todos().find(c => c.id === b.dataset.id)); });
+  $('#mis').addEventListener('click', e => {
+    const q = e.target.closest('[data-quitar]');
+    if (q) { if (confirm('¿Borrar este cuento?')) { guardarLocal(leerLocal().filter(c => c.id !== q.dataset.quitar)); pintarBiblioteca(); } return; }
+    const b = e.target.closest('.tapa'); if (b) abrir(leerLocal().find(c => c.id === b.dataset.id));
+  });
+
+  // ---------- cuento con nuestros nombres (plan Familia) ----------
+  const TEMAS = [['animales', '🐾 Animales'], ['princesas', '👑 Princesas'], ['espacio', '🚀 El espacio'], ['mar', '🐠 El mar'], ['bosque', '🌳 El bosque'], ['dinosaurios', '🦕 Dinosaurios'], ['ballet', '🩰 Ballet'], ['amistad', '💖 Amistad']];
+  const elegidos = new Set(); let tema = 'animales';
+  function pintarForm() {
+    const c = Cuenta.actual() || {};
+    const nombres = [...new Set([...(c.perfiles || []).map(p => p.nombre), ...J.progress.players.map(p => p.name), 'Papá', 'Mamá'].filter(Boolean))];
+    if (!elegidos.size && nombres[0]) elegidos.add(nombres[0]);
+    $('#nombres').innerHTML = nombres.map(n => `<button type="button" class="chip ${elegidos.has(n) ? 'on' : ''}" data-n="${J.esc(n)}">${J.esc(n)}</button>`).join('');
+    $('#temas').innerHTML = TEMAS.map(([k, t]) => `<button type="button" class="chip ${k === tema ? 'on' : ''}" data-t="${k}">${t}</button>`).join('');
+  }
+  $('#nombres').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = b.dataset.n; elegidos.has(n) ? elegidos.delete(n) : elegidos.add(n); J.say(n); pintarForm(); });
+  $('#temas').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; tema = b.dataset.t; J.sfx('pop'); pintarForm(); });
+  $('#ia-form').onsubmit = async e => {
+    e.preventDefault();
+    const prot = [...elegidos]; const otro = $('#otro').value.trim(); if (otro) prot.push(otro);
+    if (!prot.length) { $('#ia-msg').textContent = 'Elige al menos un nombre.'; return; }
+    $('#crear').disabled = true; $('#ia-msg').textContent = '✨ Escribiendo el cuento… (puede tardar un poquito)';
+    try {
+      const d = await Cuenta.api('/api/cuentos/ia', { body: { protagonistas: prot.slice(0, 4), tema } });
+      const c = d.cuento; if (!c || !Array.isArray(c.paginas) || !c.paginas.length) throw new Error('El cuento llegó vacío. Intenta otra vez.');
+      c.id = c.id || 'ia-' + Date.now().toString(36); c.emoji = c.emoji || '✨';
+      guardarLocal([c, ...leerLocal().filter(x => x.id !== c.id)]);
+      $('#ia-msg').textContent = ''; $('#otro').value = '';
+      J.cheer(); abrir(c);
+    } catch (err) { $('#ia-msg').textContent = '😕 ' + err.message; }
+    finally { $('#crear').disabled = false; }
+  };
+
+  async function cargarServidor() {
+    if (!window.Cuenta || !Cuenta.servidor()) return;
+    try { await Cuenta.yo(); const d = await Cuenta.api('/api/cuentos'); delServidor = (d.cuentos || []).filter(c => c && c.id && c.titulo); }
+    catch (e) { delServidor = []; }
+    if (!$('#biblio').hidden) pintarBiblioteca();
+  }
+  addEventListener('cuenta', () => { if (!$('#biblio').hidden) pintarBiblioteca(); });
+
   J.refreshMusic();
-  setTimeout(read, 500);
+  pintarBiblioteca();
+  cargarServidor().then(() => {
+    const id = location.hash.slice(1);
+    const c = id && (todos().find(x => x.id === id) || leerLocal().find(x => x.id === id));
+    if (c && !c.bloq) abrir(c);
+  });
+  if (location.hash === '#prueba') window.__cu = { abrir, biblioteca, todos };
 })();
 </script>
 </body>

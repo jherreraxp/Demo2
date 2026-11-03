@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { crearMundo, chispitas, esperaFuente } from './mundo3d.js';
 import { crearPersonaje, crearObjeto, PERSONAJES, BUSCABLES, nombrePersonaje } from './personajes.js';
+import { iniciarEnLinea } from './enlinea.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -158,7 +159,7 @@ function dibujarPuertas() {
 }
 function moverPuertas(dt) {
   for (const p of puertas) {
-    const cerca = state.modo === 'jugar' && Math.hypot(p.it.x - jug.pos.x, p.it.z - jug.pos.z) < 1.7 && Math.abs(p.it.y - jug.pos.y) < 1.5;
+    const cerca = (state.modo === 'jugar' && Math.hypot(p.it.x - jug.pos.x, p.it.z - jug.pos.z) < 1.7 && Math.abs(p.it.y - jug.pos.y) < 1.5) || !!(red && red.alguienCerca(p.it.x, p.it.y, p.it.z));
     if (cerca !== p.abierta) { p.abierta = cerca; J.efecto(cerca ? 'abrir' : 'pop'); }
     p.ang += ((cerca ? -1.75 : 0) - p.ang) * Math.min(1, dt * 7);
     p.pivote.rotation.y = p.ang;
@@ -241,7 +242,9 @@ function dibujarCosas() {
   });
   return sincronizando;
 }
-function redibujar() { indexar(); dibujarBloques(); dibujarCosas(); guardarActual(); }
+// jugar con amigos (js/enlinea.js): cada cambio propio se manda a la sala
+let red = null;
+function redibujar() { indexar(); dibujarBloques(); dibujarCosas(); guardarActual(); if (red) red.cambio(); }
 
 // ---------- suelo y alrededores ----------
 const sueloTex = canvasTex((g, s) => {
@@ -683,6 +686,7 @@ async function empezarJuego() {
   items.forEach(it => { if (it.t === 's' && vivos.get(it)) vivos.get(it).group.visible = true; });
   cam.theta = 0; cambiarVista('atras');
   J.say('¡A jugar!');
+  if (red) red.modo();
 }
 function volverAConstruir() {
   state.modo = 'construir'; document.body.classList.remove('juego');
@@ -692,6 +696,7 @@ function volverAConstruir() {
   items.forEach(it => { if (vivos.get(it)) vivos.get(it).group.visible = true; });
   cam.target.set(jug.pos.x, 0, jug.pos.z); cam.r = narrow() ? 30 : 24; cam.phi = 1.0; aplicarCamara();
   J.say('¡A construir!');
+  if (red) red.modo();
 }
 $('#jugar').onclick = () => { J.audio(); J.sfx('pop'); state.modo === 'jugar' ? volverAConstruir() : empezarJuego(); };
 function saltar() { if (state.modo !== 'jugar' || !jug.suelo) return; jug.vy = 7.2; jug.suelo = false; J.efecto('salto'); }
@@ -819,7 +824,8 @@ W.onFrame((dt, t) => {
     } else v.update(dt, state.modo === 'jugar' && Math.hypot(it.x - jug.pos.x, it.z - jug.pos.z) < 2);
   }
   if (state.modo === 'jugar' && heroe) pasoJuego(dt, t);
-  else { sun.position.set(cam.target.x + 8, 20, cam.target.z + 10); sun.target.position.copy(cam.target); }
+  else { sun.position.set(cam.target.x + 8, 20, cam.target.z + 10); sun.target.position.copy(cam.target); moverPuertas(dt); }
+  if (red) red.frame(dt);
   fx.update(dt);
 });
 addEventListener('resize', () => { if (state.modo === 'construir') aplicarCamara(); });
@@ -836,9 +842,17 @@ addEventListener('resize', () => { if (state.modo === 'construir') aplicarCamara
   }
   redibujar();
   render();
+  red = iniciarEnLinea({
+    scene, jug, state, message, escalar: escalarPersonaje, heroe: () => heroe,
+    items: () => items,
+    setItems: l => { items = l; },
+    // aplicar lo que llega de la sala sin volver a mandarlo
+    aplicar: () => { indexar(); dibujarBloques(); dibujarCosas(); guardarActual(); },
+  });
   W.start(); J.refreshMusic();
   setTimeout(() => J.say('¡A construir!'), 600);
   if (TEST) window.__w = {
+    red: () => red,
     state, get items() { return items; }, poner, ponerArmado, borrar, pintar, girar, deshacer, empezarJuego, volverAConstruir, jug, celdas, key,
     elegir, guardar(nombre) { const m = leerMundos(); m[nombre] = items; escribirMundos(m); }, abrir(nombre) { const m = leerMundos(); items = (m[nombre] || []).map(x => ({ ...x })); vivos.forEach(v => grupoCosas.remove(v.group)); vivos.clear(); redibujar(); },
     limpiar() { items = []; redibujar(); }, listo: () => sincronizando,
