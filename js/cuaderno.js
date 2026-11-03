@@ -165,7 +165,7 @@
     // ¿cuántas palabras? 1 2 3 4
     cuantas(it, el) {
       el.innerHTML = `<div class="dibus">${it.dib.map(d => `<span class="d">${dib(d)}</span>`).join('')}</div>
-        <p class="frase">${fila(it.frase)}</p><div class="numeros">${[1, 2, 3, 4].map(k => `<button data-k="${k}">${k}</button>`).join('')}</div>`;
+        <p class="frase">${fila(it.frase)}</p><div class="numeros trenes">${[1, 2, 3, 4].map(k => `<button data-k="${k}" aria-label="Tren de ${k} ${k === 1 ? 'vagón' : 'vagones'}"><span class="mini-tren">${'<i></i>'.repeat(k)}<b>🚂</b></span></button>`).join('')}</div>`;
       el.querySelector('.numeros').onclick = async e => {
         const b = e.target.closest('[data-k]'); if (!b) return;
         if (+b.dataset.k === it.frase.length) {

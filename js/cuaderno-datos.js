@@ -26,7 +26,7 @@
           { frase: ['papá', '{papa}', 'lee'], dib: ['{papa}', '📚', '👓'] },
         ] }),
       S(1, 2, { id: 'cuantas', titulo: '¿Cuántas palabras?', emoji: '🔢', tipo: 'cuantas',
-        consigna: 'Escucha y toca el número de palabras.',
+        consigna: 'Escucha y toca el trencito que tiene un vagón por cada palabra.',
         lupe: 'Levanta un dedo por cada palabra mientras la repites. «Llueve» es una oración de una sola palabra: celebra si lo descubre.',
         items: [
           { frase: ['mamá', '{mama}', 'cocina'], dib: ['{mama}', '🍳', '🥘'] },
