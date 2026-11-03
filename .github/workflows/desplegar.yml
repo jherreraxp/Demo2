@@ -4,7 +4,10 @@
 #   VM_HOST     IP pública de la VM (por ejemplo 146.181.18.35)
 #   VM_USUARIO  usuario SSH (ubuntu)
 #   VM_LLAVE    llave privada SSH que entra a la VM (una llave nueva, solo para este despliegue)
-#   VM_DOMINIO  dominio del juego (por ejemplo juego.midominio.com)
+#   VM_DOMINIO  dominio del juego (abu.arcillita.com)
+# Opcionales (se escriben en /etc/avelu/avelu.env de la VM; nunca quedan en el repositorio):
+#   MP_ACCESS_TOKEN, MP_PLAN_PRECIO, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_PLAN_ID, PAYPAL_MODE,
+#   PAGOS_PROVEEDOR (mercadopago | paypal), ANTHROPIC_API_KEY, PLAN_GRATIS_PARA
 name: Desplegar en la VM
 on:
   workflow_dispatch:
@@ -21,7 +24,8 @@ jobs:
         id: s
         env: { H: '${{ secrets.VM_HOST }}', K: '${{ secrets.VM_LLAVE }}', D: '${{ secrets.VM_DOMINIO }}' }
         run: |
-          if [ -z "$H" ] || [ -z "$K" ] || [ -z "$D" ]; then echo "::notice::Faltan los secretos VM_HOST, VM_LLAVE o VM_DOMINIO; no se despliega."; echo "listo=no" >> "$GITHUB_OUTPUT"; else echo "listo=si" >> "$GITHUB_OUTPUT"; fi
+          F=""; [ -z "$H" ] && F="$F VM_HOST"; [ -z "$K" ] && F="$F VM_LLAVE"; [ -z "$D" ] && F="$F VM_DOMINIO"
+          if [ -n "$F" ]; then echo "::warning::Faltan estos secretos del repositorio:$F (Settings → Secrets and variables → Actions → pestaña Secrets → Repository secrets). No se despliega."; echo "listo=no" >> "$GITHUB_OUTPUT"; else echo "listo=si" >> "$GITHUB_OUTPUT"; fi
       - name: Preparar SSH
         if: steps.s.outputs.listo == 'si'
         env: { K: '${{ secrets.VM_LLAVE }}', H: '${{ secrets.VM_HOST }}' }
@@ -41,6 +45,33 @@ jobs:
           sudo bash servidor/instalar.sh "$D"
           curl -fsS http://127.0.0.1:8787/api/salud && echo
           REMOTO
+      - name: Configurar pagos e IA
+        if: steps.s.outputs.listo == 'si'
+        env:
+          H: '${{ secrets.VM_HOST }}'
+          U: '${{ secrets.VM_USUARIO }}'
+          MP_ACCESS_TOKEN: '${{ secrets.MP_ACCESS_TOKEN }}'
+          MP_PLAN_PRECIO: '${{ secrets.MP_PLAN_PRECIO }}'
+          PAYPAL_CLIENT_ID: '${{ secrets.PAYPAL_CLIENT_ID }}'
+          PAYPAL_SECRET: '${{ secrets.PAYPAL_SECRET }}'
+          PAYPAL_PLAN_ID: '${{ secrets.PAYPAL_PLAN_ID }}'
+          PAYPAL_MODE: '${{ secrets.PAYPAL_MODE }}'
+          PAGOS_PROVEEDOR: '${{ secrets.PAGOS_PROVEEDOR }}'
+          ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}'
+          PLAN_GRATIS_PARA: '${{ secrets.PLAN_GRATIS_PARA }}'
+        run: |
+          {
+            for k in MP_ACCESS_TOKEN MP_PLAN_PRECIO PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_PLAN_ID PAYPAL_MODE ANTHROPIC_API_KEY PLAN_GRATIS_PARA; do printf '%s=%s\n' "$k" "${!k}"; done
+            # si hay token de Mercado Pago y no se eligió proveedor, se usa Mercado Pago
+            P="$PAGOS_PROVEEDOR"; [ -z "$P" ] && [ -n "$MP_ACCESS_TOKEN" ] && P=mercadopago; [ -z "$P" ] && [ -n "$PAYPAL_PLAN_ID" ] && P=paypal
+            printf 'PAGOS_PROVEEDOR=%s\n' "$P"
+          } | ssh -i ~/.ssh/vm -o BatchMode=yes "${U:-ubuntu}@$H" 'sudo install -m 600 /dev/stdin /etc/avelu/secretos.tmp && sudo bash ~/Demo2/servidor/configurar.sh && sleep 2 && curl -fsS http://127.0.0.1:8787/api/salud && echo'
+      - name: Probar desde internet
+        if: steps.s.outputs.listo == 'si'
+        env: { D: '${{ secrets.VM_DOMINIO }}' }
+        run: |
+          for i in 1 2 3 4 5 6; do curl -fsS "https://$D/api/salud" && echo && curl -fsS -o /dev/null -w "Juego: %{http_code}\n" "https://$D/" && exit 0; sleep 20; done
+          echo "::warning::El servidor funciona dentro de la VM, pero https://$D aún no responde desde internet. Revisa el DNS (registro A) y los puertos 80/443 en Oracle."
       - name: Limpiar
         if: always()
         run: rm -f ~/.ssh/vm

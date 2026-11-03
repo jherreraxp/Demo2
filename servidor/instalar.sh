@@ -50,6 +50,8 @@ chown -R avelu:avelu "$DATOS"; chmod 700 "$DATOS"
 if [[ ! -f "$ETC/avelu.env" ]]; then cp "$ORIGEN/avelu.env.ejemplo" "$ETC/avelu.env"; echo "   Creé $ETC/avelu.env (complétalo)."; fi
 # el juego servido desde el propio dominio también puede llamar a la API
 grep -q "https://$DOMINIO" "$ETC/avelu.env" || sed -i "s#^ORIGENES=\(.*\)#ORIGENES=\1,https://$DOMINIO#" "$ETC/avelu.env"
+# al terminar de pagar, la familia vuelve a la página del propio dominio
+sed -i "s#^MP_BACK_URL=https://jherreraxp.github.io/Demo2/cuenta.html#MP_BACK_URL=https://$DOMINIO/suscripcion-lista.html#; s#^PAYPAL_BACK_URL=https://jherreraxp.github.io/Demo2/cuenta.html#PAYPAL_BACK_URL=https://$DOMINIO/suscripcion-lista.html#" "$ETC/avelu.env"
 chown root:avelu "$ETC/avelu.env"; chmod 640 "$ETC/avelu.env"
 
 echo "==> Servicio systemd"
