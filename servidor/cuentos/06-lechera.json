@@ -1,0 +1,38 @@
+{
+ "id": "lechera",
+ "titulo": "La lechera",
+ "emoji": "🥛",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Lola lleva un jarro de leche en la cabeza.",
+   "dibujo": "🥛"
+  },
+  {
+   "texto": "Lola piensa: con la leche compro huevos.",
+   "dibujo": "🥚"
+  },
+  {
+   "texto": "De los huevos salen pollitos.",
+   "dibujo": "🐣"
+  },
+  {
+   "texto": "Con los pollitos compro un vestido.",
+   "dibujo": "👗"
+  },
+  {
+   "texto": "¡Y voy a bailar! Lola da un salto.",
+   "dibujo": "💃"
+  },
+  {
+   "texto": "¡Paf! El jarro cae al suelo.",
+   "dibujo": "💥"
+  },
+  {
+   "texto": "Lola se ríe: mejor miro por dónde camino.",
+   "dibujo": "😊"
+  }
+ ],
+ "moraleja": "Soñar es lindo, y también mirar lo que haces ahora."
+}

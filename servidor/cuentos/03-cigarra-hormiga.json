@@ -1,0 +1,38 @@
+{
+ "id": "cigarra-hormiga",
+ "titulo": "La cigarra y la hormiga",
+ "emoji": "🐜",
+ "premium": false,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Es verano. Hace sol.",
+   "dibujo": "☀️"
+  },
+  {
+   "texto": "La cigarra canta y canta.",
+   "dibujo": "🎶"
+  },
+  {
+   "texto": "La hormiga lleva su comida a casa.",
+   "dibujo": "🐜"
+  },
+  {
+   "texto": "—Ven a cantar —dice la cigarra.",
+   "dibujo": "🎵"
+  },
+  {
+   "texto": "—Primero guardo mi comida —dice la hormiga.",
+   "dibujo": "🌾"
+  },
+  {
+   "texto": "Llega el frío. La cigarra no tiene comida.",
+   "dibujo": "❄️"
+  },
+  {
+   "texto": "La hormiga la invita a pasar y a comer juntas.",
+   "dibujo": "🏠"
+  }
+ ],
+ "moraleja": "Jugar es lindo, y guardar para mañana también."
+}

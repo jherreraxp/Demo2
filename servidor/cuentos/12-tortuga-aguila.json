@@ -1,0 +1,38 @@
+{
+ "id": "tortuga-aguila",
+ "titulo": "La tortuga y el águila",
+ "emoji": "🦅",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Una tortuga mira a los pájaros volar.",
+   "dibujo": "🐢"
+  },
+  {
+   "texto": "—¡Yo quiero volar! —dice.",
+   "dibujo": "✨"
+  },
+  {
+   "texto": "Un águila la sube alto, alto.",
+   "dibujo": "🦅"
+  },
+  {
+   "texto": "La tortuga mira el cielo y las nubes.",
+   "dibujo": "☁️"
+  },
+  {
+   "texto": "Pero ella no tiene alas.",
+   "dibujo": "🪶"
+  },
+  {
+   "texto": "El águila la baja con cuidado a la loma.",
+   "dibujo": "⛰️"
+  },
+  {
+   "texto": "La tortuga está feliz: sabe nadar y caminar.",
+   "dibujo": "💚"
+  }
+ ],
+ "moraleja": "Cada uno es bueno en algo distinto."
+}

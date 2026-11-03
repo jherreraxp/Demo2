@@ -1,0 +1,38 @@
+{
+ "id": "gallina-oro",
+ "titulo": "La gallina de los huevos de oro",
+ "emoji": "🐔",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Una señora tiene una gallina.",
+   "dibujo": "🐔"
+  },
+  {
+   "texto": "La gallina pone un huevo de oro cada día.",
+   "dibujo": "🥚"
+  },
+  {
+   "texto": "La señora quiere todos los huevos ya.",
+   "dibujo": "😮"
+  },
+  {
+   "texto": "Pero la gallina solo pone uno por día.",
+   "dibujo": "☀️"
+  },
+  {
+   "texto": "La señora se enoja y no la cuida.",
+   "dibujo": "😠"
+  },
+  {
+   "texto": "La gallina se pone triste y ya no pone huevos.",
+   "dibujo": "😢"
+  },
+  {
+   "texto": "La señora la cuida otra vez, con cariño y paciencia.",
+   "dibujo": "❤️"
+  }
+ ],
+ "moraleja": "Con paciencia y cariño, las cosas buenas llegan."
+}

@@ -1,0 +1,38 @@
+{
+ "id": "amigos-oso",
+ "titulo": "Los dos amigos y el oso",
+ "emoji": "🐻",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Dos amigos pasean por el bosque.",
+   "dibujo": "🌲"
+  },
+  {
+   "texto": "De pronto, ¡aparece un oso!",
+   "dibujo": "🐻"
+  },
+  {
+   "texto": "Un amigo sube rápido a un árbol.",
+   "dibujo": "🌳"
+  },
+  {
+   "texto": "El otro se echa quieto en el suelo.",
+   "dibujo": "🤫"
+  },
+  {
+   "texto": "El oso lo huele y se va.",
+   "dibujo": "👃"
+  },
+  {
+   "texto": "—¿Qué te dijo el oso? —pregunta el amigo.",
+   "dibujo": "❓"
+  },
+  {
+   "texto": "—Que un buen amigo no te deja solo.",
+   "dibujo": "🤝"
+  }
+ ],
+ "moraleja": "Los buenos amigos se ayudan siempre."
+}

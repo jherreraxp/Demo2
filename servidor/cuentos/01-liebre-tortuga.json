@@ -1,0 +1,38 @@
+{
+ "id": "liebre-tortuga",
+ "titulo": "La liebre y la tortuga",
+ "emoji": "🐢",
+ "premium": false,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "La liebre corre mucho.",
+   "dibujo": "🐇"
+  },
+  {
+   "texto": "La tortuga va lento, lento.",
+   "dibujo": "🐢"
+  },
+  {
+   "texto": "—¡Vamos a jugar una carrera! —dice la tortuga.",
+   "dibujo": "🏁"
+  },
+  {
+   "texto": "La liebre se ríe y corre.",
+   "dibujo": "💨"
+  },
+  {
+   "texto": "Luego se echa a dormir bajo un árbol.",
+   "dibujo": "😴"
+  },
+  {
+   "texto": "La tortuga no para. Paso a paso.",
+   "dibujo": "👣"
+  },
+  {
+   "texto": "La liebre se despierta. ¡La tortuga ya llegó!",
+   "dibujo": "🏆"
+  }
+ ],
+ "moraleja": "Despacito y sin parar, también se llega."
+}

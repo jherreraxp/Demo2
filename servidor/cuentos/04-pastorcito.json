@@ -1,0 +1,38 @@
+{
+ "id": "pastorcito",
+ "titulo": "El pastorcito mentiroso",
+ "emoji": "🐑",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Pepe cuida sus ovejas en la loma.",
+   "dibujo": "🐑"
+  },
+  {
+   "texto": "Pepe se aburre y grita: —¡El lobo, el lobo!",
+   "dibujo": "📣"
+  },
+  {
+   "texto": "La gente sube a ayudar. No hay lobo.",
+   "dibujo": "🏃"
+  },
+  {
+   "texto": "Pepe se ríe. Lo hace otra vez.",
+   "dibujo": "😜"
+  },
+  {
+   "texto": "Un día sí viene un lobo.",
+   "dibujo": "🐺"
+  },
+  {
+   "texto": "Pepe grita, pero nadie le cree.",
+   "dibujo": "😢"
+  },
+  {
+   "texto": "Las ovejas corren. Pepe aprende la lección.",
+   "dibujo": "💡"
+  }
+ ],
+ "moraleja": "Si dices la verdad, te van a creer."
+}

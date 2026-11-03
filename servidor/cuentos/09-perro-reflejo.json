@@ -1,0 +1,38 @@
+{
+ "id": "perro-reflejo",
+ "titulo": "El perro y su reflejo",
+ "emoji": "🐶",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Toby tiene un hueso.",
+   "dibujo": "🦴"
+  },
+  {
+   "texto": "Toby pasa por un puente sobre el río.",
+   "dibujo": "🌉"
+  },
+  {
+   "texto": "En el agua ve a otro perro con un hueso.",
+   "dibujo": "💧"
+  },
+  {
+   "texto": "—¡Quiero ese hueso también! —dice Toby.",
+   "dibujo": "🐶"
+  },
+  {
+   "texto": "Toby ladra: ¡guau! Su hueso cae al río.",
+   "dibujo": "💦"
+  },
+  {
+   "texto": "El otro perro era su reflejo.",
+   "dibujo": "🪞"
+  },
+  {
+   "texto": "Toby se queda sin hueso.",
+   "dibujo": "😅"
+  }
+ ],
+ "moraleja": "Disfruta lo que tienes."
+}

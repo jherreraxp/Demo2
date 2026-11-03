@@ -1,0 +1,38 @@
+{
+ "id": "viento-sol",
+ "titulo": "El viento y el sol",
+ "emoji": "☀️",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "El viento y el sol juegan a ver quién es más fuerte.",
+   "dibujo": "🌬️"
+  },
+  {
+   "texto": "Un señor pasa con su capa.",
+   "dibujo": "🧥"
+  },
+  {
+   "texto": "—Le quito la capa —dice el viento.",
+   "dibujo": "💨"
+  },
+  {
+   "texto": "El viento sopla fuerte. El señor se tapa más.",
+   "dibujo": "🥶"
+  },
+  {
+   "texto": "Ahora le toca al sol.",
+   "dibujo": "☀️"
+  },
+  {
+   "texto": "El sol brilla calentito.",
+   "dibujo": "🌞"
+  },
+  {
+   "texto": "El señor tiene calor y se quita la capa. ¡Ganó el sol!",
+   "dibujo": "😊"
+  }
+ ],
+ "moraleja": "Con cariño se logra más que con fuerza."
+}

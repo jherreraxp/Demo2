@@ -25,14 +25,15 @@ Autenticación: cabecera `Authorization: Bearer <token>`.
 | Método | Ruta | Respuesta |
 |---|---|---|
 | POST | `/api/suscripcion/crear` | `{ ok, url }` → abrir `url` (página de pago del proveedor) |
-| POST | `/api/suscripcion/cancelar` | `{ ok }` |
+| POST | `/api/suscripcion/cancelar` | `{ ok }` (sigue con plan familia hasta el fin del mes pagado) |
+| POST | `/api/suscripcion/revisar` | `{ ok, cuenta }` (al volver de la página de pago: consulta el estado al proveedor) |
 | POST | `/api/pagos/webhook` | (lo llama el proveedor de pagos; el servidor verifica consultando la API del proveedor) |
 
 Lo pagado (`plan: 'familia'`):
 - **Voces propias en la nube**: `PUT /api/voces/<clave>` (cuerpo = audio WAV/WebM, máx. 1 MB), `GET /api/voces` → `{ ok, lista: { clave: url } }`,
-  `GET /api/voces/archivo/<id>` (con token) → audio, `DELETE /api/voces/<clave>`. Las voces son privadas de cada familia.
+  `GET /api/voces/archivo/<id>` (con token en la cabecera o `?token=` para usarlo en `<audio src>`) → audio, `DELETE /api/voces/<clave>`. Las voces son privadas de cada familia.
 - **Cuentos extra**: `GET /api/cuentos` → `{ ok, cuentos: [{ id, titulo, emoji, premium, paginas: [{ texto, dibujo }] }] }`
-  (los gratis también salen sin cuenta; los premium solo con plan familia).
+  (los gratis también salen sin cuenta; los premium salen con `bloqueado: true` y `paginas: []` si no hay plan familia).
 - **Cuentos con IA y sus nombres**: `POST /api/cuentos/ia` `{ protagonistas: ['Avelu', 'Papá'], tema, moraleja? }` → `{ ok, cuento }`
   (máx. 5 por día por familia; el servidor usa su propia llave de IA guardada en la VM).
 
@@ -52,3 +53,8 @@ Mensajes (JSON) del cliente:
 Mensajes del servidor a los demás de la sala: los mismos con `de: <idJugador>`, más
 `{ t: 'entra', jugador: { id, nombre, personaje } }` y `{ t: 'sale', id }`.
 Salas: máximo 6 jugadores; se borran 10 minutos después de que sale el último.
+
+## Otros
+
+- `GET /api/salud` → `{ ok, version }`.
+- Errores: 400 datos, 401 sin sesión, 402 necesita plan familia, 404, 409 correo ya usado, 413 muy grande, 415 tipo, 429 muchos intentos, 502/503 servicio externo.

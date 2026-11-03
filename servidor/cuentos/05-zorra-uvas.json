@@ -1,0 +1,34 @@
+{
+ "id": "zorra-uvas",
+ "titulo": "La zorra y las uvas",
+ "emoji": "🍇",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Una zorra tiene hambre.",
+   "dibujo": "🦊"
+  },
+  {
+   "texto": "Ve unas uvas muy ricas en lo alto.",
+   "dibujo": "🍇"
+  },
+  {
+   "texto": "Salta una vez. No llega.",
+   "dibujo": "⬆️"
+  },
+  {
+   "texto": "Salta otra vez. ¡Tampoco!",
+   "dibujo": "😣"
+  },
+  {
+   "texto": "La zorra se va y dice: —Esas uvas están verdes.",
+   "dibujo": "🙄"
+  },
+  {
+   "texto": "Pero las uvas sí estaban dulces.",
+   "dibujo": "😋"
+  }
+ ],
+ "moraleja": "Está bien decir: no pude, lo intento otro día."
+}

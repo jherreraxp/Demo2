@@ -1,0 +1,11 @@
+{
+  "name": "avelu-servidor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor de Avelu y Amara: cuentas, suscripción, voces, cuentos y salas en línea",
+  "type": "module",
+  "main": "servidor.mjs",
+  "engines": { "node": ">=22.5" },
+  "scripts": { "start": "node --no-warnings servidor.mjs", "test": "node --no-warnings pruebas.mjs && node --no-warnings pruebas-pagos.mjs" },
+  "dependencies": { "ws": "^8.18.0" }
+}

@@ -1,0 +1,38 @@
+{
+ "id": "cuervo-zorra",
+ "titulo": "El cuervo y la zorra",
+ "emoji": "🐦‍⬛",
+ "premium": true,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Un cuervo tiene un queso en el pico.",
+   "dibujo": "🧀"
+  },
+  {
+   "texto": "Una zorra lo mira desde abajo.",
+   "dibujo": "🦊"
+  },
+  {
+   "texto": "—¡Qué lindo eres! ¿Cantas bonito? —dice la zorra.",
+   "dibujo": "😍"
+  },
+  {
+   "texto": "El cuervo abre el pico para cantar.",
+   "dibujo": "🎤"
+  },
+  {
+   "texto": "¡El queso cae!",
+   "dibujo": "⬇️"
+  },
+  {
+   "texto": "La zorra se lo lleva.",
+   "dibujo": "🏃"
+  },
+  {
+   "texto": "El cuervo aprende: no todo lo dulce es verdad.",
+   "dibujo": "💭"
+  }
+ ],
+ "moraleja": "Cuidado con quien solo te dice cosas bonitas para quitarte algo."
+}

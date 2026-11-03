@@ -1,0 +1,38 @@
+{
+ "id": "leon-raton",
+ "titulo": "El león y el ratón",
+ "emoji": "🦁",
+ "premium": false,
+ "fuente": "Fábula de Esopo (dominio público), contada con palabras propias",
+ "paginas": [
+  {
+   "texto": "Un león duerme la siesta.",
+   "dibujo": "🦁"
+  },
+  {
+   "texto": "Un ratón pasa por su nariz.",
+   "dibujo": "🐭"
+  },
+  {
+   "texto": "El león lo atrapa con su pata.",
+   "dibujo": "🐾"
+  },
+  {
+   "texto": "—¡Suéltame! Un día te ayudo —dice el ratón.",
+   "dibujo": "🙏"
+  },
+  {
+   "texto": "El león se ríe y lo suelta.",
+   "dibujo": "😄"
+  },
+  {
+   "texto": "Un día el león cae en una red.",
+   "dibujo": "🕸️"
+  },
+  {
+   "texto": "El ratón roe la soga, ñam, ñam. ¡El león es libre!",
+   "dibujo": "✨"
+  }
+ ],
+ "moraleja": "Los chiquitos también pueden ayudar mucho."
+}
