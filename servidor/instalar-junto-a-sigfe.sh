@@ -140,6 +140,25 @@ else
   exit 1
 fi
 
+echo "==> Actualización automática del servidor (cada 10 minutos, desde la rama del juego)"
+RAMA="$(git -C "$ORIGEN/.." rev-parse --abbrev-ref HEAD)"
+sudo tee /usr/local/bin/avelu-actualizar >/dev/null <<EOT
+#!/bin/bash
+# trae la última versión; si cambió el servidor, lo copia y reinicia el contenedor (SIGFE no se toca)
+set -e
+cd $ORIGEN/.. && sudo -u $(id -un) git fetch -q origin $RAMA
+[ "\$(git rev-parse HEAD)" = "\$(git rev-parse origin/$RAMA)" ] && exit 0
+antes=\$(git rev-parse HEAD:servidor 2>/dev/null || true)
+sudo -u $(id -un) git reset -q --hard origin/$RAMA
+[ "\$antes" = "\$(git rev-parse HEAD:servidor)" ] && exit 0
+cp -r servidor/servidor.mjs servidor/lib servidor/cuentos servidor/package.json servidor/package-lock.json $APP/
+docker run --rm -v $APP:/app -w /app $IMAGEN npm ci --omit=dev --no-audit --no-fund >/dev/null
+docker restart avelu >/dev/null
+echo "\$(date) servidor actualizado a \$(git rev-parse --short HEAD)" >> /var/log/avelu-actualizar.log
+EOT
+sudo chmod 755 /usr/local/bin/avelu-actualizar
+echo "*/10 * * * * root /usr/local/bin/avelu-actualizar" | sudo tee /etc/cron.d/avelu-actualizar >/dev/null
+
 echo "==> Respaldo diario (3:17 am)"
 sudo install -m 755 "$ORIGEN/respaldo.sh" /usr/local/bin/avelu-respaldo
 echo "17 3 * * * root docker run --rm -v $DATOS:$DATOS -v /var/backups/avelu:/var/backups/avelu -v /usr/local/bin/avelu-respaldo:/r.sh:ro $IMAGEN sh -c 'apk add -q bash tar >/dev/null && bash /r.sh'" | sudo tee /etc/cron.d/avelu-respaldo >/dev/null

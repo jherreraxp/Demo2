@@ -223,6 +223,8 @@ function servirSitio(req, res, url) {
   let st; try { st = fs.statSync(archivo); } catch { return false; }
   if (!st.isFile()) return false;
   const tipo = TIPOS[path.extname(archivo).toLowerCase()] || 'application/octet-stream';
+  // las páginas del juego sí cargan estilos, programas, fuentes e imágenes (la regla estricta es solo para la API)
+  res.removeHeader('Content-Security-Policy'); res.setHeader('X-Frame-Options', 'SAMEORIGIN'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.writeHead(200, { 'Content-Type': tipo, 'Content-Length': st.size, 'Cache-Control': /\.html$/.test(archivo) || /lista\.json$/.test(archivo) ? 'no-cache' : 'public, max-age=3600' });
   if (req.method === 'HEAD') { res.end(); return true; }
   fs.createReadStream(archivo).pipe(res);
