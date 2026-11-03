@@ -16,4 +16,4 @@ while IFS= read -r linea; do
   echo "   $k configurado"
 done < "$TMP"
 shred -u "$TMP" 2>/dev/null || rm -f "$TMP"
-systemctl restart avelu
+if systemctl list-unit-files avelu.service >/dev/null 2>&1 && systemctl is-enabled --quiet avelu 2>/dev/null; then systemctl restart avelu; else docker restart avelu >/dev/null; fi

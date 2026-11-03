@@ -7,6 +7,8 @@ export const config = {
   host: env.HOST || '127.0.0.1',
   origenes: lista(env.ORIGENES || 'https://jherreraxp.github.io'),
   dataDir: env.DATA_DIR || '/var/lib/avelu',
+  // carpeta con las páginas del juego (copia de gh-pages); si está vacía, solo se sirve la API
+  sitio: env.SITIO_DIR || '',
   anthropicKey: env.ANTHROPIC_API_KEY || '',
   claudeModel: env.CLAUDE_MODEL || 'claude-sonnet-5-5',
   iaFalsa: env.IA_FALSA === '1',

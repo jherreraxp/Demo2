@@ -207,6 +207,28 @@ ruta('POST', '/api/cuentos/ia', async (req) => {
   return { ok: true, cuento: await crearCuentoIA(c.id, await leerJSON(req)) };
 });
 
+// ---------- páginas del juego (cuando la VM sirve el sitio completo) ----------
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.webm': 'audio/webm', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.bin': 'application/octet-stream' };
+const PRIVADO = /^\/(\.|servidor\/|gas\/|node_modules\/)|\/\./;
+function servirSitio(req, res, url) {
+  if (!config.sitio || (req.method !== 'GET' && req.method !== 'HEAD')) return false;
+  let ruta; try { ruta = decodeURIComponent(url.pathname); } catch { return false; }
+  if (PRIVADO.test(ruta) || ruta.includes('\0')) return false;
+  if (ruta.endsWith('/')) ruta += 'index.html';
+  const raiz = path.resolve(config.sitio), archivo = path.resolve(raiz, '.' + ruta);
+  if (!archivo.startsWith(raiz + path.sep)) return false;
+  let st; try { st = fs.statSync(archivo); } catch { return false; }
+  if (!st.isFile()) return false;
+  const tipo = TIPOS[path.extname(archivo).toLowerCase()] || 'application/octet-stream';
+  res.writeHead(200, { 'Content-Type': tipo, 'Content-Length': st.size, 'Cache-Control': /\.html$/.test(archivo) || /lista\.json$/.test(archivo) ? 'no-cache' : 'public, max-age=3600' });
+  if (req.method === 'HEAD') { res.end(); return true; }
+  fs.createReadStream(archivo).pipe(res);
+  return true;
+}
+
 // ---------- servidor ----------
 export function crearServidor() {
   const servidor = http.createServer(async (req, res) => {
@@ -214,6 +236,7 @@ export function crearServidor() {
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     const url = new URL(req.url, 'http://x');
     const r = rutas.find(r => r.metodo === req.method && r.patron.test(url.pathname));
+    if (!r && !url.pathname.startsWith('/api/') && servirSitio(req, res, url)) return;
     if (!r) return responder(res, 404, { ok: false, error: 'No existe.' });
     try {
       const salida = await r.fn(req, url, url.pathname.match(r.patron).groups || {}, res);

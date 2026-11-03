@@ -78,3 +78,23 @@ El servidor **no confía en el aviso** del proveedor: siempre consulta el estado
 ```bash
 cd servidor && npm install && npm test
 ```
+
+## Si en la VM ya funciona SIGFE (Docker con nginx en 80/443)
+
+No uses `instalar.sh` (pondría Caddy en los mismos puertos). Usa la instalación "junto a SIGFE":
+
+- Desde tu PC con Windows: pon `servidor/Instalar-Avelu.ps1` en la carpeta de tu llave SSH y ejecuta
+  `powershell -ExecutionPolicy Bypass -File .\Instalar-Avelu.ps1`. Al final te pregunta (sin mostrarlas) las llaves
+  de Mercado Pago y de Claude, y las guarda solo en la VM.
+- O en la VM: `bash servidor/instalar-junto-a-sigfe.sh abu.arcillita.com tu@correo.com`.
+
+Qué hace:
+- Avelu corre en **su propio contenedor** (`avelu`), en **su propia red de Docker** (`avelu-red`) y con **su propia base
+  de datos** (`/var/lib/avelu`). No comparte nada con la base de datos ni la app de SIGFE.
+- Al nginx de SIGFE solo se le **agrega** un bloque para `abu.arcillita.com` (marcado con `# --- avelu inicio/fin ---`)
+  y se conecta también a `avelu-red`. Antes de cambiarlo guarda una copia `nginx.conf.antes-avelu-FECHA`; si nginx no
+  acepta el cambio, deja todo como estaba. Si Avelu se apaga, SIGFE sigue funcionando.
+- El certificado de `abu.arcillita.com` se pide con certbot (SIGFE se detiene unos segundos, igual que al renovar el suyo)
+  y se renueva solo con los mismos ganchos de SIGFE.
+- **Ojo:** si vuelves a correr `Activar-HTTPS.ps1` de SIGFE, ese script reescribe `nginx.conf`; después vuelve a correr
+  `Instalar-Avelu.ps1` para agregar otra vez el sitio de Avelu.
