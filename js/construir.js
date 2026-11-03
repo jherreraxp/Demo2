@@ -9,10 +9,14 @@ import { iniciarEnLinea } from './enlinea.js';
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
 const TEST = location.hash === '#prueba';
-const N = 24, MIN = -12, MAX = 11, ALTO = 16;   // mundo de 24×24 cuadritos
+// tamaño del mundo: 24×24 gratis; 48×48 ("Mundo grande") con el plan Familia
+const TAMANOS = { normal: 24, grande: 48 };
+const puedeGrande = () => !window.Cuenta || !Cuenta.personalizacion || Cuenta.personalizacion() === 'completa';
+const TAM_PEDIDO = (() => { try { return localStorage.getItem('bl-mundo-tam') || 'normal'; } catch (e) { return 'normal'; } })();
+const N = TAM_PEDIDO === 'grande' && puedeGrande() ? TAMANOS.grande : TAMANOS.normal, MIN = -N / 2, MAX = N / 2 - 1, ALTO = 16;
 const narrow = () => innerWidth < 760;
 
-const W = crearMundo($('#mundo'), { fog: 0xdff4ff, near: 45, far: 110, fov: 50 });
+const W = crearMundo($('#mundo'), { fog: 0xdff4ff, near: 45 * N / 24, far: 110 * N / 24, fov: 50 });
 const { scene, camera, sun, renderer } = W;
 W.fovFor = a => a < .8 ? 62 : 50;
 const fx = chispitas(scene);
@@ -499,7 +503,7 @@ for (let i = 0; i < 9; i++) {
 // ---------- cámara: girar, acercar y mover ----------
 const cam = { target: new THREE.Vector3(-.5, 0, -.5), theta: .7, phi: 1.0, r: narrow() ? 30 : 24 };
 function aplicarCamara() {
-  cam.phi = Math.max(.25, Math.min(1.45, cam.phi)); cam.r = Math.max(6, Math.min(48, cam.r));
+  cam.phi = Math.max(.25, Math.min(1.45, cam.phi)); cam.r = Math.max(6, Math.min(48 * N / 24, cam.r));
   cam.target.x = Math.max(MIN, Math.min(MAX, cam.target.x)); cam.target.z = Math.max(MIN, Math.min(MAX, cam.target.z));
   camera.position.set(cam.target.x + cam.r * Math.sin(cam.phi) * Math.sin(cam.theta), cam.target.y + cam.r * Math.cos(cam.phi), cam.target.z + cam.r * Math.sin(cam.phi) * Math.cos(cam.theta));
   camera.lookAt(cam.target);
@@ -1066,7 +1070,10 @@ function pasoJuego(dt, t) {
     dirCam.set(Math.sin(phi) * Math.sin(cam.theta), Math.cos(phi), Math.sin(phi) * Math.cos(cam.theta));
     // si una pared tapa, la cámara se acerca (sin atravesar paredes)
     rayoCam.set(cabeza, dirCam); rayoCam.far = r;
-    const choque = rayoCam.intersectObjects(mallas, false).find(h => h.point.y < corteT - .15);
+    // la cámara revisa paredes cada 3 cuadros (más liviano en mundos grandes y dentro de casas)
+    jcam.n = (jcam.n || 0) + 1;
+    if (jcam.n % 3 === 0 || jcam.choque === undefined) jcam.choque = rayoCam.intersectObjects(mallas, false).find(h => h.point.y < corteT - .15) || null;
+    const choque = jcam.choque;
     if (choque) r = Math.max(1.2, choque.distance - .3);
     tmp.copy(cabeza).addScaledVector(dirCam, r);
     camera.position.lerp(tmp, Math.min(1, dt * (choque ? 12 : 5)));
@@ -1153,3 +1160,32 @@ addEventListener('resize', () => { if (state.modo === 'construir') aplicarCamara
     anim, tocar: it => (it.t === 'b' ? interactuarBloque(it, 'alTocar') : tocarCosa(it)), vidaDe, sentarse,
   };
 })();
+
+// ---------- tamaño del mundo ----------
+{
+  const btn = document.querySelector('[data-accion="tamano"]');
+  if (btn) btn.onclick = () => {
+    const premium = puedeGrande();
+    const caja = document.createElement('div');
+    caja.className = 'tam-modal';
+    caja.innerHTML = `<div class="tam-caja" role="dialog" aria-label="Tamaño del mundo"><h2>🌍 Tamaño del mundo</h2>
+      <button data-tam="normal" class="${N === 24 ? 'on' : ''}">🏡<b>Normal</b><small>24 × 24 cuadritos</small></button>
+      <button data-tam="grande" class="${N === 48 ? 'on' : ''}">🏰<b>Mundo grande</b><small>48 × 48 · ${premium ? '¡4 veces más espacio!' : '⭐ Plan Familia'}</small></button>
+      <button data-tam="cerrar" class="cerrar">Cerrar</button></div>`;
+    document.body.appendChild(caja);
+    caja.onclick = e => {
+      const b = e.target.closest('[data-tam]'); if (!b && e.target !== caja) return;
+      const t = b ? b.dataset.tam : 'cerrar';
+      if (t === 'cerrar') { caja.remove(); return; }
+      if (t === 'grande' && !premium) {
+        b.querySelector('small').innerHTML = '🔒 Con el <a href="cuenta.html">plan Familia</a>';
+        if (window.Cuenta?.avisoDemo) Cuenta.avisoDemo('El mundo grande es del plan Familia');
+        return;
+      }
+      if ((t === 'grande') === (N === 48)) { caja.remove(); return; }
+      if (t === 'normal' && items.some(it => it.x < -12 || it.x > 11 || it.z < -12 || it.z > 11) && !confirm('Algunas piezas quedan fuera del mundo normal y no se verán. ¿Cambiar igual?')) return;
+      try { localStorage.setItem('bl-mundo-tam', t); } catch (e) {}
+      guardarActual(); location.reload();
+    };
+  };
+}

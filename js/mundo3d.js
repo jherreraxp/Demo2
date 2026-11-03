@@ -28,11 +28,16 @@ export function crearMundo(canvas, { fog = 0xdff3ff, near = 40, far = 120, fov =
   addEventListener('resize', resize); resize();
   world.resize = resize;
   const clock = new THREE.Clock();
+  // si una parte del juego falla en un cuadro, se anota y se sigue dibujando (antes el juego quedaba congelado)
+  const avisados = new Set();
   function loop() {
-    const dt = Math.min(clock.getDelta(), .05);
-    fns.forEach(f => f(dt, clock.elapsedTime));
-    renderer.render(scene, camera);
     requestAnimationFrame(loop);
+    const dt = Math.min(clock.getDelta(), .05);
+    for (const f of fns) {
+      try { f(dt, clock.elapsedTime); }
+      catch (e) { const k = String(e && e.stack || e).slice(0, 300); if (!avisados.has(k)) { avisados.add(k); console.error('Error en el juego (sigue funcionando):', e); } }
+    }
+    try { renderer.render(scene, camera); } catch (e) { if (!avisados.has('render')) { avisados.add('render'); console.error(e); } }
   }
   world.start = () => requestAnimationFrame(loop);
   return world;

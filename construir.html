@@ -85,6 +85,13 @@ body.juego #estrellas-pill { display: flex; }
   .titulo-pill { display: none; }
 }
 @media (max-width: 420px) { .joy { width: 116px; height: 116px; } .grid { grid-template-columns: repeat(3, 1fr); } }
+.tam-modal { position: fixed; inset: 0; z-index: 60; background: rgba(35,50,74,.45); display: grid; place-items: center; padding: 16px; }
+.tam-caja { background: #fff; border-radius: 26px; padding: 20px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 0 rgba(0,0,0,.15); }
+.tam-caja h2 { margin: 0 0 4px; font-family: var(--font-display, sans-serif); text-align: center; }
+.tam-caja button { display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; align-items: center; text-align: left; gap: 0 10px; padding: 12px 14px; border-radius: 18px; background: #f4f0ff; font-size: 36px; min-height: 72px; }
+.tam-caja button b { font-size: 20px; } .tam-caja button small { grid-column: 2; font-size: 14px; color: #5b6b82; }
+.tam-caja button.on { background: #ffe27a; }
+.tam-caja .cerrar { display: block; text-align: center; font-size: 18px; min-height: 48px; background: #eee; }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -117,6 +124,7 @@ body.juego #estrellas-pill { display: flex; }
   <button class="herr" data-accion="limpiar" aria-label="Limpiar todo">🗑️<small>Limpiar</small></button>
   <button class="herr" data-accion="guardar" aria-label="Guardar mundo">💾<small>Guardar</small></button>
   <button class="herr" data-accion="abrir" aria-label="Abrir mundo">📂<small>Abrir</small></button>
+  <button class="herr" data-accion="tamano" aria-label="Tamaño del mundo">🌍<small>Tamaño</small></button>
 </div>
 
 <div class="biblio" id="biblio" aria-label="Biblioteca">
