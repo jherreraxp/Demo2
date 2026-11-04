@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Salón de Uñas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+/* Layout: barra arriba; pasos (iconos) en una fila; la mano al centro en un lienzo; herramientas del paso abajo. */
+body { background: linear-gradient(160deg, #fff0f8, #ffd9ef 55%, #e6dcff); min-height: 100vh; overflow: hidden; }
+[hidden] { display: none !important; }
+.pasos { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 64px); z-index: 5; display: flex; gap: 6px; overflow-x: auto; padding: 4px 10px 8px; scrollbar-width: none; }
+.pasos::-webkit-scrollbar { display: none; }
+.pasos > :first-child, .fila > :first-child { margin-left: auto; } .pasos > :last-child, .fila > :last-child { margin-right: auto; }
+.pasos button { flex: none; min-width: 62px; min-height: 58px; border-radius: 18px; background: rgba(255,255,255,.75); font-size: 24px; line-height: 1; padding: 4px 6px; box-shadow: 0 4px 0 var(--shadow); }
+.pasos button small { display: block; font-size: 11px; font-weight: 800; color: #5b6b82; margin-top: 2px; }
+.pasos button.on { background: #ffd23f; }
+.pasos button.hecho::after { content: '✓'; position: absolute; margin: -54px 0 0 40px; font-size: 13px; color: #2f8a58; }
+.palabra { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 136px); z-index: 4; background: #fff; border-radius: 999px; padding: 4px 18px; font: 700 clamp(22px, 5vw, 32px) var(--font-letters, Andika, sans-serif); color: #23324a; box-shadow: 0 4px 0 rgba(35,50,74,.12); cursor: pointer; white-space: nowrap; }
+.palabra .sil { display: inline-block; padding: 0 2px; border-radius: 8px; transition: background .2s; }
+.palabra .sil.on { background: #ffe27a; }
+.palabra .guion { color: #c9b6ff; }
+#mano { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 184px); width: 100%; height: calc(100vh - 334px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 334px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); touch-action: none; }
+.herr { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 5; display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 0 8px; }
+.fila { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: 2px 4px 6px; scrollbar-width: none; }
+.fila::-webkit-scrollbar { display: none; }
+.fila button { flex: none; min-width: 48px; min-height: 48px; border-radius: 14px; background: rgba(255,255,255,.9); font-size: 22px; font-weight: 800; padding: 4px 10px; box-shadow: 0 3px 0 var(--shadow); }
+.fila button.on { outline: 4px solid #9a6ee0; outline-offset: 1px; }
+.fila .color { width: 46px; min-width: 46px; height: 46px; border-radius: 50%; padding: 0; border: 3px solid #fff; }
+.fila .txt { font-size: 15px; }
+.modelo { position: fixed; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 184px); z-index: 4; background: #fff; border-radius: 16px; padding: 6px; box-shadow: 0 4px 0 rgba(35,50,74,.12); text-align: center; font-size: 12px; font-weight: 800; color: #5b6b82; }
+.modelo canvas { display: block; width: 92px; height: 92px; }
+#mensaje { top: 58%; }
+@media (max-width: 520px) { .pasos button { min-width: 54px; font-size: 20px; } .modelo canvas { width: 70px; height: 70px; } }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill" id="estrellas">💅 Salón</div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="pasos" id="pasos" aria-label="Pasos"></div>
+<div class="palabra" id="palabra" role="button" aria-label="Escuchar la palabra"></div>
+<canvas id="mano" aria-label="La mano con sus uñas"></canvas>
+<div class="modelo" id="modelo" hidden>Copia esto<canvas id="mini" width="184" height="184"></canvas></div>
+<div class="herr" id="herr"><div class="fila" id="fila1"></div><div class="fila" id="fila2"></div></div>
+<div id="mensaje" aria-live="polite"></div>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:60px;line-height:1">💅✨🌸</div>
+    <h1>Salón de Uñas</h1>
+    <p>Limpia, lima, pon crema, pinta y decora las uñas. ¡Luego sécalas y toma una foto!</p>
+    <div class="opciones" id="op-modo" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 14px">
+      <button class="go" data-modo="libre" style="min-height:56px">🎨 Libre</button>
+      <button class="go" data-modo="copia" style="min-height:56px;background:#9a6ee0;box-shadow:0 5px 0 #6b4fd8">🔍 Copia el modelo</button>
+    </div>
+  </div>
+</div>
+<script src="js/unas.js"></script>
+</body>
+</html>
