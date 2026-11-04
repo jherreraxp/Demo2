@@ -27,6 +27,7 @@
 
   window.JUEGOS = [
     { id: 'cuaderno', url: 'cuaderno.html', titulo: 'Mi Cuaderno', sub: '20 días: palabras, rimas y sílabas', emoji: '📒', fondo: ['#ff9ad5', '#8b5cf6'], tam: 'l', seccion: 'cuaderno', etiquetas: ['nuevo'], edad: [3, 6], captura: 'assets/capturas/cuaderno.webp' },
+    { id: 'soluna', url: 'soluna.html', titulo: 'Sol y Luna', sub: 'Juego para dos', emoji: '🌞', fondo: ['#ffb347', '#5b8cff'], tam: 'l', seccion: 'pensar', edad: [5, 9], etiquetas: ['nuevo'] },
     { id: 'lanzar', url: 'lanzar.html', titulo: 'Honda de Cuyes', sub: 'Lanza y lee', emoji: '🐹', fondo: ['#ffcf33', '#f28c28'], tam: 'l', seccion: 'tocar', etiquetas: ['nuevo'], edad: [4, 8], captura: 'assets/capturas/lanzar.webp' },
     { id: 'carrera', url: 'carrera.html', titulo: 'Carrera de Palabras', sub: 'Atrapa las monedas', emoji: 'pj:jugador', fondo: ['#ff7eb6', '#9a6ee0'], tam: 'xl', seccion: 'palabras', etiquetas: ['3D'], edad: [4, 7], captura: 'assets/capturas/carrera.webp' },
     { id: 'sapito', url: 'sapito.html', titulo: 'El Camino del Sapito', sub: 'Arma el camino con flechas', emoji: '🐸', fondo: ['#7be0a0', '#2fb3c9'], tam: 'l', seccion: 'pensar', etiquetas: ['nuevo'], edad: [4, 8], captura: 'assets/capturas/sapito.webp' },

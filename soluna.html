@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Sol y Luna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; background: #ffe9d6; }
+#lienzo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.modos-s { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.modos-s button { border-radius: 16px; padding: 8px 16px; font-size: 18px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.modos-s button.on { background: var(--gold); }
+.teclas-s { font-size: 15px; color: #5b6b82; margin: 4px 0 8px; line-height: 1.5; }
+.teclas-s kbd { background: #23324a; color: #fff; border-radius: 6px; padding: 1px 6px; font: 700 13px system-ui, sans-serif; }
+.palabra-s { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 62px); z-index: 5; display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.94); border-radius: 22px; padding: 6px 8px 6px 14px; box-shadow: 0 5px 0 rgba(43,23,64,.2); max-width: calc(100vw - 24px); }
+.palabra-s .emo { font-size: 34px; line-height: 1; }
+.palabra-s .slot { min-width: 54px; height: 44px; border-radius: 12px; border: 3px dashed #c9b6ef; display: grid; place-items: center; font: 700 26px Andika, sans-serif; color: #23324a; padding: 0 6px; }
+.palabra-s .slot.sol { border-color: #ffb347; } .palabra-s .slot.luna { border-color: #7fa8ff; }
+.palabra-s .slot.ok { border-style: solid; background: #fff6d8; } .palabra-s .slot.luna.ok { background: #e8efff; }
+.palabra-s button { width: 44px; height: 44px; border-radius: 50%; background: #9a6ee0; color: #fff; font-size: 22px; box-shadow: 0 4px 0 #6b4fd8; }
+.acciones-s { position: fixed; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 62px); z-index: 6; display: flex; gap: 6px; }
+.acciones-s button { width: 46px; height: 46px; border-radius: 50%; background: #fff; font-size: 22px; box-shadow: 0 4px 0 var(--shadow); }
+.pad { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 6; display: none; gap: 8px; align-items: flex-end; }
+.pad.luna { left: 10px; } .pad.sol { right: 10px; }
+.pad button { width: 64px; height: 64px; border-radius: 20px; font-size: 28px; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 4px 0 rgba(0,0,0,.25); opacity: .9; }
+.pad.sol button { background: linear-gradient(#ffb347, #ff8a3d); } .pad.luna button { background: linear-gradient(#8fb2ff, #6b7cf0); }
+.pad button.salto { width: 76px; height: 76px; border-radius: 50%; }
+.pad button.on { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+@media (hover: none), (pointer: coarse) { .pad { display: flex; } }
+@media (max-width: 480px) { .pad { gap: 4px; } .pad.luna { left: 4px; } .pad.sol { right: 4px; } .pad button { width: 44px; height: 52px; font-size: 22px; border-radius: 14px; } .pad button.salto { width: 54px; height: 54px; } }
+.aviso-girar { position: fixed; left: 50%; top: 45%; transform: translateX(-50%); z-index: 6; background: rgba(43,23,64,.8); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 15px; font-weight: 700; display: none; white-space: nowrap; }
+@media (orientation: portrait) and (max-width: 700px) { .aviso-girar { display: block; } }
+.fin-s { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(43,23,64,.45); }
+.fin-s .caja { background: #fff; border-radius: 28px; padding: 22px 26px; text-align: center; max-width: min(420px, 92vw); box-shadow: 0 10px 0 rgba(0,0,0,.25); }
+.fin-s h2 { margin: 0 0 6px; font-size: 32px; }
+.fin-s .estrellas { font-size: 50px; letter-spacing: 6px; margin: 4px 0 10px; }
+.fin-s .fila { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.fin-s button { border-radius: 18px; padding: 10px 18px; font-size: 20px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.fin-s button.si { background: var(--go, #4cb87a); color: #fff; box-shadow: 0 4px 0 var(--go-dark, #2e8a57); }
+[hidden] { display: none !important; }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<canvas id="lienzo" aria-label="Sol y Luna: juego para dos en la misma pantalla"></canvas>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+    <div class="pill" aria-label="Tiempo">⏱️ <span id="reloj">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador">🌞 Sol · 🌙 Luna</div>
+  </div>
+</div>
+<div class="acciones-s"><button id="pausa" aria-label="Pausa">⏸️</button><button id="otra" aria-label="Empezar el nivel otra vez">↺</button></div>
+<div class="palabra-s" id="palabra" hidden></div>
+<div class="pad luna" aria-label="Controles de Luna"><button data-j="1" data-b="izq" aria-label="Luna a la izquierda">◀</button><button data-j="1" data-b="der" aria-label="Luna a la derecha">▶</button><button class="salto" data-j="1" data-b="salto" aria-label="Luna salta">🌙</button></div>
+<div class="pad sol" aria-label="Controles de Sol"><button class="salto" data-j="0" data-b="salto" aria-label="Sol salta">🌞</button><button data-j="0" data-b="izq" aria-label="Sol a la izquierda">◀</button><button data-j="0" data-b="der" aria-label="Sol a la derecha">▶</button></div>
+<div class="aviso-girar">↻ Gira el teléfono para jugar mejor</div>
+<div id="mensaje" aria-live="polite"></div>
+<div class="fin-s" id="fin" hidden><div class="caja" id="fin-caja"></div></div>
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:60px;line-height:1">🌞🌙</div>
+    <h1>Sol y Luna</h1>
+    <p>Un juego para <b>dos</b>. Sol junta soles ☀️ y no le gusta el <b>agua fría</b>; Luna junta lunas 🌙 y no le gusta la <b>miel caliente</b>. ¡El charco morado no le gusta a nadie! Lleguen juntas a sus puertas.</p>
+    <div class="modos-s" id="modos" aria-label="Modo de juego">
+      <button data-modo="normal" class="on">🎮 Normal</button>
+      <button data-modo="edu">📖 Educativo</button>
+    </div>
+    <p class="teclas-s">🌞 Sol: <kbd>←</kbd> <kbd>→</kbd> y <kbd>↑</kbd> salta · 🌙 Luna: <kbd>A</kbd> <kbd>D</kbd> y <kbd>W</kbd> salta (o <kbd>F</kbd> <kbd>H</kbd> <kbd>T</kbd>)</p>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script src="js/soluna.js"></script>
+</body>
+</html>
