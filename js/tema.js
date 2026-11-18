@@ -2,7 +2,15 @@
 // Se guarda en este aparato (localStorage) y se aplica solo en cada página.
 (function () {
   'use strict';
+  // Cada paleta puede traer, además de los colores de siempre, los del estilo «videojuego»:
+  // sobre (texto encima del fondo), primario (botón principal) y su tinta/sombra, neon1/neon2 (brillos),
+  // panel (tarjetas de portada) con panelTinta/panelSuave/panelBorde, chip/chipTinta y titulo/tituloSombra.
+  // Si no los trae, se usan valores claros (el aspecto de antes). OJO: 'tinta' siempre es tinta oscura para
+  // escribir sobre superficies claras; para texto sobre el fondo de la paleta se usa --tema-sobre.
   const PALETAS = {
+    epico:    { nombre: 'Épico', emoji: '⚡', bg1: '#1c3fd7', bg2: '#7a2df2', bg3: '#3d2fe0', acento: '#7b3ff2', acento2: '#0b6fd0', tinta: '#1b1440', bloque: 'rgba(255,255,255,.07)',
+                oscuro: true, sobre: '#ffffff', primario: '#ffe14d', primarioTinta: '#1b1440', primarioSombra: '#c79a00', neon1: '#3df2ff', neon2: '#ff4fd8',
+                panel: 'rgba(14,20,72,.88)', panelTinta: '#ffffff', panelSuave: '#c9d4ff', panelBorde: '#3df2ff', chip: '#eef3ff', chipTinta: '#1b1440', titulo: '#ffffff', tituloSombra: '#0b0f3a' },
     rosa:     { nombre: 'Rosa y lila', emoji: '💖', bg1: '#ffd6f0', bg2: '#c7b3ff', acento: '#ff5dab', acento2: '#8a5cf0', tinta: '#3a1f5c', bloque: 'rgba(255,255,255,.22)' },
     aqua:     { nombre: 'Aqua',        emoji: '🐬', bg1: '#5ff2e0', bg2: '#34c3e8', acento: '#1aa3d9', acento2: '#5b4fe0', tinta: '#123a52', bloque: 'rgba(255,255,255,.18)' },
     morado:   { nombre: 'Morado',      emoji: '🔮', bg1: '#b99cff', bg2: '#6b47d8', acento: '#ff7eb6', acento2: '#4a2fb3', tinta: '#2a1650', bloque: 'rgba(255,255,255,.14)' },
@@ -16,15 +24,15 @@
   const demo = () => !!(window.Cuenta && window.Cuenta.esDemo && window.Cuenta.esDemo());
   const avisar = t => { if (window.Cuenta && window.Cuenta.avisoDemo) window.Cuenta.avisoDemo(t); };
   let temaPrueba = null;
-  const actual = () => temaPrueba && PALETAS[temaPrueba] ? temaPrueba : (PALETAS[get(K_TEMA)] ? get(K_TEMA) : 'rosa');
+  const actual = () => temaPrueba && PALETAS[temaPrueba] ? temaPrueba : (PALETAS[get(K_TEMA)] ? get(K_TEMA) : 'epico');
   const esMenu = () => document.body && document.body.classList.contains('menu');
 
   const css = `
 .tema-fondo { position: fixed; inset: -40px; z-index: -1; background-size: cover; background-position: center; filter: blur(14px) saturate(1.15); transform: scale(1.05); pointer-events: none; }
 .tema-fondo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, var(--tema-bg1), var(--tema-bg2)); opacity: .45; }
-.tema-picker { position: fixed; z-index: 60; background: #fff; border-radius: 22px; padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.25); display: grid; gap: 8px; font-family: "Baloo 2", system-ui, sans-serif; color: #23324a; width: min(300px, calc(100vw - 24px)); }
+.tema-picker { position: fixed; z-index: 60; background: #fff; border-radius: 22px; padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.25); display: grid; gap: 8px; font-family: "Baloo 2", system-ui, sans-serif; color: #23324a; width: min(336px, calc(100vw - 24px)); }
 .tema-picker b { font-size: 18px; }
-.tema-picker .tp-opts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tema-picker .tp-opts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .tema-picker .tp-opts button { aspect-ratio: 1; border-radius: 16px; border: 3px solid transparent; font-size: 24px; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
 .tema-picker .tp-opts button.on { border-color: #23324a; }
 .tema-picker small { font-size: 13px; opacity: .75; }
@@ -39,7 +47,15 @@
     r.setProperty('--tema-bg1', p.bg1); r.setProperty('--tema-bg2', p.bg2); r.setProperty('--tema-bg3', p.bg3 || p.bg2);
     r.setProperty('--tema-acento', p.acento); r.setProperty('--tema-acento2', p.acento2);
     r.setProperty('--tema-tinta', p.tinta); r.setProperty('--tema-bloque', p.bloque);
+    // estilo «videojuego» (las paletas claras conservan su tarjeta blanca)
+    const v = {
+      sobre: p.sobre || p.tinta, primario: p.primario || '#2f9e62', 'primario-tinta': p.primarioTinta || '#ffffff', 'primario-sombra': p.primarioSombra || '#1f7446',
+      neon1: p.neon1 || p.acento, neon2: p.neon2 || p.acento2, panel: p.panel || '#ffffff', 'panel-tinta': p.panelTinta || '#23324a', 'panel-suave': p.panelSuave || '#5b6b82',
+      'panel-borde': p.panelBorde || '#ffffff', chip: p.chip || '#eef6fb', 'chip-tinta': p.chipTinta || '#23324a', titulo: p.titulo || p.tinta, 'titulo-sombra': p.tituloSombra || 'rgba(255,255,255,0)',
+    };
+    for (const k in v) r.setProperty('--tema-' + k, v[k]);
     document.documentElement.dataset.tema = actual();
+    if (p.oscuro) document.documentElement.dataset.temaOscuro = '1'; else delete document.documentElement.dataset.temaOscuro;
     if (document.head) estilo();
     if (document.body) fondo();
   }
@@ -100,24 +116,37 @@
 
   window.Tema = { PALETAS, aplicar, actual, set, setFoto, quitarFoto, foto, fotoTodos, setFotoTodos, picker };
   aplicar();
+  // ---------- extras que van en todas las páginas ----------
+  // js/nav.js: menús que se manejan con flechas o mando. js/pwa.js: instalar como app (si existe; si no, no pasa nada).
+  const BASE = (document.currentScript && document.currentScript.src || 'js/tema.js').replace(/tema\.js(\?.*)?$/, '');
+  function extra(nombre) {
+    if (document.querySelector(`script[data-extra="${nombre}"], script[src$="js/${nombre}"]`)) return;
+    const s = document.createElement('script'); s.src = BASE + nombre; s.async = true; s.dataset.extra = nombre;
+    s.onerror = () => s.remove();
+    (document.head || document.documentElement).appendChild(s);
+  }
+  extra('nav.js'); extra('pwa.js');
   // ---------- enlaces legales en el pie de página ----------
   // Páginas con contenido normal: un pie al final. Juegos a pantalla completa: los enlaces van en la
   // pantalla de inicio del juego (portada), para no tapar los controles mientras se juega.
   function pieLegal() {
     if (document.querySelector('[data-pie-legal], a[href="privacidad.html"]')) return;
     const html = '<a href="privacidad.html">Política de privacidad</a> · <a href="terminos.html">Términos y condiciones</a>';
-    const css = 'font:500 13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#5b6b82;text-align:center;';
+    const css = 'font:500 13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--tema-sobre,#5b6b82);text-align:center;';
+    const cssPortada = css.replace('color:var(--tema-sobre,#5b6b82)', 'color:var(--tema-panel-suave,#5b6b82)');
     const portada = document.querySelector('.portada-caja');
     const pantallaCompleta = document.querySelector('canvas.mundo, canvas#mundo, .tablero, .teclado') || getComputedStyle(document.body).overflow === 'hidden';
     const el = document.createElement(portada ? 'p' : 'footer');
     el.setAttribute('data-pie-legal', ''); el.innerHTML = html;
-    if (portada) { el.style.cssText = css + 'margin:10px 0 0;font-size:12px;'; portada.appendChild(el); return; }
+    if (portada) { el.style.cssText = cssPortada + 'margin:10px 0 0;font-size:12px;'; portada.appendChild(el); el.querySelectorAll('a').forEach(a => { a.style.color = 'inherit'; a.style.textDecoration = 'underline'; }); return; }
     // pantallas completas con un panel que se desplaza (hub del cuaderno, estudio mágico): el pie va dentro
     const panel = pantallaCompleta && document.querySelector('#hub, main');
     if (pantallaCompleta && !panel) return;
+    // sobre un fondo oscuro (paleta Épico) el texto va en una pastilla clara para que se lea
+    if (PALETAS[actual()].oscuro) el.innerHTML = `<span style="display:inline-block;background:rgba(255,255,255,.9);border-radius:999px;padding:3px 14px">${html}</span>`;
     el.style.cssText = css + 'padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 18px);';
     (panel || document.querySelector('main') || document.body).appendChild(el);
-    el.querySelectorAll('a').forEach(a => { a.style.color = 'var(--tema-acento, #6b47a8)'; a.style.fontWeight = '600'; });
+    el.querySelectorAll('a').forEach(a => { a.style.color = 'var(--tema-sobre, var(--tema-acento, #6b47a8))'; a.style.textDecoration = 'underline'; a.style.fontWeight = '600'; });
   }
   function iniciar() { aplicar(); try { pieLegal(); } catch (e) {} }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();

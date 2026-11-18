@@ -25,7 +25,7 @@ body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, var(--b
 main { box-sizing: border-box; max-width: 820px; margin: 0 auto; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 40px; display: flex; flex-direction: column; gap: 16px; }
 .top { display: flex; align-items: center; gap: 12px; }
 .top a.casa { text-decoration: none; font-size: 22px; background: var(--card); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 3px 0 rgba(35,50,74,.15); flex: none; }
-h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; }
+h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; color: var(--tema-sobre, var(--ink, #23324a)); }
 .card { background: var(--card); border-radius: 22px; padding: 22px clamp(18px, 4vw, 34px); box-shadow: 0 4px 0 rgba(35,50,74,.08), 0 6px 18px rgba(35,50,74,.06); }
 h2 { font-family: var(--font-display); font-size: 21px; margin: 26px 0 6px; line-height: 1.2; color: var(--ink); }
 h2:first-of-type { margin-top: 6px; }
@@ -40,8 +40,9 @@ table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; 
 th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 th { font-weight: 700; color: var(--ink); background: #faf8ff; }
 .tabla { overflow-x: auto; }
-.pie { text-align: center; color: var(--muted); font-size: 14px; }
+.pie { text-align: center; color: var(--tema-sobre, var(--muted)); opacity: .9; font-size: 14px; }
 @media (max-width: 520px) { th, td { padding: 6px; font-size: 14px; } }
+.pie a { color: var(--tema-sobre, var(--accent)); text-decoration: underline; }
 </style>
 <script src="js/tema.js"></script>
 </head>

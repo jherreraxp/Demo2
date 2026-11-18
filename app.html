@@ -26,7 +26,7 @@ body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, var(--b
 main { box-sizing: border-box; max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 48px; display: flex; flex-direction: column; gap: 16px; }
 .top { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 22px; padding: 8px 14px 8px 8px; box-shadow: 0 4px 0 rgba(35,50,74,.08); }
 .top a.casa { text-decoration: none; font-size: 22px; background: #f1ecfb; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; }
-h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; }
+h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; color: var(--tema-sobre, var(--ink, #23324a)); }
 h2 { font-family: var(--font-display); font-size: 23px; margin: 0 0 4px; line-height: 1.2; }
 .card { background: var(--card); border-radius: 22px; padding: 20px clamp(16px, 4vw, 28px); box-shadow: 0 4px 0 rgba(35,50,74,.08), 0 6px 18px rgba(35,50,74,.06); }
 .card p { margin: 8px 0; }
@@ -48,6 +48,7 @@ details { margin-top: 10px; } summary { cursor: pointer; font-weight: 700; color
 a { color: #6a3fc0; font-weight: 700; }
 code { background: #eef0f7; padding: 1px 6px; border-radius: 6px; font-size: .92em; overflow-wrap: anywhere; }
 @media (max-width: 480px) { .app img { width: 64px; height: 64px; border-radius: 16px; } .boton { width: 100%; } }
+.pie a { color: var(--tema-sobre, var(--accent)); text-decoration: underline; }
 </style>
 </head>
 <body>

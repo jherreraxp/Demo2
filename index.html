@@ -7,7 +7,7 @@
 <link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="assets/icono-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#c9a2ff">
+<meta name="theme-color" content="#2436d0">
 <title>Avelu y Amara</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,9 @@
 /* Menú pensado para una niña que aún no lee y para sus papás:
    - arriba, solo su saludo y una tarjeta enorme "Seguir jugando" (lo que toca hoy);
    - después, estantes por tema que se deslizan de lado, con fotitos reales de cada juego;
-   - todo lo de los papás (filtros, colores, tiempo, cuenta, admin) va dentro de la tuerquita ⚙️. */
+   - todo lo de los papás (filtros, colores, tiempo, cuenta, admin) va dentro de la tuerquita ⚙️.
+   Aspecto «videojuego» (paleta Épico por defecto): fondo azul y violeta con un foco de luz, títulos en
+   mayúscula cursiva, botón amarillo gordito y tarjetas que brillan al elegirlas (dedo, ratón, flechas o mando). */
 :root {
   --ink: #23324a;
   --paper: #ffffff;
@@ -30,8 +32,11 @@
 [hidden] { display: none !important; }
 html, body { min-height: 100%; }
 body {
-  margin: 0; color: var(--tema-tinta, var(--ink)); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; overflow-x: hidden;
+  margin: 0; color: var(--tema-sobre, var(--tema-tinta, var(--ink))); font-family: var(--font-display); -webkit-tap-highlight-color: transparent; overflow-x: hidden;
+  background: linear-gradient(160deg, var(--tema-bg1, #ffd6f0), var(--tema-bg2, #c7b3ff));
   background:
+    radial-gradient(ellipse 85% 60% at 50% -8%, color-mix(in srgb, var(--tema-neon1, #fff) 38%, transparent), transparent 72%),
+    radial-gradient(ellipse 60% 45% at 100% 100%, color-mix(in srgb, var(--tema-neon2, #fff) 30%, transparent), transparent 70%),
     linear-gradient(var(--tema-bloque, rgba(255,255,255,.2)) 2px, transparent 2px) 0 0 / 64px 64px,
     linear-gradient(90deg, var(--tema-bloque, rgba(255,255,255,.2)) 2px, transparent 2px) 0 0 / 64px 64px,
     linear-gradient(160deg, var(--tema-bg1, #ffd6f0), var(--tema-bg3, #c7b3ff) 55%, var(--tema-bg2, #c7b3ff));
@@ -39,23 +44,29 @@ body {
 }
 body.con-foto { background: transparent; }
 button, a { font: inherit; color: inherit; border: 0; cursor: pointer; text-decoration: none; background: none; }
-button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px solid var(--tema-tinta, var(--ink)); outline-offset: 3px; }
+/* foco: anillo de luz por dentro y halo oscuro por fuera, se ve sobre cualquier fondo (js/nav.js añade su anillo animado) */
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px solid var(--tema-neon1, #3df2ff); outline-offset: 2px; box-shadow: 0 0 0 9px rgba(11, 15, 58, .9); }
 .wrap { box-sizing: border-box; max-width: 1320px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 36px; display: flex; flex-direction: column; gap: 20px; }
 
 /* ---------- barra de arriba: marca · jugadoras · tuerquita ---------- */
 .top { display: flex; align-items: center; gap: 12px; min-height: 64px; }
-.marca { margin: 0; font-size: clamp(24px, 3.4vw, 34px); line-height: 1; font-weight: 800; letter-spacing: -.5px; white-space: nowrap; flex: none; }
+.marca { margin: 0; font-size: clamp(24px, 3.4vw, 36px); line-height: 1; font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: 0; white-space: nowrap; flex: none; padding-right: 4px; }
+:root[data-tema-oscuro] .marca { -webkit-text-stroke: 1.5px var(--tema-titulo-sombra); paint-order: stroke fill; text-shadow: 0 3px 0 var(--tema-titulo-sombra), 0 0 18px color-mix(in srgb, var(--tema-neon2) 70%, transparent); }
+:root[data-tema-oscuro] .marca .a1 { color: var(--tema-primario); }
+:root[data-tema-oscuro] .marca .a2 { color: var(--tema-neon1); }
+:root[data-tema-oscuro] .marca .y { opacity: 1; }
 .marca .a1 { color: var(--tema-acento, #ff5dab); }
 .marca .a2 { color: var(--tema-acento2, #8a5cf0); }
 .marca .y { font-size: .62em; opacity: .6; }
 .jugadores { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .jugadores > :first-child { margin-left: auto; }
 .jugadores::-webkit-scrollbar { display: none; }
-.jug { flex: none; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.88); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 var(--shadow); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.jug { flex: none; display: flex; align-items: center; gap: 6px; background: var(--tema-panel, rgba(255,255,255,.88)); color: var(--tema-panel-tinta, var(--ink)); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 800; box-shadow: inset 0 0 0 2px rgba(255,255,255,.3), inset 0 10px 8px -8px rgba(255,255,255,.45), 0 4px 0 var(--shadow); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .jug .cara { font-size: 26px; line-height: 1; }
-.jug .est { color: #c98a00; }
-.engrane { flex: none; width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: 0 5px 0 var(--shadow); display: grid; place-items: center; font-size: 30px; position: relative; }
-.engrane small { position: absolute; bottom: 3px; left: 0; right: 0; font-size: 10px; font-weight: 800; line-height: 1; opacity: .7; }
+.jug .est { color: #8a5a00; }
+:root[data-tema-oscuro] .jug .est { color: var(--tema-primario); }
+.engrane { flex: none; width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(180deg, #fff 55%, #e3e9ff); color: var(--ink); box-shadow: 0 5px 0 var(--shadow), inset 0 -3px 0 rgba(20,30,90,.08); display: grid; place-items: center; font-size: 30px; position: relative; transition: transform .12s; }
+.engrane small { position: absolute; bottom: 3px; left: 0; right: 0; font-size: 10px; font-weight: 800; line-height: 1; opacity: .8; }
 .engrane[aria-expanded="true"] { background: var(--tema-acento, #ff5dab); color: #fff; }
 .engrane:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--shadow); }
 
@@ -70,6 +81,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px s
 .op .opi { font-size: 24px; flex: none; width: 30px; text-align: center; }
 .op.on { background: var(--tema-acento, #ff5dab); color: #fff; }
 .op .candado { margin-left: auto; font-size: 14px; opacity: .6; }
+.op small { display: block; font-size: 12px; font-weight: 600; line-height: 1; opacity: .75; }
 .op:active { transform: translateY(2px); box-shadow: none; }
 .filas { display: flex; flex-wrap: wrap; gap: 6px; }
 .fchip { border-radius: 999px; padding: 6px 12px; min-height: 40px; background: #f4efff; font-size: 15px; font-weight: 800; }
@@ -85,22 +97,32 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px s
 .heroe { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: var(--gap); }
 .hola { position: relative; border-radius: 30px; overflow: hidden; min-height: 280px; background: linear-gradient(#8fd6f8, #dff4ff 62%, #7fd36a 62%, #57b84a); box-shadow: 0 7px 0 var(--shadow); cursor: pointer; }
 .hola canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.saludo { position: absolute; left: 16px; right: 16px; top: 14px; color: #fff; font-size: clamp(28px, 3.2vw, 40px); font-weight: 800; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.22); pointer-events: none; }
+/* escenario con un foco de luz (paletas oscuras); las claras conservan su cielito */
+:root[data-tema-oscuro] .hola {
+  background: #1a1f8c;
+  background:
+    radial-gradient(ellipse 58% 15% at 50% 90%, color-mix(in srgb, var(--tema-neon1) 60%, transparent), transparent 72%),
+    conic-gradient(from 0deg at 50% -12%, transparent 157deg, rgba(255,255,255,.16) 166deg, rgba(255,255,255,.34) 180deg, rgba(255,255,255,.16) 194deg, transparent 203deg),
+    radial-gradient(ellipse 95% 85% at 50% 0%, #6a45ff, #2327a8 58%, #10134f);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--tema-neon1) 70%, transparent), 0 0 26px color-mix(in srgb, var(--tema-neon1) 40%, transparent), 0 7px 0 var(--shadow);
+}
+.saludo { position: absolute; left: 16px; right: 16px; top: 14px; color: #fff; font-size: clamp(28px, 3.2vw, 40px); font-weight: 800; font-style: italic; line-height: 1; -webkit-text-stroke: 1.5px rgba(11,15,58,.75); paint-order: stroke fill; text-shadow: 0 3px 0 rgba(11,15,58,.6); pointer-events: none; }
 .saludo span { display: block; font-size: .55em; margin-top: 4px; }
-.cambiar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 4px 16px 4px 10px; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); font-size: 18px; font-weight: 800; }
+.cambiar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 4px 16px 4px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: var(--ink); box-shadow: 0 4px 0 var(--shadow); font-size: 18px; font-weight: 800; }
 .cambiar b { font-size: 26px; }
-.seguir { position: relative; display: grid; grid-template-columns: 1fr 1.15fr; align-items: center; gap: 18px; border-radius: 30px; overflow: hidden; min-height: 280px; padding: 22px 26px; box-sizing: border-box; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 7px 0 var(--shadow); color: #fff; isolation: isolate; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
-.seguir::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 85% 20%, rgba(255,255,255,.35), transparent 45%), linear-gradient(rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px, linear-gradient(90deg, rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px; }
+.seguir { position: relative; display: grid; grid-template-columns: 1fr 1.15fr; align-items: center; gap: 18px; border-radius: 30px; overflow: hidden; min-height: 280px; padding: 22px 26px; box-sizing: border-box; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: inset 0 0 0 3px rgba(255,255,255,.5), 0 7px 0 var(--shadow), 0 0 28px color-mix(in srgb, var(--tema-neon2, #fff) 45%, transparent); color: #fff; isolation: isolate; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .2s; }
+.seguir::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(105deg, transparent 0 8%, rgba(255,255,255,.2) 8% 16%, transparent 16% 19%, rgba(255,255,255,.12) 19% 22%, transparent 22%), radial-gradient(circle at 85% 20%, rgba(255,255,255,.35), transparent 45%), linear-gradient(rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px, linear-gradient(90deg, rgba(255,255,255,.12) 2px, transparent 2px) 0 0 / 32px 32px; }
 .seguir .txt { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.seguir .etq { font-size: 18px; font-weight: 800; background: rgba(30, 10, 60, .28); border-radius: 999px; padding: 2px 12px; }
-.seguir .t { font-family: var(--font-letters); font-weight: 700; font-size: clamp(30px, 3.6vw, 48px); line-height: 1.02; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
-.seguir .s { font-size: 18px; font-weight: 700; opacity: .95; }
-.seguir .play { margin-top: 8px; display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 6px 30px 6px 10px; border-radius: 999px; background: #fff; color: #1f8a4c; font-size: 30px; font-weight: 800; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
-.seguir .play i { font-style: normal; width: 60px; height: 60px; border-radius: 50%; background: #4cb87a; color: #fff; display: grid; place-items: center; font-size: 30px; padding-left: 4px; box-sizing: border-box; }
+.seguir .etq { font-size: 18px; font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .02em; background: rgba(20, 10, 60, .55); border-radius: 999px; padding: 2px 14px; }
+.seguir .t { font-family: var(--font-letters); font-weight: 700; font-size: clamp(30px, 3.6vw, 48px); line-height: 1.02; text-shadow: 0 3px 0 rgba(20,10,60,.45), 0 0 14px rgba(20,10,60,.35); }
+.seguir .s { font-size: 18px; font-weight: 700; text-shadow: 0 2px 0 rgba(20,10,60,.4); }
+.seguir .play { position: relative; overflow: hidden; isolation: isolate; margin-top: 8px; display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 6px 30px 6px 10px; border-radius: 24px; background: var(--tema-primario, #ffe14d); color: var(--tema-primario-tinta, #1b1440); font-size: 30px; font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .02em; box-shadow: 0 6px 0 var(--tema-primario-sombra, #c79a00), 0 12px 20px rgba(20,10,60,.3); }
+.seguir .play::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -10%; width: 50%; background: linear-gradient(100deg, rgba(255,255,255,.6), rgba(255,255,255,0) 80%); transform: skewX(-22deg); }
+.seguir .play i { font-style: normal; width: 60px; height: 60px; border-radius: 18px; background: var(--tema-primario-tinta, #1b1440); color: var(--tema-primario, #ffe14d); display: grid; place-items: center; font-size: 30px; padding-left: 4px; box-sizing: border-box; }
 .seguir .pantalla { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 16 / 10; border: 6px solid #fff; box-shadow: 0 10px 0 rgba(30, 10, 60, .25); transform: rotate(2deg); background: rgba(255,255,255,.25); }
 .seguir .pantalla img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .seguir .pantalla .art { position: absolute; inset: 0; display: grid; place-items: center; font-size: 90px; }
-.seguir:hover, .seguir:focus-visible { transform: scale(1.015); }
+.seguir:hover, .seguir:focus-visible { transform: scale(1.015); box-shadow: inset 0 0 0 3px #fff, 0 0 0 4px var(--tema-neon1, #3df2ff), 0 7px 0 4px var(--shadow), 0 0 34px 6px color-mix(in srgb, var(--tema-neon1, #3df2ff) 65%, transparent); }
 .seguir:active { transform: scale(.985); }
 .seguir .play { animation: late 1.8s ease-in-out infinite; }
 @keyframes late { 50% { transform: scale(1.06); } }
@@ -108,17 +130,19 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px s
 /* ---------- estantes ---------- */
 .estante { display: flex; flex-direction: column; gap: 8px; }
 .est-cab { display: flex; align-items: center; gap: 10px; }
-.est-tit { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 4px 18px 4px 8px; border-radius: 999px; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); font-size: 24px; font-weight: 800; }
-.est-tit .e { font-size: 34px; line-height: 1; }
-.est-tit .ahora { font-size: 15px; background: var(--tema-acento, #ff5dab); color: #fff; border-radius: 999px; padding: 0 10px; }
+.est-tit { position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 4px 14px 4px 4px; border-radius: 16px; font-size: clamp(22px, 2.6vw, 28px); font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .02em; text-align: left; line-height: 1.05;
+  -webkit-text-stroke: 1.2px var(--tema-titulo-sombra, transparent); paint-order: stroke fill; text-shadow: 0 3px 0 var(--tema-titulo-sombra, transparent); }
+.est-tit::after { content: ""; position: absolute; left: 52px; right: 10px; bottom: 6px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--tema-primario, #ffe14d), var(--tema-neon2, #ff4fd8) 70%, transparent); transform: skewX(-22deg); }
+.est-tit .e { font-size: 34px; line-height: 1; font-style: normal; -webkit-text-stroke: 0; text-shadow: none; }
+.est-tit .ahora { font-size: 15px; background: var(--tema-primario, #ff5dab); color: var(--tema-primario-tinta, #fff); border-radius: 8px; padding: 2px 10px; -webkit-text-stroke: 0; text-shadow: none; transform: skewX(-8deg); }
 .flechas { margin-left: auto; display: flex; gap: 8px; }
-.flecha { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.88); box-shadow: 0 4px 0 var(--shadow); font-size: 22px; font-weight: 800; }
+.flecha { width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(180deg, #fff 55%, #e3e9ff); color: var(--ink); box-shadow: 0 4px 0 var(--shadow); font-size: 22px; font-weight: 800; }
 .flecha:disabled { opacity: .35; cursor: default; }
-.fila { display: grid; grid-auto-flow: column; grid-auto-columns: var(--carta); gap: var(--gap); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; padding: 6px 16px 16px; margin-inline: -16px; scrollbar-width: none; }
+.fila { display: grid; grid-auto-flow: column; grid-auto-columns: var(--carta); gap: var(--gap); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; padding: 16px 16px 26px; margin: -10px -16px -10px; scrollbar-width: none; }
 .fila::-webkit-scrollbar { display: none; }
 
 /* tarjeta de juego: fotito real en un marco con los colores del juego */
-.carta { scroll-snap-align: start; position: relative; display: flex; flex-direction: column; border-radius: 26px; padding: 8px 8px 10px; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: 0 6px 0 var(--shadow); color: #fff; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.carta { scroll-snap-align: start; position: relative; display: flex; flex-direction: column; border-radius: 26px; padding: 8px 8px 10px; background: linear-gradient(150deg, var(--a), var(--b)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.4), 0 6px 0 var(--shadow); color: #fff; transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .2s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .carta .img { position: relative; aspect-ratio: 16 / 10; border-radius: 19px; overflow: hidden; background: rgba(255,255,255,.18); }
 .carta .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .carta .img .art { position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.18)); }
@@ -133,13 +157,18 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px s
 .carta .tags { position: absolute; right: 14px; top: 14px; display: flex; gap: 4px; }
 .carta .tag { background: #fff; color: var(--ink); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 800; line-height: 1.7; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
 .carta .tag.nuevo { background: #ffe27a; }
-.carta:hover, .carta:focus-visible { transform: translateY(-4px) rotate(-.6deg); }
+/* tarjeta elegida (ratón, flechas o mando): sube y se enciende */
+.carta:hover, .carta:focus-visible { transform: translateY(-6px) scale(1.03); outline: none; box-shadow: inset 0 0 0 2px #fff, 0 0 0 4px var(--tema-neon1, #3df2ff), 0 10px 0 2px var(--shadow), 0 0 26px 8px color-mix(in srgb, var(--tema-neon1, #3df2ff) 70%, transparent); z-index: 2; }
+.carta:active { transform: scale(.97); }
 .carta.salta { animation: salta .5s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes salta { 0% { transform: scale(1); } 35% { transform: scale(.92); } 70% { transform: scale(1.07); } 100% { transform: scale(1); } }
-.vacio { background: rgba(255,255,255,.85); border-radius: 22px; padding: 20px; text-align: center; font-size: 18px; font-weight: 800; }
+.vacio { background: rgba(255,255,255,.92); color: var(--ink); border-radius: 22px; padding: 20px; text-align: center; font-size: 18px; font-weight: 800; }
 
 .pie { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 14px; text-align: center; margin-top: 6px; }
-.pie p { margin: 0; max-width: 64ch; background: rgba(255,255,255,.6); border-radius: 16px; padding: 8px 14px; text-wrap: pretty; }
+.pie p { margin: 0; max-width: 64ch; background: rgba(255,255,255,.9); color: var(--ink); border-radius: 16px; padding: 8px 14px; text-wrap: pretty; }
+.pie .legal { background: none; color: inherit; font-weight: 600; }
+.pie .legal a { text-decoration: underline; }
+@media (hover: hover) { .engrane:hover, .flecha:hover:not(:disabled), .cambiar:hover { transform: translateY(-2px); } }
 details.credits summary { cursor: pointer; }
 details.credits a { color: inherit; }
 
@@ -197,6 +226,7 @@ details.credits a { color: inherit; }
 
   <footer class="pie">
     <p>Programa basado en el método <b>fonético-silábico</b>: primero el sonido de cada letra, luego se juntan en sílabas y palabras. Sesiones cortas de 10 a 15 minutos al día. La tarjeta grande «Seguir jugando» muestra lo que toca hoy; cada actividad sube de nivel sola.</p>
+    <p class="legal"><a href="privacidad.html">Política de privacidad</a> · <a href="terminos.html">Términos y condiciones</a></p>
     <details class="credits">
       <summary>Créditos</summary>
       <p>Casitas, árboles, nubes y sonidos: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0). Motor 3D: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Física: <a href="https://brm.io/matter-js/" target="_blank" rel="noopener">matter.js</a> (MIT). Letras Andika y Baloo 2 (OFL).
@@ -215,6 +245,8 @@ details.credits a { color: inherit; }
       <button class="op" id="op-dos"><span class="opi">👭</span>Dos jugadoras</button>
       <button class="op" id="op-colores"><span class="opi">🎨</span>Colores</button>
       <a class="op" href="personajes.html"><span class="opi">👗</span>Personaje</a>
+      <button class="op" id="op-instalar" hidden><span class="opi">📲</span>Instalar app</button>
+      <a class="op" id="op-apk" href="https://github.com/jherreraxp/Demo2/releases/latest" target="_blank" rel="noopener"><span class="opi">⬇️</span><span>Bajar APK<small>para Android</small></span></a>
     </div>
   </div>
   <div>
@@ -323,9 +355,13 @@ details.credits a { color: inherit; }
         <div class="fila">${lista.map(carta).join('')}</div>
       </section>`;
     }).join('');
+    // si se estaba eligiendo una tarjeta con las flechas o el mando, no se pierde al redibujar
+    const conFoco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#estantes .carta');
+    const idFoco = conFoco && conFoco.dataset.id;
     $('#estantes').innerHTML = html || '<p class="vacio">No hay juegos con estos filtros. Pídele a papá o mamá que toque ⚙️ y elija «Todas». 🙂</p>';
     $('#estantes').style.display = 'flex'; $('#estantes').style.flexDirection = 'column'; $('#estantes').style.gap = '18px';
     document.querySelectorAll('.fila').forEach(flechas);
+    if (idFoco) { const c = document.querySelector(`#estantes .carta[data-id="${CSS.escape(idFoco)}"]`); if (c) c.focus({ preventScroll: true }); }
     pintarHoja();
     window.dispatchEvent(new Event('menu-render'));
     J.refreshMusic();
@@ -374,6 +410,8 @@ details.credits a { color: inherit; }
   addEventListener('keydown', e => { if (e.key === 'Escape' && !hoja.hidden) abrir(false); });
   function pintarHoja() {
     $('#op-dos').classList.toggle('on', !!P.two);
+    // «Instalar app» solo si js/pwa.js está cargado (lo trae js/tema.js)
+    $('#op-instalar').hidden = !window.PWA;
     $('#op-dos').lastChild.textContent = P.two ? `De a 2: ${P.players[0].name} y ${P.players[1].name}` : 'Dos jugadoras';
     $('#f-secciones').innerHTML = SECCIONES.map(s => `<button class="fchip ${s.id === secSel ? 'on' : ''}" data-s="${s.id}">${s.emoji} ${s.id === 'todos' ? 'Todos' : J.esc(s.nombre)}</button>`).join('');
     $('#f-edades').innerHTML = EDADES.map(x => `<button class="fchip ${x.id === edadSel ? 'on' : ''}" data-e="${x.id}">${x.id === 'todas' ? '🎂 ' : ''}${x.n}</button>`).join('');
@@ -386,6 +424,7 @@ details.credits a { color: inherit; }
   $('#op-musica').onclick = e => { if (!e.target.closest('[data-musica]')) $('#op-musica [data-musica]').click(); };
   $('#op-dos').onclick = () => { P.two = !P.two; P.turn = 0; J.save(); J.sfx('pop'); render(); J.say(P.two ? `¡A jugar de a dos! ${P.players[0].name} y ${P.players[1].name}` : 'Juega una sola persona'); };
   $('#op-colores').onclick = e => { J.sfx('pop'); if (window.Tema && Tema.picker) Tema.picker(e.currentTarget); };
+  $('#op-instalar').onclick = () => { J.sfx('pop'); window.PWA?.instalar?.(); };
   $('#op-tiempo').onclick = () => J.pedirPin(() => { location.href = 'tiempo.html'; });
   $('#op-admin').onclick = () => J.pedirPin(() => { location.href = 'admin.html'; });
 
