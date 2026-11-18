@@ -368,7 +368,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 (() => {
   const $t = s => document.querySelector(s);
   const pintar = () => {
-    $t('#tema-opts').innerHTML = Object.entries(Tema.PALETAS).map(([k, p]) => `<button type="button" data-t="${k}" aria-pressed="${k === Tema.actual()}" style="border-radius:14px;padding:6px 12px;font-weight:700;border:3px solid ${k === Tema.actual() ? 'var(--ink)' : 'transparent'};background:linear-gradient(135deg, ${p.bg1}, ${p.bg2});cursor:pointer">${p.emoji} ${p.nombre}</button>`).join('');
+    $t('#tema-opts').innerHTML = Object.entries(Tema.PALETAS).map(([k, p]) => `<button type="button" data-t="${k}" title="${p.desc || p.nombre}" aria-pressed="${k === Tema.actual()}" style="border-radius:14px;padding:6px 12px;font-weight:700;text-align:left;line-height:1.15;color:${p.sobre || p.tinta};border:3px solid ${k === Tema.actual() ? 'var(--ink)' : 'rgba(35,50,74,.15)'};${k === Tema.actual() ? 'box-shadow:0 0 0 3px #ffd166;' : ''}background:linear-gradient(135deg, ${p.bg1}, ${p.bg3 || p.bg2} 55%, ${p.bg2});cursor:pointer">${p.emoji} ${p.nombre}${p.desc ? `<br><small style="font-weight:600;font-size:12px;opacity:.9">${p.desc}</small>` : ''}</button>`).join('');
     const f = Tema.foto(); $t('#tema-ver').src = f || ''; $t('#tema-ver').style.display = f ? 'block' : 'none';
     $t('#tema-quitar').disabled = !f; $t('#tema-todos').checked = Tema.fotoTodos();
   };

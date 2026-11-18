@@ -103,7 +103,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 4px s
   background:
     radial-gradient(ellipse 58% 15% at 50% 90%, color-mix(in srgb, var(--tema-neon1) 60%, transparent), transparent 72%),
     conic-gradient(from 0deg at 50% -12%, transparent 157deg, rgba(255,255,255,.16) 166deg, rgba(255,255,255,.34) 180deg, rgba(255,255,255,.16) 194deg, transparent 203deg),
-    radial-gradient(ellipse 95% 85% at 50% 0%, #6a45ff, #2327a8 58%, #10134f);
+    radial-gradient(ellipse 95% 85% at 50% 0%, var(--tema-escena1, #6a45ff), var(--tema-escena2, #2327a8) 58%, var(--tema-escena3, #10134f));
   box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--tema-neon1) 70%, transparent), 0 0 26px color-mix(in srgb, var(--tema-neon1) 40%, transparent), 0 7px 0 var(--shadow);
 }
 .saludo { position: absolute; left: 16px; right: 16px; top: 14px; color: #fff; font-size: clamp(28px, 3.2vw, 40px); font-weight: 800; font-style: italic; line-height: 1; -webkit-text-stroke: 1.5px rgba(11,15,58,.75); paint-order: stroke fill; text-shadow: 0 3px 0 rgba(11,15,58,.6); pointer-events: none; }

@@ -7,10 +7,28 @@
   // panel (tarjetas de portada) con panelTinta/panelSuave/panelBorde, chip/chipTinta y titulo/tituloSombra.
   // Si no los trae, se usan valores claros (el aspecto de antes). OJO: 'tinta' siempre es tinta oscura para
   // escribir sobre superficies claras; para texto sobre el fondo de la paleta se usa --tema-sobre.
+  // Además: desc (para quién es, se muestra en el admin), escena (3 colores del escenario del menú en paletas
+  // oscuras) y efecto: 'estrellas' (cielo de noche), 'calma' (sin brillos ni animaciones de adorno, colores
+  // suaves y festejos chiquitos) o 'fiesta' (luces de colores que giran).
   const PALETAS = {
-    epico:    { nombre: 'Épico', emoji: '⚡', bg1: '#1c3fd7', bg2: '#7a2df2', bg3: '#3d2fe0', acento: '#7b3ff2', acento2: '#0b6fd0', tinta: '#1b1440', bloque: 'rgba(255,255,255,.07)',
+    epico:    { nombre: 'Épico', emoji: '⚡', desc: 'Azul y violeta con neón (el de siempre)', bg1: '#1c3fd7', bg2: '#7a2df2', bg3: '#3d2fe0', acento: '#7b3ff2', acento2: '#0b6fd0', tinta: '#1b1440', bloque: 'rgba(255,255,255,.07)',
                 oscuro: true, sobre: '#ffffff', primario: '#ffe14d', primarioTinta: '#1b1440', primarioSombra: '#c79a00', neon1: '#3df2ff', neon2: '#ff4fd8',
                 panel: 'rgba(14,20,72,.88)', panelTinta: '#ffffff', panelSuave: '#c9d4ff', panelBorde: '#3df2ff', chip: '#eef3ff', chipTinta: '#1b1440', titulo: '#ffffff', tituloSombra: '#0b0f3a' },
+    noche:    { nombre: 'Azul noche', emoji: '🌙', desc: 'Azul oscuro con estrellas y luz de luna', bg1: '#0c1838', bg2: '#1b1648', bg3: '#122458', acento: '#3f6fe0', acento2: '#2b4bb0', tinta: '#141c3d', bloque: 'rgba(255,255,255,.03)',
+                oscuro: true, efecto: 'estrellas', sobre: '#f2f5ff', primario: '#ffd166', primarioTinta: '#1a1f40', primarioSombra: '#c4962b', neon1: '#7fc8ff', neon2: '#8f7cf0',
+                panel: 'rgba(13,20,52,.93)', panelTinta: '#ffffff', panelSuave: '#b7c3ea', panelBorde: '#7fc8ff', chip: '#e9eeff', chipTinta: '#141c3d', titulo: '#ffffff', tituloSombra: '#070b22',
+                escena: ['#2f4fb0', '#16235e', '#090e2a'] },
+    pastel:   { nombre: 'Pastel', emoji: '🌸', desc: 'Rosa, lila y celeste muy suaves', bg1: '#ffe4f1', bg2: '#e3dcff', bg3: '#dff3ff', acento: '#e0609d', acento2: '#8c74e0', tinta: '#4a3566', bloque: 'rgba(255,255,255,.4)',
+                primario: '#8c63e0', primarioTinta: '#ffffff', primarioSombra: '#6846b5', neon1: '#ffb3d9', neon2: '#b9a6ff', chip: '#f6f0ff', chipTinta: '#4a3566' },
+    bebe:     { nombre: 'Bebé', emoji: '👶', desc: 'Para los más chiquitos: mucho contraste, negro sobre amarillo', bg1: '#fff7cc', bg2: '#ffd21f', bg3: '#ffe873', acento: '#d81e1e', acento2: '#0b3fc4', tinta: '#000000', bloque: 'rgba(0,0,0,.05)',
+                sobre: '#000000', primario: '#d81e1e', primarioTinta: '#ffffff', primarioSombra: '#8f0f0f', neon1: '#ffffff', neon2: '#ff7a00',
+                panel: '#ffffff', panelTinta: '#000000', panelSuave: '#222222', panelBorde: '#000000', chip: '#ffffff', chipTinta: '#000000', titulo: '#000000' },
+    calma:    { nombre: 'Calma', emoji: '🍃', desc: 'Neutro y tranquilo: sin brillos ni adornos que se mueven', bg1: '#f2eee6', bg2: '#e3e6dd', bg3: '#ebe8df', acento: '#5d8275', acento2: '#6f7f9c', tinta: '#2f3b3a', bloque: 'transparent',
+                efecto: 'calma', primario: '#557a6e', primarioTinta: '#ffffff', primarioSombra: '#3c5a50', neon1: '#a9c2b8', neon2: '#c5c0d6', chip: '#f4f1ea', chipTinta: '#2f3b3a' },
+    fiesta:   { nombre: 'Fiesta', emoji: '🎉', desc: 'Súper estimulante: colores fuertes y luces que giran', bg1: '#e8257f', bg2: '#4a22e0', bg3: '#b620d8', acento: '#e8257f', acento2: '#4a22e0', tinta: '#2a0f4a', bloque: 'rgba(255,255,255,.12)',
+                oscuro: true, efecto: 'fiesta', sobre: '#ffffff', primario: '#fff03d', primarioTinta: '#2a0f4a', primarioSombra: '#d18b00', neon1: '#3dfff2', neon2: '#ffe14d',
+                panel: 'rgba(52,12,96,.9)', panelTinta: '#ffffff', panelSuave: '#f0d4ff', panelBorde: '#3dfff2', chip: '#fff6c9', chipTinta: '#2a0f4a', titulo: '#ffffff', tituloSombra: '#2a0a52',
+                escena: ['#ff5fc8', '#8a2be2', '#2a0a52'] },
     rosa:     { nombre: 'Rosa y lila', emoji: '💖', bg1: '#ffd6f0', bg2: '#c7b3ff', acento: '#ff5dab', acento2: '#8a5cf0', tinta: '#3a1f5c', bloque: 'rgba(255,255,255,.22)' },
     aqua:     { nombre: 'Aqua',        emoji: '🐬', bg1: '#5ff2e0', bg2: '#34c3e8', acento: '#1aa3d9', acento2: '#5b4fe0', tinta: '#123a52', bloque: 'rgba(255,255,255,.18)' },
     morado:   { nombre: 'Morado',      emoji: '🔮', bg1: '#b99cff', bg2: '#6b47d8', acento: '#ff7eb6', acento2: '#4a2fb3', tinta: '#2a1650', bloque: 'rgba(255,255,255,.14)' },
@@ -32,10 +50,33 @@
 .tema-fondo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, var(--tema-bg1), var(--tema-bg2)); opacity: .45; }
 .tema-picker { position: fixed; z-index: 60; background: #fff; border-radius: 22px; padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.25); display: grid; gap: 8px; font-family: "Baloo 2", system-ui, sans-serif; color: #23324a; width: min(336px, calc(100vw - 24px)); }
 .tema-picker b { font-size: 18px; }
-.tema-picker .tp-opts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.tema-picker .tp-opts button { aspect-ratio: 1; border-radius: 16px; border: 3px solid transparent; font-size: 24px; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
-.tema-picker .tp-opts button.on { border-color: #23324a; }
+.tema-picker .tp-opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.tema-picker .tp-opts button { min-height: 62px; padding: 4px 2px; border-radius: 16px; border: 3px solid rgba(35,50,74,.15); font: 800 12px/1.05 "Baloo 2", system-ui, sans-serif; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.15); display: grid; justify-items: center; align-content: center; gap: 2px; }
+.tema-picker .tp-opts button i { font-style: normal; font-size: 24px; line-height: 1; }
+.tema-picker .tp-opts button.on { border-color: #23324a; box-shadow: 0 0 0 3px #ffd166, 0 3px 0 rgba(0,0,0,.15); }
 .tema-picker small { font-size: 13px; opacity: .75; }
+/* ----- efectos de algunas paletas (solo adornan el menú; los juegos no cambian) ----- */
+:root[data-tema-efecto="estrellas"] body.menu::before, :root[data-tema-efecto="fiesta"] body.menu::before { content: ""; position: fixed; z-index: -1; pointer-events: none; }
+:root[data-tema-efecto="estrellas"] body.menu::before { inset: 0; opacity: .9; animation: tema-titila 5s ease-in-out infinite alternate;
+  background:
+    radial-gradient(1.6px 1.6px at 12% 18%, #fff, transparent 60%), radial-gradient(1.2px 1.2px at 27% 62%, #cfe3ff, transparent 60%),
+    radial-gradient(2px 2px at 41% 9%, #fff, transparent 60%), radial-gradient(1.2px 1.2px at 58% 41%, #fff, transparent 60%),
+    radial-gradient(1.8px 1.8px at 73% 14%, #ffe9b0, transparent 60%), radial-gradient(1.2px 1.2px at 88% 55%, #fff, transparent 60%),
+    radial-gradient(1.6px 1.6px at 66% 78%, #cfe3ff, transparent 60%), radial-gradient(1.2px 1.2px at 8% 84%, #fff, transparent 60%),
+    radial-gradient(1.4px 1.4px at 35% 88%, #ffe9b0, transparent 60%), radial-gradient(1.2px 1.2px at 94% 90%, #fff, transparent 60%);
+  background-size: 620px 520px; }
+@keyframes tema-titila { from { opacity: .45; } to { opacity: .95; } }
+:root[data-tema-efecto="fiesta"] body.menu::before { top: 50%; left: 50%; width: 170vmax; height: 170vmax; margin: -85vmax 0 0 -85vmax; opacity: .34; animation: tema-gira 26s linear infinite;
+  background: repeating-conic-gradient(from 0deg, #ffe14d 0 9deg, transparent 9deg 30deg, #3dfff2 30deg 39deg, transparent 39deg 60deg, #ff7a1a 60deg 69deg, transparent 69deg 90deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 0, #000 55%); mask-image: radial-gradient(circle, transparent 0, #000 55%); }
+@keyframes tema-gira { to { transform: rotate(360deg); } }
+:root[data-tema-efecto="fiesta"] .seguir .play { animation-duration: .9s; }
+body.con-foto::before { display: none !important; }
+:root[data-tema-efecto="calma"] .seguir .play, :root[data-tema-efecto="calma"] .go { animation: none !important; }
+:root[data-tema-efecto="calma"] .go::before, :root[data-tema-efecto="calma"] .seguir .play::before, :root[data-tema-efecto="calma"] .seguir::before, :root[data-tema-efecto="calma"] .est-tit::after { display: none; }
+:root[data-tema-efecto="calma"] .carta, :root[data-tema-efecto="calma"] .seguir { filter: saturate(.62); }
+:root[data-tema-efecto="calma"] .bichito { font-size: clamp(26px, 5vmin, 44px); }
+@media (prefers-reduced-motion: reduce) { body.menu::before { animation: none !important; } }
 `;
   function estilo() {
     if (document.getElementById('tema-css')) return;
@@ -55,6 +96,9 @@
     };
     for (const k in v) r.setProperty('--tema-' + k, v[k]);
     document.documentElement.dataset.tema = actual();
+    const esc = p.escena || ['#6a45ff', '#2327a8', '#10134f'];
+    esc.forEach((c, i) => r.setProperty('--tema-escena' + (i + 1), c));
+    if (p.efecto) document.documentElement.dataset.temaEfecto = p.efecto; else delete document.documentElement.dataset.temaEfecto;
     if (p.oscuro) document.documentElement.dataset.temaOscuro = '1'; else delete document.documentElement.dataset.temaOscuro;
     if (document.head) estilo();
     if (document.body) fondo();
@@ -103,7 +147,7 @@
     estilo();
     const box = document.createElement('div'); box.className = 'tema-picker'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Colores');
     const pintar = () => {
-      box.innerHTML = `<b>🎨 Colores</b><div class="tp-opts">${Object.entries(PALETAS).map(([k, p]) => `<button data-t="${k}" class="${k === actual() ? 'on' : ''}" title="${p.nombre}" aria-label="${p.nombre}" style="background:linear-gradient(135deg, ${p.bg1}, ${p.bg2})">${p.emoji}</button>`).join('')}</div><small>La foto de fondo se pone en el modo admin (papás).</small>`;
+      box.innerHTML = `<b>🎨 Colores</b><div class="tp-opts">${Object.entries(PALETAS).map(([k, p]) => `<button data-t="${k}" class="${k === actual() ? 'on' : ''}" title="${p.desc || p.nombre}" aria-label="${p.nombre}${p.desc ? ': ' + p.desc : ''}" aria-pressed="${k === actual()}" style="background:linear-gradient(135deg, ${p.bg1}, ${p.bg3 || p.bg2} 55%, ${p.bg2});color:${p.sobre || p.tinta}"><i>${p.emoji}</i>${p.nombre}</button>`).join('')}</div><small>La foto de fondo se pone en el modo admin (papás).</small>`;
     };
     pintar();
     box.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; set(b.dataset.t); pintar(); window.Juego && window.Juego.sfx && window.Juego.sfx('pop'); });
@@ -143,10 +187,11 @@
     const panel = pantallaCompleta && document.querySelector('#hub, main');
     if (pantallaCompleta && !panel) return;
     // sobre un fondo oscuro (paleta Épico) el texto va en una pastilla clara para que se lea
-    if (PALETAS[actual()].oscuro) el.innerHTML = `<span style="display:inline-block;background:rgba(255,255,255,.9);border-radius:999px;padding:3px 14px">${html}</span>`;
+    const oscuro = !!PALETAS[actual()].oscuro;
+    if (oscuro) el.innerHTML = `<span style="display:inline-block;background:rgba(255,255,255,.92);color:#23324a;border-radius:999px;padding:3px 14px">${html}</span>`;
     el.style.cssText = css + 'padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 18px);';
     (panel || document.querySelector('main') || document.body).appendChild(el);
-    el.querySelectorAll('a').forEach(a => { a.style.color = 'var(--tema-sobre, var(--tema-acento, #6b47a8))'; a.style.textDecoration = 'underline'; a.style.fontWeight = '600'; });
+    el.querySelectorAll('a').forEach(a => { a.style.color = oscuro ? '#3b2a8c' : 'var(--tema-sobre, var(--tema-acento, #6b47a8))'; a.style.textDecoration = 'underline'; a.style.fontWeight = '600'; });
   }
   function iniciar() { aplicar(); try { pieLegal(); } catch (e) {} }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();

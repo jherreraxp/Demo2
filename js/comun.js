@@ -732,6 +732,7 @@
   function festejo(n = 4) {
     const now = Date.now(); if (now - festejoT < 900) return; festejoT = now;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || progress.festejo === false || !document.body) return;
+    if (document.documentElement.dataset.temaEfecto === 'calma') n = Math.min(n, 2);   // paleta Calma: festejo chiquito
     if (!festejoCss) {
       festejoCss = true;
       const st = document.createElement('style');
