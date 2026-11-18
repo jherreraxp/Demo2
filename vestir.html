@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Vestir a la Muñeca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+/* Layout: muñeca 3D a la izquierda (arriba en celular) y ropero a la derecha (abajo en celular); el pedido va sobre la muñeca. */
+body { background: radial-gradient(circle at 30% 30%, #fff4fb, #ffd6ec 55%, #c9b6ff); overflow: hidden; }
+canvas.mundo { position: fixed; left: 0; top: 0; width: calc(100vw - min(44vw, 520px)); height: 100vh; touch-action: none; }
+.ropero { position: fixed; top: 0; right: 0; bottom: 0; width: min(44vw, 520px); z-index: 6; background: rgba(255,255,255,.9); display: flex; flex-direction: column; box-shadow: -6px 0 24px rgba(90,60,140,.18); padding-top: calc(env(safe-area-inset-top, 0px) + 66px); box-sizing: border-box; }
+.cats { display: flex; gap: 6px; padding: 0 10px 8px; overflow-x: auto; flex: none; }
+.cats button { flex: none; min-width: 58px; min-height: 58px; border-radius: 18px; background: #f1ecff; font-size: 28px; display: grid; place-items: center; line-height: 1; padding: 4px 8px; }
+.cats button small { display: block; font-size: 12px; font-weight: 800; color: #5b6b82; }
+.cats button.on { background: var(--tema-acento, #ff7eb6); } .cats button.on small { color: #fff; }
+.items { flex: 1; overflow-y: auto; padding: 4px 10px 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; align-content: start; }
+.item { min-height: 104px; border-radius: 20px; background: #fff; box-shadow: 0 4px 0 var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 4px; border: 4px solid transparent; }
+.item .ico { font-size: 40px; line-height: 1.1; }
+.item b { font-family: var(--font-letters, Andika, sans-serif); font-size: 18px; color: #23324a; line-height: 1.1; text-align: center; }
+.item.on { border-color: #ffd23f; background: #fffbe6; }
+.item.pista { animation: pista 1s ease-in-out 2; }
+@keyframes pista { 50% { transform: scale(1.08); box-shadow: 0 0 0 6px #ffd23f; } }
+.colores { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.colores button { width: 50px; height: 50px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 3px 0 var(--shadow); }
+.partes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.partes button { min-height: 44px; border-radius: 999px; padding: 4px 14px; background: #f1ecff; font-weight: 800; font-size: 16px; }
+.partes button.on { background: #ffe27a; }
+.pie { flex: none; display: flex; gap: 8px; padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 10px); justify-content: center; flex-wrap: wrap; border-top: 2px solid #f1ecff; }
+.pie button { min-height: 52px; border-radius: 999px; padding: 6px 18px; font-size: 19px; font-weight: 800; background: #fff; box-shadow: 0 4px 0 var(--shadow); }
+.pie .lista { background: var(--go); color: #fff; box-shadow: 0 5px 0 var(--go-dark); font-size: 22px; }
+.pedido { position: fixed; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 70px); width: min(calc(100vw - min(44vw, 520px) - 24px), 430px); z-index: 5; background: #fff; border-radius: 22px; padding: 10px 14px; box-shadow: 0 5px 0 rgba(35,50,74,.18); display: flex; gap: 10px; align-items: center; box-sizing: border-box; }
+.pedido .cli { font-size: 44px; line-height: 1; flex: none; }
+.pedido .txt { flex: 1; font-family: var(--font-letters, Andika, sans-serif); font-size: clamp(19px, 2.4vw, 26px); line-height: 1.2; color: #23324a; }
+.pedido .txt b { color: #d6337a; background: #ffe6f3; border-radius: 8px; padding: 0 5px; display: inline-block; }
+.pedido .txt b.falta { animation: falta .5s ease-in-out 3; background: #ffe27a; }
+@keyframes falta { 50% { transform: scale(1.18); } }
+.pedido .dib { font-size: 30px; white-space: nowrap; }
+.pedido button { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--purple); color: #fff; font-size: 22px; box-shadow: 0 4px 0 var(--purple-dark); }
+.puntos { display: flex; gap: 4px; justify-content: center; margin-top: 4px; } .puntos i { width: 12px; height: 12px; border-radius: 50%; background: #e4e0f0; } .puntos i.on { background: #ffd23f; }
+.looks { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.looks button { min-height: 44px; border-radius: 14px; padding: 4px 12px; background: #fff; box-shadow: 0 3px 0 var(--shadow); font-weight: 800; }
+.modos { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.modos button { min-height: 52px; border-radius: 18px; padding: 6px 16px; font-size: 19px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.modos button.on { background: var(--tema-acento, var(--gold)); color: #fff; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+.hud { z-index: 8; }
+#mensaje { z-index: 9; right: min(44vw, 520px); }
+@media (max-width: 760px) {
+  #mensaje { right: 0; top: 26%; }
+  canvas.mundo { width: 100vw; height: 46vh; }
+  .ropero { top: 46vh; left: 0; width: 100vw; padding-top: 8px; box-shadow: 0 -6px 24px rgba(90,60,140,.18); border-radius: 22px 22px 0 0; }
+  .items { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+  .item { min-height: 84px; } .item .ico { font-size: 30px; } .item b { font-size: 15px; }
+  .pedido { left: 8px; right: 8px; width: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); padding: 6px 10px; }
+  .pedido .cli { font-size: 30px; } .pedido .dib { font-size: 22px; }
+  .pie button { min-height: 46px; font-size: 16px; padding: 4px 12px; } .pie .lista { font-size: 18px; }
+  .cats button { min-width: 52px; min-height: 52px; font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .item.pista, .pedido .txt b.falta { animation: none; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<canvas class="mundo" id="mundo" aria-label="Muñeca en 3D"></canvas>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill" id="nivel-pill">Nivel <span id="nivel-num">1</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="pedido" id="pedido" hidden>
+  <span class="cli" id="p-cli">🧚</span>
+  <div style="flex:1;min-width:0"><div class="txt" id="p-txt"></div><div class="dib" id="p-dib"></div><div class="puntos" id="p-puntos"></div></div>
+  <button id="p-oir" aria-label="Escuchar el pedido">🔊</button>
+</div>
+<div id="mensaje" aria-live="polite"></div>
+<div class="ropero" aria-label="Ropero">
+  <div class="cats" id="cats"></div>
+  <div class="items" id="items"></div>
+  <div class="pie" id="pie"></div>
+</div>
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:60px;line-height:1">👗🧍‍♀️👑</div>
+    <h1>Vestir a la Muñeca</h1>
+    <p>Viste a la muñeca como quieras, o <b>lee el pedido</b> y ponle lo que dice.</p>
+    <div class="modos" id="modos">
+      <button data-modo="pedidos" class="on">📖 Pedidos</button>
+      <button data-modo="libre">🎨 Libre</button>
+    </div>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script type="module" src="js/vestir.js"></script>
+</body>
+</html>

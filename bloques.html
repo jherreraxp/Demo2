@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Lluvia de Bloques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/juego3d.css">
+<style>
+/* Layout: barra de la palabra arriba, tablero al centro y botones grandes abajo (pulgares). */
+body { background: linear-gradient(160deg, #2b2a6b, #6b3fb8 55%, #ff7eb6); min-height: 100vh; overflow: hidden; touch-action: none; }
+.barra { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 68px); z-index: 4; display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 22px; padding: 6px 12px; box-shadow: 0 5px 0 rgba(0,0,0,.25); max-width: calc(100vw - 16px); box-sizing: border-box; }
+.barra .emo { font-size: 38px; line-height: 1; }
+.barra .sils { display: flex; gap: 5px; }
+.barra .sils span { min-width: 40px; height: 44px; border-radius: 12px; border: 3px dashed #b8b2d6; display: grid; place-items: center; padding: 0 6px; font: 700 24px var(--font-letters, Andika, sans-serif); color: #b8b2d6; }
+.barra .sils span.sig { border-color: #ff7eb6; color: #d6337a; animation: late 1s ease-in-out infinite; }
+.barra .sils span.ok { border-style: solid; border-color: #4cb87a; background: #e7f8ee; color: #23324a; }
+@keyframes late { 50% { transform: scale(1.1); } }
+.barra .sig-pieza { display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 800; color: #5b6b82; }
+.barra button { width: 44px; height: 44px; border-radius: 50%; background: var(--purple); color: #fff; font-size: 20px; flex: none; }
+#tablero { position: fixed; left: 50%; transform: translateX(-50%); z-index: 2; border-radius: 14px; background: rgba(20, 18, 60, .55); box-shadow: 0 0 0 4px rgba(255,255,255,.35), 0 10px 30px rgba(0,0,0,.35); touch-action: none; }
+.mandos { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 5; display: flex; justify-content: center; gap: 10px; padding: 0 8px; }
+.mandos button { width: 68px; height: 68px; border-radius: 22px; background: rgba(255,255,255,.92); font-size: 30px; box-shadow: 0 5px 0 rgba(0,0,0,.3); touch-action: manipulation; }
+.mandos button:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+.mandos .gira { background: #ffd23f; }
+.modos { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.modos button { min-height: 50px; border-radius: 18px; padding: 6px 14px; font-size: 18px; font-weight: 800; background: #eef6fb; box-shadow: 0 4px 0 var(--shadow); }
+.modos button.on { background: var(--tema-acento, var(--gold)); color: #fff; }
+#nivel-desc { font-size: 17px; color: #5b6b82; min-height: 1.3em; }
+#mensaje { top: 44%; }
+@media (max-width: 520px) { .mandos button { width: 60px; height: 60px; font-size: 26px; } .barra { gap: 6px; padding: 6px 8px; } .barra .emo { font-size: 28px; } .barra .sils { gap: 3px; } .barra .sils span { min-width: 22px; height: 38px; font-size: 20px; padding: 0 4px; border-width: 2px; } .barra button { width: 38px; height: 38px; font-size: 17px; } .barra .sig-pieza canvas { width: 48px; height: 36px; } }
+@media (hover: hover) and (min-width: 900px) { .mandos { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .barra .sils span.sig { animation: none; } }
+</style>
+<script src="js/comun.js"></script>
+<script src="js/tema.js"></script>
+</head>
+<body>
+<div class="hud">
+  <div class="hud-side">
+    <a class="round-btn btn" href="index.html" aria-label="Volver al inicio">🏠</a>
+    <div class="pill">Nivel <span id="nivel-num">1</span></div>
+    <div class="pill" aria-label="Filas">🧱 <span id="filas">0</span></div>
+  </div>
+  <div class="hud-side">
+    <button class="round-btn" data-musica aria-label="Música">🎵</button>
+    <div class="pill" id="jugador"></div>
+  </div>
+</div>
+<div class="barra" id="barra">
+  <span class="emo" id="b-emo">🧱</span>
+  <div class="sils" id="b-sils"></div>
+  <button id="b-oir" aria-label="Escuchar la palabra">🔊</button>
+  <div class="sig-pieza">Sigue<canvas id="sigue" width="64" height="48" aria-label="Pieza que sigue"></canvas></div>
+</div>
+<canvas id="tablero" aria-label="Tablero de bloques"></canvas>
+<div id="mensaje" aria-live="polite"></div>
+<div class="mandos" id="mandos">
+  <button data-m="izq" aria-label="Mover a la izquierda">⬅️</button>
+  <button data-m="gira" class="gira" aria-label="Girar">🔄</button>
+  <button data-m="der" aria-label="Mover a la derecha">➡️</button>
+  <button data-m="baja" aria-label="Bajar">⬇️</button>
+  <button data-m="cae" aria-label="Dejar caer">⏬</button>
+</div>
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <div style="font-size:60px;line-height:1">🧱🌧️🧱</div>
+    <h1>Lluvia de Bloques</h1>
+    <p>Acomoda los bloques y <b>llena las filas</b>. ¡En cada fila hay sílabas para armar la palabra!</p>
+    <div class="modos" id="modos">
+      <button data-modo="silabas" class="on">📖 Sílabas</button>
+      <button data-modo="letras">🔤 Letras</button>
+      <button data-modo="clasico">🎮 Clásico</button>
+    </div>
+    <div class="modos" id="tamanos">
+      <button data-tam="peque" class="on">🐣 Peque</button>
+      <button data-tam="grande">🦊 Grande</button>
+    </div>
+    <div class="niveles" id="niveles" aria-label="Elige el nivel"></div>
+    <div id="nivel-desc"></div>
+    <button class="go" id="empezar" disabled>Cargando…</button>
+  </div>
+</div>
+<script src="js/bloques.js"></script>
+</body>
+</html>
