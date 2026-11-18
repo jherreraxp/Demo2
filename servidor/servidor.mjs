@@ -6,8 +6,10 @@ import path from 'node:path';
 import { config, VERSION } from './lib/config.mjs';
 import {
   db, nuevaCuenta, cuentaPorEmail, cuentaPorId, crearSesion, cuentaDeToken, borrarSesion, limpiarSesionesVencidas,
-  cuentaPublica, planDe, borrarCuenta, cuentaPorGoogle, unirGoogle, nuevaCuentaGoogle, ponerFoto,
+  cuentaPublica, planDe, borrarCuenta, cuentaPorGoogle, unirGoogle, nuevaCuentaGoogle, ponerFoto, tocarActividad, anotarIngreso,
 } from './lib/db.mjs';
+import { crearPaseAdulto } from './lib/adulto.mjs';
+import { rutasAdmin } from './lib/admin.mjs';
 import { verificarGoogle } from './lib/google.mjs';
 import { ErrorUsuario, log, hashClave, claveCorrecta, limitar, emailValido, textoCorto, aleatorio } from './lib/util.mjs';
 import { crearSuscripcion, cancelarSuscripcion, webhook, revisar } from './lib/pagos.mjs';
@@ -24,7 +26,7 @@ function cabeceras(req, res) {
   if (o && origenPermitido(o)) {
     res.setHeader('Access-Control-Allow-Origin', o);
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Adulto');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Max-Age', '600');
   }
@@ -59,8 +61,10 @@ const tokenDe = req => { const a = req.headers.authorization || ''; return a.sta
 function necesitaCuenta(req) {
   const c = cuentaDeToken(tokenDe(req));
   if (!c) throw new ErrorUsuario('Entra con tu cuenta.', 401);
+  tocarActividad(c.id);
   return c;
 }
+const BLOQUEADA = 'Esta cuenta está bloqueada. Escribe a quien administra el servicio.';
 function necesitaFamilia(c) {
   if (planDe(c).plan !== 'familia') throw new ErrorUsuario('Esto es del plan familia. Pídele a papá o mamá que lo active.', 402);
 }
@@ -83,7 +87,7 @@ ruta('POST', '/api/registro', async (req) => {
   if (cuentaPorEmail(e)) throw new ErrorUsuario('Ese correo ya tiene una cuenta. Entra con tu clave.', 409);
   const { sal, hash } = hashClave(clave);
   const id = nuevaCuenta({ email: e, nombre: nombre.trim(), sal, hash });
-  log('registro', { cuenta: id });
+  log('registro', { cuenta: id }); anotarIngreso(id);
   return { ok: true, token: crearSesion(id), cuenta: cuentaPublica(cuentaPorId(id)) };
 });
 
@@ -92,6 +96,8 @@ ruta('POST', '/api/entrar', async (req) => {
   const { email, clave } = await leerJSON(req);
   const c = cuentaPorEmail(String(email || '').trim().toLowerCase());
   if (!c || typeof clave !== 'string' || !claveCorrecta(clave, c.sal, c.hash)) throw new ErrorUsuario('El correo o la clave no coinciden.', 401);
+  if (c.bloqueada) throw new ErrorUsuario(BLOQUEADA, 403);
+  anotarIngreso(c.id);
   return { ok: true, token: crearSesion(c.id), cuenta: cuentaPublica(c) };
 });
 
@@ -117,9 +123,33 @@ ruta('POST', '/api/google', async (req) => {
       c = cuentaPorId(id); log('registro_google', { cuenta: id });
     }
   }
+  if (c.bloqueada) throw new ErrorUsuario(BLOQUEADA, 403);
+  anotarIngreso(c.id);
   // la foto de Google se actualiza en cada ingreso (si la persona la cambió en Google)
   if ((g.foto || '') !== (c.foto || '')) { ponerFoto(c.id, g.foto); c = cuentaPorId(c.id); }
   return { ok: true, token: crearSesion(c.id), cuenta: cuentaPublica(c) };
+});
+
+// Confirmación de adulto: el papá o la mamá vuelve a escribir su contraseña (o confirma con Google) y recibe
+// un pase de 30 minutos. Sirve para abrir el modo papá sin el PIN y es obligatorio para el panel.
+ruta('POST', '/api/adulto', async (req) => {
+  const c = necesitaCuenta(req);
+  // "codigo: adulto" le dice a la página que falló la confirmación, no la sesión (no hay que cerrarla)
+  const no = (msg, status = 401) => { const e = new ErrorUsuario(msg, status); e.codigo = 'adulto'; return e; };
+  if (!limitar('adu:' + c.id, 8, 600000) || !limitar('adu-ip:' + ipDe(req), 30, 600000)) throw no('Muchos intentos. Espera unos minutos.', 429);
+  const { clave, credential } = await leerJSON(req);
+  if (typeof credential === 'string' && credential) {
+    let g; try { g = await verificarGoogle(credential); } catch (e) { if (e instanceof ErrorUsuario) e.codigo = 'adulto'; throw e; }
+    // tiene que ser la misma persona de esta cuenta, no cualquier cuenta de Google
+    const misma = c.google_sub ? g.sub === c.google_sub : g.email === String(c.email).toLowerCase();
+    if (!misma) throw no('Esa cuenta de Google no es la de esta familia.');
+    if (!c.google_sub) unirGoogle(c.id, g.sub);
+  } else if (typeof clave === 'string' && clave) {
+    if (c.hash === '!') throw no('Tu cuenta entra con Google: confirma con el botón de Google.', 400);
+    if (clave.length > 128 || !claveCorrecta(clave, c.sal, c.hash)) throw no('La contraseña no coincide.');
+  } else throw no('Escribe tu contraseña o confirma con Google.', 400);
+  log('adulto_ok', { cuenta: c.id });
+  return { ok: true, ...crearPaseAdulto(c.id) };
 });
 
 ruta('POST', '/api/salir', async (req) => { borrarSesion(tokenDe(req)); return { ok: true }; });
@@ -169,7 +199,7 @@ ruta('DELETE', '/api/cuenta', async (req) => {
 ruta('POST', '/api/suscripcion/crear', async (req) => {
   const c = necesitaCuenta(req);
   if (planDe(c).plan === 'familia' && c.suscripcion_estado && /authorized|ACTIVE/.test(c.suscripcion_estado)) throw new ErrorUsuario('Ya tienes el plan familia. ¡Gracias!');
-  return { ok: true, url: await crearSuscripcion(c) };
+  return { ok: true, url: await crearSuscripcion(c, { origen: req.headers.origin || '' }) };
 });
 ruta('POST', '/api/suscripcion/cancelar', async (req) => { await cancelarSuscripcion(necesitaCuenta(req)); return { ok: true }; });
 ruta('POST', '/api/suscripcion/revisar', async (req) => {
@@ -237,6 +267,9 @@ ruta('POST', '/api/cuentos/ia', async (req) => {
   return { ok: true, cuento: await crearCuentoIA(c.id, await leerJSON(req)) };
 });
 
+// ---------- panel de administración (solo dueños del servicio) ----------
+rutasAdmin({ ruta, necesitaCuenta, leerJSON, ipDe });
+
 // ---------- páginas del juego (cuando la VM sirve el sitio completo) ----------
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
@@ -274,7 +307,7 @@ export function crearServidor() {
       const salida = await r.fn(req, url, url.pathname.match(r.patron).groups || {}, res);
       if (salida !== null) responder(res, 200, salida);
     } catch (e) {
-      if (e instanceof ErrorUsuario) return responder(res, e.status, { ok: false, error: e.message });
+      if (e instanceof ErrorUsuario) return responder(res, e.status, { ok: false, error: e.message, ...(e.codigo ? { codigo: e.codigo } : {}) });
       log('error', { ruta: url.pathname, msg: e.message });
       responder(res, 500, { ok: false, error: 'Algo salió mal. Prueba otra vez.' });
     }

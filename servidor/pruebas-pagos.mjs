@@ -7,12 +7,15 @@ import assert from 'node:assert/strict';
 
 // Mercado Pago de mentira
 const estados = {};
+let falla = null, ultimoCuerpo = null;   // para probar los errores de Mercado Pago
 const mp = http.createServer((req, res) => {
   let b = ''; req.on('data', c => b += c); req.on('end', () => {
     assert.equal(req.headers.authorization, 'Bearer TEST-TOKEN');
     res.setHeader('Content-Type', 'application/json');
+    if (req.method === 'GET' && req.url === '/users/me') return res.end(JSON.stringify({ id: 1, nickname: 'TIENDA', site_id: 'MPE', tags: ['test_user'] }));
+    if (req.method === 'POST' && req.url === '/preapproval' && falla) { ultimoCuerpo = JSON.parse(b); res.statusCode = falla.status; return res.end(typeof falla.cuerpo === 'string' ? falla.cuerpo : JSON.stringify(falla.cuerpo)); }
     if (req.method === 'POST' && req.url === '/preapproval') {
-      const d = JSON.parse(b); estados.pre1 = { id: 'pre1', status: 'pending', external_reference: d.external_reference };
+      const d = JSON.parse(b); ultimoCuerpo = d; estados.pre1 = { id: 'pre1', status: 'pending', external_reference: d.external_reference };
       assert.equal(d.auto_recurring.frequency_type, 'months'); assert.equal(d.auto_recurring.currency_id, 'PEN');
       return res.end(JSON.stringify({ id: 'pre1', init_point: 'https://mp.test/pagar/pre1', status: 'pending' }));
     }
@@ -29,7 +32,7 @@ const { crearServidor } = await import('./servidor.mjs');
 const { servidor } = crearServidor();
 await new Promise(ok => servidor.listen(0, '127.0.0.1', ok));
 const base = `http://127.0.0.1:${servidor.address().port}`;
-const api = async (m, r, token, cuerpo) => (await fetch(base + r, { method: m, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: cuerpo ? JSON.stringify(cuerpo) : undefined })).json();
+const api = async (m, r, token, cuerpo, mas = {}) => (await fetch(base + r, { method: m, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...mas }, body: cuerpo ? JSON.stringify(cuerpo) : undefined })).json();
 
 const reg = await api('POST', '/api/registro', null, { email: 'fam@prueba.pe', clave: 'clave-segura', nombre: 'Familia', acepto: true });
 const t = reg.token;
@@ -61,6 +64,59 @@ console.log('✔ suscripción Mercado Pago: crear, verificar aviso, activar y ca
   assert.equal(firmaMercadoPagoValida({}, q, {}, clave), false);
   assert.equal(firmaMercadoPagoValida({}, q, {}, ''), true);
   console.log('✔ firma de webhooks de Mercado Pago');
+}
+
+// ---------- errores de Mercado Pago: mensaje claro en español y "último error" guardado ----------
+{
+  const { config } = await import('./lib/config.mjs');
+  const { ultimoErrorPagos, backUrlDe, diagnosticoMercadoPago } = await import('./lib/pagos.mjs');
+  const r2 = await api('POST', '/api/registro', null, { email: 'otra@prueba.pe', clave: 'clave-segura', nombre: 'Otra', acepto: true });
+  const casos = [
+    [{ status: 400, cuerpo: { message: 'Payer and collector cannot be the same user', status: 400 } }, /misma cuenta de Mercado Pago que cobra/],
+    [{ status: 400, cuerpo: { message: 'Both payer and collector must be real or test users', status: 400 } }, /credenciales de prueba/],
+    [{ status: 400, cuerpo: { message: 'Bad request', cause: [{ code: 2034, description: 'Invalid users involved: test user required' }] } }, /credenciales de prueba/],
+    [{ status: 400, cuerpo: { message: 'Invalid value for back_url, must be a valid URL', status: 400 } }, /MP_BACK_URL/],
+    [{ status: 400, cuerpo: { message: 'Cannot pay an amount lower than 2.00', cause: [{ code: 'transaction_amount', description: 'invalid transaction_amount' }] } }, /MP_PLAN_PRECIO.*MP_MONEDA=PEN/],
+    [{ status: 400, cuerpo: { message: 'currency_id invalid for this site', status: 400 } }, /MP_MONEDA=PEN/],
+    [{ status: 401, cuerpo: { message: 'invalid access token', error: 'unauthorized', status: 401 } }, /Access Token de Mercado Pago no es válido/],
+    [{ status: 403, cuerpo: { message: 'At least one policy returned UNAUTHORIZED.', code: 'PA_UNAUTHORIZED_RESULT_FROM_POLICIES' } }, /Access Token de Mercado Pago no es válido/],
+    [{ status: 400, cuerpo: { message: 'Algo raro con fam@prueba.pe y TEST-1234567890-abc', status: 400 } }, /no aceptó la suscripción: Algo raro con \[correo\] y \[token\]/],
+    [{ status: 500, cuerpo: '<html>caído</html>' }, /no respondió bien/],
+  ];
+  for (const [f, esperado] of casos) {
+    falla = f;
+    const r = await api('POST', '/api/suscripcion/crear', r2.token);
+    assert.equal(r.ok, false); assert.match(r.error, esperado, r.error);
+    const u = ultimoErrorPagos();
+    assert.equal(u.status, f.status); assert.equal(u.mensaje, r.error);
+    assert.ok(!/@|TEST-\d/.test(JSON.stringify(u)), 'el último error no guarda correos ni tokens');
+  }
+  // también queda guardado en la base (sobrevive a un reinicio)
+  const { ajuste } = await import('./lib/db.mjs');
+  assert.equal(ajuste('pagos_ultimo_error').status, 500);
+  falla = null;
+  console.log('✔ errores de Mercado Pago traducidos y guardados (sin correos ni tokens)');
+
+  // monto con 2 decimales, moneda PEN, regreso https y comprador de prueba
+  config.mp.precio = 19.899999; config.mp.payerPrueba = 'test_user_123@testuser.com';
+  await api('POST', '/api/suscripcion/crear', r2.token, null, { Origin: 'https://abu.arcillita.com' });
+  assert.equal(ultimoCuerpo.auto_recurring.transaction_amount, 19.9); assert.equal(typeof ultimoCuerpo.auto_recurring.transaction_amount, 'number');
+  assert.equal(ultimoCuerpo.auto_recurring.currency_id, 'PEN');
+  assert.equal(ultimoCuerpo.payer_email, 'test_user_123@testuser.com');
+  assert.equal(ultimoCuerpo.back_url, 'https://abu.arcillita.com/suscripcion-lista.html');
+  // sin comprador de prueba se usa el correo de la cuenta; desde github.io se respeta MP_BACK_URL
+  config.mp.payerPrueba = '';
+  await api('POST', '/api/suscripcion/crear', r2.token, null, { Origin: 'https://jherreraxp.github.io' });
+  assert.equal(ultimoCuerpo.payer_email, 'otra@prueba.pe'); assert.equal(ultimoCuerpo.back_url, 'https://jherreraxp.github.io/Demo2/cuenta.html');
+  assert.equal(backUrlDe('http://localhost:8765'), 'https://jherreraxp.github.io/Demo2/cuenta.html');
+  config.mp.backUrl = 'https://mi-dominio.pe/cuenta.html';
+  assert.equal(backUrlDe('https://abu.arcillita.com'), 'https://mi-dominio.pe/cuenta.html');
+  config.mp.precio = 0;
+  assert.match((await api('POST', '/api/suscripcion/crear', r2.token)).error, /MP_PLAN_PRECIO/);
+  config.mp.precio = 19.9;
+  const d = await diagnosticoMercadoPago();
+  assert.equal(d.tipoToken, 'prueba'); assert.equal(d.tokenValido, true); assert.equal(d.siteId, 'MPE'); assert.equal(d.paisOk, true);
+  console.log('✔ monto, moneda, regreso https, comprador de prueba y diagnóstico');
 }
 
 servidor.close(); mp.close(); fs.rmSync(dir, { recursive: true, force: true });

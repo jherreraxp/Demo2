@@ -81,7 +81,7 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
 <main id="main" hidden>
   <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>🔧 Modo admin</h1><button id="salir">🔒 Cerrar</button></div>
   <nav class="indice" aria-label="Secciones">
-    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#servidor">Servidor y cuentas</a><a href="#publicar">Publicar</a><a href="#sesion">⏰ Tiempo</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a>
+    <a href="#jugadores">Jugadores</a><a href="#tema">Tema</a><a href="#canciones">Canciones</a><a href="#palabras">Palabras por juego</a><a href="#efectos">Efectos de sonido</a><a href="#voces">Voces</a><a href="#ia">IA y Drive</a><a href="#servidor">Servidor y cuentas</a><a href="#publicar">Publicar</a><a href="#sesion">⏰ Tiempo</a><a href="#progreso">Progreso</a><a href="#pin">PIN</a><a href="panel.html" id="enlace-panel" hidden>🛠️ Panel del servicio</a>
   </nav>
 
   <section class="card" id="jugadores">
@@ -204,6 +204,14 @@ code { background: #eef2f8; padding: 1px 5px; border-radius: 6px; }
   </section>
 </main>
 <div id="toast" role="status"></div>
+<script>
+// el panel del servicio solo se le muestra a quien lo administra (el servidor lo decide; aquí solo se enseña el enlace)
+(() => {
+  const ver = c => { const a = document.getElementById('enlace-panel'); if (a) a.hidden = !(c && c.superadmin); };
+  addEventListener('cuenta', e => ver(e.detail));
+  if (window.Cuenta) { ver(Cuenta.actual()); Cuenta.yo(true).then(ver).catch(() => {}); }
+})();
+</script>
 
 <script>
 (async () => {

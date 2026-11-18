@@ -137,4 +137,6 @@ export function instalarSalas(servidorHttp, origenPermitido) {
   latido.unref();
   return { wss, salas };
 }
+// para el panel: cuántas salas y jugadores hay ahora
+export const salasAhora = () => ({ salas: [...salas.values()].filter(s => s.jugadores.size).length, jugadores: [...salas.values()].reduce((n, s) => n + s.jugadores.size, 0) });
 export { config };

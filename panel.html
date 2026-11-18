@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<meta name="theme-color" content="#6b47a8">
+<title>Panel del servicio · Avelu y Amara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Panel de quien administra el servicio: pestañas arriba, tarjetas con cifras, tablas ordenables. */
+:root {
+  --bg: #f3f5fa; --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #dfe5ef; --grid: #e8ecf3;
+  --accent: #6b47a8; --accent-soft: #efe8fb; --ok: #2f8a58; --ok-soft: #e5f4ec; --warn: #a15c00; --warn-soft: #fdf1dc; --bad: #c0392b; --bad-soft: #fbe9e7;
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+main { max-width: 1120px; margin: 0 auto; padding: 12px 16px 60px; display: flex; flex-direction: column; gap: 14px; }
+h1 { font-family: var(--font-display); font-size: 28px; margin: 0; line-height: 1.1; }
+h2 { font-family: var(--font-display); font-size: 21px; margin: 0 0 8px; line-height: 1.2; }
+h3 { font-size: 16px; margin: 14px 0 6px; }
+.cabeza { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cabeza .volver { text-decoration: none; font-size: 20px; background: var(--card); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.08); color: var(--ink); }
+.cabeza .quien { margin-left: auto; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.pestanas { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px; display: flex; gap: 6px; overflow-x: auto; }
+.pestanas button { flex: none; border-radius: 999px; padding: 8px 14px; font-weight: 700; min-height: 40px; }
+.pestanas button[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tarjeta { background: var(--card); border-radius: 18px; padding: 16px; box-shadow: 0 2px 8px rgba(35,50,74,.07); }
+.tarjeta > p { margin: 4px 0 10px; color: var(--muted); max-width: 75ch; }
+.nota { color: var(--muted); font-size: 14px; }
+button, .boton { font: inherit; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 10px; padding: 7px 12px; min-height: 36px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+button:disabled { opacity: .55; cursor: default; }
+button.primario { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+button.peligro { color: var(--bad); border-color: #efc4be; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #9b7bea; outline-offset: 2px; }
+input, select { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); min-height: 36px; max-width: 100%; }
+label { font-weight: 600; font-size: 14px; display: flex; flex-direction: column; gap: 3px; }
+.fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.fila.centro { align-items: center; }
+/* cifras */
+.cifras { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.cifra { background: var(--card); border-radius: 16px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(35,50,74,.07); min-width: 0; }
+.cifra .t { color: var(--muted); font-size: 13px; font-weight: 600; }
+.cifra .n { font-family: var(--font-display); font-size: 30px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.cifra .d { color: var(--muted); font-size: 13px; }
+/* tablas */
+.tabla-caja { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; background: #f7f9fc; font-size: 13px; color: var(--muted); white-space: nowrap; padding: 4px 6px; }
+thead th button { border: 0; background: none; padding: 4px; min-height: 32px; font-weight: 700; color: var(--muted); font-size: 13px; }
+thead th[aria-sort] button { color: var(--ink); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .sub { display: block; color: var(--muted); font-size: 13px; white-space: nowrap; }
+tr.vacio td { color: var(--muted); text-align: center; padding: 18px; }
+.chapa { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 9px; font-size: 12.5px; font-weight: 700; background: #eef1f6; color: var(--ink); white-space: nowrap; }
+.chapa.bien { background: var(--ok-soft); color: #1f6a41; } .chapa.ojo { background: var(--warn-soft); color: var(--warn); } .chapa.mal { background: var(--bad-soft); color: var(--bad); } .chapa.fam { background: var(--accent-soft); color: var(--accent); }
+/* gráfico */
+.grafico { position: relative; }
+.grafico svg { display: block; width: 100%; height: auto; }
+.grafico .eje { fill: var(--muted); font-size: 11px; }
+.grafico .linea { stroke: var(--grid); stroke-width: 1; }
+.grafico .barra { fill: var(--accent); }
+.grafico .zona { fill: transparent; }
+.grafico .zona:hover + .barra, .grafico .zona:focus + .barra { fill: #4a2f80; }
+.globo { position: absolute; pointer-events: none; background: var(--ink); color: #fff; border-radius: 10px; padding: 6px 9px; font-size: 13px; line-height: 1.35; white-space: nowrap; transform: translate(-50%, -100%); z-index: 3; }
+.globo b { font-variant-numeric: tabular-nums; }
+/* ficha de una cuenta */
+dialog { border: 0; border-radius: 20px; padding: 0; width: min(720px, calc(100vw - 20px)); max-height: calc(100dvh - 20px); color: var(--ink); box-shadow: 0 20px 60px rgba(20,30,50,.4); }
+dialog::backdrop { background: rgba(35,50,74,.55); }
+.ficha { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.ficha .cerrar { margin-left: auto; }
+.datos { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 15px; }
+.datos dt { color: var(--muted); } .datos dd { margin: 0; overflow-wrap: anywhere; }
+.accion { border-top: 1px solid var(--line); padding-top: 10px; }
+.aviso { border-radius: 12px; padding: 10px 12px; background: var(--accent-soft); overflow-wrap: anywhere; }
+.aviso.mal { background: var(--bad-soft); color: #8a251a; } .aviso.bien { background: var(--ok-soft); color: #1f6a41; } .aviso.ojo { background: var(--warn-soft); color: #7a4500; }
+.clave-temporal { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 20px; font-weight: 700; user-select: all; letter-spacing: .04em; }
+#estado { min-height: 1.4em; margin: 0 0 6px; }
+@media (max-width: 560px) { h1 { font-size: 23px; } .cifra .n { font-size: 26px; } }
+@media (prefers-reduced-motion: no-preference) { .grafico .barra { transition: fill .12s; } }
+</style>
+</head>
+<body>
+<script>window.SIN_MUSICA = true;</script>
+<script src="js/comun.js"></script>
+<script src="js/cuenta.js"></script>
+<main>
+  <div class="cabeza">
+    <a class="volver" href="admin.html" aria-label="Volver al modo papá">←</a>
+    <h1>Panel del servicio</h1>
+    <div class="quien"><span id="quien"></span><button id="cerrar-panel" hidden>🔒 Cerrar panel</button></div>
+  </div>
+
+  <section class="tarjeta" id="puerta">
+    <h2 id="puerta-titulo">Un momento…</h2>
+    <p id="puerta-texto"></p>
+    <div class="fila"><button class="primario" id="puerta-boton" hidden></button><a class="boton" id="puerta-enlace" href="cuenta.html" hidden>Ir a mi cuenta</a></div>
+  </section>
+
+  <div id="panel" hidden>
+    <div class="pestanas" role="tablist" aria-label="Secciones del panel">
+      <button role="tab" id="p-resumen" aria-controls="s-resumen" aria-selected="true">📊 Resumen</button>
+      <button role="tab" id="p-uso" aria-controls="s-uso" aria-selected="false">⏱️ Uso</button>
+      <button role="tab" id="p-cuentas" aria-controls="s-cuentas" aria-selected="false">👪 Cuentas</button>
+      <button role="tab" id="p-pagos" aria-controls="s-pagos" aria-selected="false">💳 Pagos</button>
+      <button role="tab" id="p-salud" aria-controls="s-salud" aria-selected="false">🩺 Salud</button>
+      <button role="tab" id="p-auditoria" aria-controls="s-auditoria" aria-selected="false">📜 Auditoría</button>
+    </div>
+    <p id="estado" class="nota" role="status" aria-live="polite"></p>
+
+    <section id="s-resumen" role="tabpanel" aria-labelledby="p-resumen">
+      <div class="cifras" id="cifras"></div>
+      <div class="tarjeta" style="margin-top:14px">
+        <h2>Horas de juego por día (últimos 30 días)</h2>
+        <div class="grafico" id="g-resumen"></div>
+        <p class="nota">Suma de todas las familias que tienen cuenta. Cada aparato sube sus minutos junto con su progreso.</p>
+      </div>
+    </section>
+
+    <section id="s-uso" role="tabpanel" aria-labelledby="p-uso" hidden>
+      <div class="tarjeta">
+        <div class="fila centro">
+          <h2 style="margin:0;flex:1 1 220px">Horas de juego</h2>
+          <label>Periodo <select id="uso-dias"><option value="7">7 días</option><option value="14">14 días</option><option value="30" selected>30 días</option></select></label>
+          <button id="uso-csv">⬇️ Descargar CSV</button>
+        </div>
+        <div class="grafico" id="g-uso" style="margin-top:8px"></div>
+        <h3>Por familia</h3>
+        <div class="tabla-caja" id="t-uso"></div>
+        <h3>Por niña o niño</h3>
+        <div class="tabla-caja" id="t-ninos"></div>
+        <h3>Por juego</h3>
+        <div class="tabla-caja" id="t-juegos"></div>
+      </div>
+    </section>
+
+    <section id="s-cuentas" role="tabpanel" aria-labelledby="p-cuentas" hidden>
+      <div class="tarjeta">
+        <div class="fila">
+          <label style="flex:1 1 220px">Buscar <input type="search" id="c-buscar" placeholder="Correo o nombre" autocomplete="off"></label>
+          <label>Mostrar <select id="c-filtro"><option value="todas">Todas</option><option value="familia">Plan Familia</option><option value="pagando">Pagando</option><option value="gratis">Gratis</option><option value="google">Con Google</option><option value="bloqueadas">Bloqueadas</option></select></label>
+          <button id="c-nueva-abrir">➕ Crear cuenta</button>
+        </div>
+        <form id="c-nueva" class="accion" style="margin-top:12px" hidden>
+          <h3 style="margin-top:0">Crear una cuenta</h3>
+          <div class="fila">
+            <label style="flex:1 1 200px">Correo <input type="email" id="n-email" required maxlength="160" autocomplete="off"></label>
+            <label style="flex:1 1 160px">Nombre <input type="text" id="n-nombre" required maxlength="60" autocomplete="off"></label>
+            <label>Entra con <select id="n-modo"><option value="clave">Contraseña temporal</option><option value="google">Solo Google (Gmail)</option></select></label>
+            <button class="primario" type="submit">Crear</button>
+          </div>
+          <div id="n-resultado" style="margin-top:10px"></div>
+        </form>
+        <p class="nota" id="c-total" style="margin:10px 0 6px"></p>
+        <div class="tabla-caja" id="t-cuentas"></div>
+      </div>
+    </section>
+
+    <section id="s-pagos" role="tabpanel" aria-labelledby="p-pagos" hidden>
+      <div class="tarjeta">
+        <h2>Diagnóstico de Mercado Pago</h2>
+        <p>Comprueba que el Access Token sirve, si es de prueba o de producción, y muestra el último error que devolvió el proveedor.</p>
+        <button class="primario" id="pg-probar">Probar conexión</button>
+        <div id="pg-diag" style="margin-top:10px"></div>
+      </div>
+      <div class="tarjeta" style="margin-top:14px">
+        <h2>Suscripciones</h2>
+        <div class="tabla-caja" id="t-subs"></div>
+        <h3>Últimos movimientos</h3>
+        <div class="tabla-caja" id="t-eventos"></div>
+      </div>
+    </section>
+
+    <section id="s-salud" role="tabpanel" aria-labelledby="p-salud" hidden>
+      <div class="tarjeta"><h2>Salud del servidor</h2><dl class="datos" id="salud"></dl></div>
+    </section>
+
+    <section id="s-auditoria" role="tabpanel" aria-labelledby="p-auditoria" hidden>
+      <div class="tarjeta">
+        <h2>Auditoría</h2>
+        <p>Todo lo que se hace desde este panel queda anotado: quién, cuándo, qué y a qué cuenta.</p>
+        <div class="tabla-caja" id="t-auditoria"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<dialog id="ficha" aria-labelledby="f-titulo"><div class="ficha" id="ficha-cuerpo"></div></dialog>
+<script src="js/panel.js"></script>
+</body>
+</html>

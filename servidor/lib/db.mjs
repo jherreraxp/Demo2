@@ -42,6 +42,43 @@ CREATE TABLE IF NOT EXISTS pagos_eventos (
 if (!db.prepare('PRAGMA table_info(cuentas)').all().some(c => c.name === 'google_sub')) db.exec('ALTER TABLE cuentas ADD COLUMN google_sub TEXT');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_cuentas_google ON cuentas(google_sub) WHERE google_sub IS NOT NULL');
 if (!db.prepare('PRAGMA table_info(cuentas)').all().some(c => c.name === 'foto')) db.exec("ALTER TABLE cuentas ADD COLUMN foto TEXT DEFAULT ''");
+{
+  const cols = t => db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
+  const c = cols('cuentas');
+  if (!c.includes('bloqueada')) db.exec('ALTER TABLE cuentas ADD COLUMN bloqueada INTEGER NOT NULL DEFAULT 0');
+  if (!c.includes('ultimo_ingreso')) db.exec('ALTER TABLE cuentas ADD COLUMN ultimo_ingreso TEXT');
+  if (!c.includes('ultima_actividad')) db.exec('ALTER TABLE cuentas ADD COLUMN ultima_actividad TEXT');
+  const p = cols('pagos_eventos');
+  if (!p.includes('cuenta_id')) db.exec('ALTER TABLE pagos_eventos ADD COLUMN cuenta_id TEXT');
+  if (!p.includes('tipo')) db.exec('ALTER TABLE pagos_eventos ADD COLUMN tipo TEXT');
+}
+db.exec(`
+CREATE TABLE IF NOT EXISTS auditoria (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, cuando TEXT NOT NULL, quien TEXT NOT NULL, accion TEXT NOT NULL, objetivo TEXT, detalle TEXT
+);
+CREATE TABLE IF NOT EXISTS ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL);
+`);
+export const ajuste = (clave, valor) => {
+  if (valor === undefined) { const r = db.prepare('SELECT valor FROM ajustes WHERE clave = ?').get(clave); try { return r ? JSON.parse(r.valor) : null; } catch { return null; } }
+  db.prepare('INSERT INTO ajustes (clave, valor) VALUES (?, ?) ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor').run(clave, JSON.stringify(valor));
+};
+// avisos y cambios de pago (sin datos de tarjetas): quién, qué pasó y cuándo
+export const eventoPago = ({ proveedor, ref, estado, cuentaId, tipo }) =>
+  db.prepare('INSERT INTO pagos_eventos (proveedor, ref, estado, recibido, cuenta_id, tipo) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(proveedor || '', ref || '', estado || '', new Date().toISOString(), cuentaId || null, tipo || 'estado');
+// todo lo que se hace desde el panel de administración queda anotado
+export const auditar = (quien, accion, objetivo = '', detalle = '') =>
+  db.prepare('INSERT INTO auditoria (cuando, quien, accion, objetivo, detalle) VALUES (?, ?, ?, ?, ?)')
+    .run(new Date().toISOString(), quien, accion, String(objetivo || ''), typeof detalle === 'string' ? detalle : JSON.stringify(detalle));
+// última actividad: se anota como mucho una vez cada 5 minutos por cuenta
+const visto = new Map();
+export function tocarActividad(id) {
+  const t = Date.now(); if (t - (visto.get(id) || 0) < 5 * 60000) return;
+  visto.set(id, t); db.prepare('UPDATE cuentas SET ultima_actividad = ? WHERE id = ?').run(new Date(t).toISOString(), id);
+}
+export const anotarIngreso = id => { const t = new Date().toISOString(); visto.set(id, Date.now()); db.prepare('UPDATE cuentas SET ultimo_ingreso = ?, ultima_actividad = ? WHERE id = ?').run(t, t, id); };
+export const borrarSesionesDe = id => db.prepare('DELETE FROM sesiones WHERE cuenta_id = ?').run(id);
+export const esSuperadmin = c => !!c && config.superadmins.includes(String(c.email).toLowerCase());
 export const ponerFoto = (id, foto) => db.prepare('UPDATE cuentas SET foto = ? WHERE id = ?').run(foto || '', id);
 
 const ahoraISO = () => new Date().toISOString();
@@ -75,7 +112,9 @@ export function cuentaDeToken(token) {
   const s = db.prepare('SELECT * FROM sesiones WHERE token_hash = ?').get(sha256(token));
   if (!s) return null;
   if (s.vence < Date.now()) { db.prepare('DELETE FROM sesiones WHERE token_hash = ?').run(s.token_hash); return null; }
-  return cuentaPorId(s.cuenta_id) || null;
+  const c = cuentaPorId(s.cuenta_id);
+  if (!c || c.bloqueada) return null;   // una cuenta bloqueada no puede usar sus sesiones
+  return c;
 }
 export const borrarSesion = token => db.prepare('DELETE FROM sesiones WHERE token_hash = ?').run(sha256(token || ''));
 export function limpiarSesionesVencidas() { db.prepare('DELETE FROM sesiones WHERE vence < ?').run(Date.now()); }
@@ -88,7 +127,7 @@ export function planDe(c) {
 }
 export function cuentaPublica(c) {
   const p = planDe(c);
-  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta, google: !!c.google_sub, conClave: c.hash !== '!', foto: c.foto || '' };
+  return { id: c.id, email: c.email, nombre: c.nombre, perfiles: JSON.parse(c.perfiles || '[]'), plan: p.plan, planHasta: p.planHasta, google: !!c.google_sub, conClave: c.hash !== '!', foto: c.foto || '', ...(esSuperadmin(c) ? { superadmin: true } : {}) };
 }
 export function guardarPlan(id, { plan, hasta, proveedor, suscripcionId, estado }) {
   const c = cuentaPorId(id); if (!c) return;

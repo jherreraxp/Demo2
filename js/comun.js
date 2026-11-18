@@ -640,6 +640,32 @@
         else { v = ''; dots.textContent = '✗ Intenta otra vez'; setTimeout(draw, 900); }
       }
     });
+    // Debajo del teclado: papá o mamá también pueden entrar con su cuenta (contraseña o Gmail),
+    // si hay un servidor configurado y la familia ya inició sesión. Abre los mismos 30 minutos que el PIN.
+    let conCuenta = false;
+    try {
+      const C = window.Cuenta;
+      conCuenta = C ? !!(C.servidor() && C.token()) : !!localStorage.getItem('bl-cuenta-token') &&
+        (!!localStorage.getItem('bl-servidor') || (location.protocol === 'https:' && !/github\.io$/.test(location.hostname)));
+    } catch (e) {}
+    if (conCuenta) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pin-cuenta';
+      b.textContent = 'o entra con tu cuenta (Gmail o contraseña)';
+      b.style.cssText = 'display:block;margin:12px auto 0;padding:8px 6px;min-height:44px;background:none;border:0;font:inherit;font-size:15px;font-weight:700;color:#4a55c4;text-decoration:underline;cursor:pointer';
+      w.querySelector('.regalo-caja').appendChild(b);
+      b.onclick = async () => {
+        b.disabled = true;
+        try {
+          if (!window.Cuenta) await new Promise((ok, no) => {
+            const yo = document.querySelector('script[src*="comun.js"]'), s = document.createElement('script');
+            s.src = yo ? yo.src.replace(/comun\.js.*$/, 'cuenta.js') : 'js/cuenta.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s);
+          });
+          // confirmarAdulto guarda el pase ('bl-adulto') y abre la ventana de papás ('bl-admin')
+          if (await window.Cuenta.confirmarAdulto()) { w.remove(); onOk(); return; }
+        } catch (e) {}
+        b.disabled = false;
+      };
+    }
   }
 
   // ---------- turnos (modo 2 jugadores) ----------

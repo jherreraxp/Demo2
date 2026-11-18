@@ -33,6 +33,8 @@ bash servidor/instalar-junto-a-sigfe.sh "__DOM__" "__MAIL__"
   function Pedir($t) { $s = Read-Host $t -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)) }
   function Guardar($lineas) { ($lineas -join "`n") + "`n" | ssh @op $destino "sudo install -m 600 /dev/stdin /etc/avelu/secretos.tmp && sudo bash ~/Demo2/servidor/configurar.sh" }
 
+  # quien instala es quien administra el servicio: su correo abre el panel (panel.html)
+  Guardar @("SUPERADMIN_EMAILS=$Correo")
   Write-Host ""
   $r = Read-Host "¿Quieres poner ahora las llaves de Mercado Pago y Google? (s/n)"
   if ($r -match '^[sS]') {
@@ -48,6 +50,12 @@ bash servidor/instalar-junto-a-sigfe.sh "__DOM__" "__MAIL__"
         if ($sec -match '^[0-9a-fA-F]{32,128}$') { $lineas += "MP_WEBHOOK_SECRET=$sec"; Write-Host "Clave secreta de webhooks guardada (se comprobará la firma de cada aviso)." }
         else { Write-Host "Esa clave no parece la de Webhooks (son letras a-f y números). No la guardé." -ForegroundColor Yellow }
       }
+      # con un token de prueba solo puede pagar un usuario de prueba (Tus integraciones → Cuentas de prueba → Comprador)
+      if ($mp.Trim() -like "TEST-*") {
+        $payer = (Read-Host "Tu token es de PRUEBA. Correo del comprador de prueba de Mercado Pago (test_user_...@testuser.com; Enter para omitir)").Trim()
+        if ($payer -match '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $lineas += "MP_PAYER_PRUEBA=$payer" }
+        elseif ($payer) { Write-Host "Eso no parece un correo. No lo guardé." -ForegroundColor Yellow }
+      } else { $lineas += "MP_PAYER_PRUEBA=__vacio__" }
     }
     if ($precio) { $lineas += "MP_PLAN_PRECIO=$precio" }
     if ($gid) { $lineas += "GOOGLE_CLIENT_ID=$($gid.Trim())" }

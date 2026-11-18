@@ -21,6 +21,8 @@ export const config = {
     api: env.MP_API || 'https://api.mercadopago.com',
     // clave secreta de los webhooks (Mercado Pago → Tus integraciones → Webhooks); si está, se exige la firma
     webhookSecret: env.MP_WEBHOOK_SECRET || '',
+    // correo del comprador de prueba: solo se usa cuando el token es de prueba (TEST-)
+    payerPrueba: (env.MP_PAYER_PRUEBA || '').trim().toLowerCase(),
   },
   paypal: {
     clientId: env.PAYPAL_CLIENT_ID || '',
@@ -35,6 +37,10 @@ export const config = {
     jwksUrl: env.GOOGLE_JWKS_URL || 'https://www.googleapis.com/oauth2/v3/certs',
   },
   gratisPara: lista(env.PLAN_GRATIS_PARA).map(e => e.toLowerCase()),
+  // dueños del servicio: ven el panel de administración (panel.html)
+  superadmins: lista(env.SUPERADMIN_EMAILS).map(e => e.toLowerCase()),
+  // minutos que dura la confirmación de adulto (clave o Google) para el modo papá y el panel
+  minutosAdulto: 30,
   // límites
   // cuentos con IA por familia al día (IA_LIMITE_DIARIO; se sigue leyendo el antiguo LIMITE_IA_DIA)
   get limiteIaDia() { return Number(env.IA_LIMITE_DIARIO || env.LIMITE_IA_DIA || 10); },

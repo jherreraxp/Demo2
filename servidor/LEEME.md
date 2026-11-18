@@ -58,6 +58,31 @@ En `avelu.env`: `PAGOS_PROVEEDOR=mercadopago` (o `paypal`) y sus credenciales. P
 Tu familia puede tener el plan gratis: `PLAN_GRATIS_PARA=tu-correo@gmail.com`.
 El servidor **no confía en el aviso** del proveedor: siempre consulta el estado real de la suscripción a su API.
 
+### Si «Suscribirme» da error
+
+El servidor ahora dice **qué** rechazó Mercado Pago (y lo guarda en el panel → Pagos → «Último error de pagos»):
+
+| Mensaje | Qué hacer |
+|---|---|
+| «No puedes suscribirte con la misma cuenta de Mercado Pago que cobra» | Paga con otro correo/cuenta de Mercado Pago: el dueño del token no puede pagarse a sí mismo. |
+| «Estás usando credenciales de prueba…» | El token es `TEST-…`: crea un **comprador de prueba** (Tus integraciones → Cuentas de prueba), pon su correo en `MP_PAYER_PRUEBA` y paga iniciando sesión con ese usuario. Para cobrar de verdad usa el Access Token de **producción** (`APP_USR-…`). |
+| «El Access Token de Mercado Pago no es válido o no tiene permisos de Suscripciones» | Copia de nuevo el Access Token de la aplicación correcta (producto «Suscripciones») y vuelve a correr el instalador. |
+| «…Revisa MP_BACK_URL…» | Debe ser una dirección https completa, por ejemplo `https://abu.arcillita.com/suscripcion-lista.html`. |
+| «…Revisa MP_PLAN_PRECIO… y MP_MONEDA=PEN» | Precio con punto decimal (`19.90`) y moneda `PEN`; la cuenta de Mercado Pago debe ser de Perú. |
+
+En el panel → Pagos → **Probar conexión** se ve si el token sirve, si es de prueba o de producción y si la cuenta es de Perú (MPE).
+
+## Panel del servicio (para quien administra)
+
+`https://tu-dominio/panel.html` (también hay un enlace en el modo papá, que solo ve quien administra). Muestra cuentas, horas de
+juego por familia/niña/día/juego (con gráfico y CSV), pagos, salud del servidor y la auditoría; permite crear cuentas, dar o quitar
+el plan Familia, bloquear, poner una contraseña temporal y borrar.
+
+- `SUPERADMIN_EMAILS=tu-correo@gmail.com` en `avelu.env` (varios separados por comas). `Instalar-Avelu.ps1` pone el correo de quien instala.
+- Para entrar hay que iniciar sesión con esa cuenta **y** confirmar con la contraseña o con Google (dura 30 minutos). El PIN no alcanza.
+- El secreto que firma esa confirmación se crea solo en `DATA_DIR/secreto.key` (o se puede fijar con `SECRETO`). No va en el repositorio.
+- En el juego, el PIN sigue igual; debajo del teclado aparece «o entra con tu cuenta (Gmail o contraseña)» cuando la familia inició sesión.
+
 ## Costos
 
 - VM de Oracle "Always Free": 0. Dominio: 0 (DuckDNS) o ~10–15 USD/año.

@@ -2,38 +2,111 @@ import crypto from 'node:crypto';
 // Suscripción mensual "familia" con Mercado Pago (preapproval) o PayPal (billing subscriptions).
 // Nunca se cree lo que dice el aviso (webhook): siempre se consulta el estado a la API del proveedor.
 import { config } from './config.mjs';
-import { cuentaPorId, cuentaPorSuscripcion, guardarPlan, db } from './db.mjs';
+import { cuentaPorId, cuentaPorSuscripcion, guardarPlan, ajuste, eventoPago } from './db.mjs';
 import { ErrorUsuario, log } from './util.mjs';
 
 const GRACIA_DIAS = 3;
 const masDias = (fecha, d) => new Date(new Date(fecha).getTime() + d * 86400000).toISOString();
 const unMes = () => { const f = new Date(); f.setMonth(f.getMonth() + 1); return f.toISOString(); };
 
-async function pedir(url, opts = {}) {
-  const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(15000) });
-  const texto = await r.text();
+// ---------- errores del proveedor: se leen, se limpian y se traducen ----------
+let ultimoError = null;
+export const ultimoErrorPagos = () => ultimoError || ajuste('pagos_ultimo_error');
+// quita correos, tokens y números largos antes de guardar o registrar nada
+const limpiar = t => String(t || '')
+  .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, '[correo]')
+  .replace(/\b(TEST|APP_USR)-[\w-]{6,}/g, '[token]')
+  .replace(/Bearer\s+\S+/gi, '[token]')
+  .replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+function detalleDe(json, texto) {
+  const partes = [];
+  if (json && typeof json === 'object') {
+    for (const k of ['message', 'error', 'error_description', 'name']) if (typeof json[k] === 'string' && json[k]) partes.push(json[k]);
+    const causas = Array.isArray(json.cause) ? json.cause : json.cause ? [json.cause] : [];
+    for (const c of causas) partes.push(c && typeof c === 'object' ? [c.code, c.description].filter(v => v !== undefined && v !== null && v !== '').join(' ') : String(c));
+    for (const d of Array.isArray(json.details) ? json.details : []) partes.push([d?.issue, d?.description].filter(Boolean).join(' '));
+  } else if (texto && !/^\s*</.test(texto)) partes.push(texto.slice(0, 200));
+  return limpiar([...new Set(partes.filter(Boolean))].join(' · '));
+}
+// mensaje claro en español para quien está pagando o configurando
+export function mensajeDePago(status, detalle = '') {
+  const d = detalle.toLowerCase();
+  if (/payer.{0,40}collector.{0,40}(same|igual)|same user|cannot pay (to )?yourself|pay yourself|mism[oa] (usuario|cuenta)/.test(d))
+    return 'No puedes suscribirte con la misma cuenta de Mercado Pago que cobra; usa otro correo.';
+  if (/must be real or test|real or test users|test user|usuarios? de prueba/.test(d))
+    return 'Estás usando credenciales de prueba: paga con un usuario de prueba de Mercado Pago (o usa el Access Token de producción).';
+  if (/different countries|distintos pa[ií]ses/.test(d))
+    return 'La cuenta que paga y la que cobra deben ser de Mercado Pago del mismo país (Perú).';
+  if (/back_?url/.test(d))
+    return 'Mercado Pago no acepta la dirección de regreso. Revisa MP_BACK_URL en el servidor: debe ser una dirección https completa (por ejemplo https://tu-dominio/cuenta.html).';
+  if (/transaction_amount|currency|amount|monto|moneda/.test(d))
+    return 'Mercado Pago no acepta el monto o la moneda. Revisa MP_PLAN_PRECIO (por ejemplo 19.90) y MP_MONEDA=PEN en el servidor.';
+  if (status === 401 || status === 403 || /invalid (access )?token|unauthorized|forbidden|invalid credentials/.test(d))
+    return 'El Access Token de Mercado Pago no es válido o no tiene permisos de Suscripciones.';
+  if (status === 429) return 'El servicio de pagos está muy ocupado. Prueba en un minuto.';
+  if (status >= 500 || !detalle) return 'El servicio de pagos no respondió bien. Prueba en un rato.';
+  return 'El servicio de pagos no aceptó la suscripción: ' + detalle.slice(0, 140);
+}
+function anotarError(e) {
+  ultimoError = { cuando: new Date().toISOString(), ...e };
+  try { ajuste('pagos_ultimo_error', ultimoError); } catch {}
+  log('pagos_error', e);
+}
+async function pedir(url, opts = {}, { proveedor = config.pagos, anotar = true } = {}) {
+  const camino = url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*/, '').replace(/\/[\w-]{12,}(?=\/|$)/g, '/…');
+  let r, texto;
+  try {
+    r = await fetch(url, { ...opts, signal: AbortSignal.timeout(15000) });
+    texto = await r.text();
+  } catch (e) {
+    const mensaje = 'No se pudo conectar con el servicio de pagos. Prueba en un rato.';
+    if (anotar) anotarError({ proveedor, camino, status: 0, detalle: limpiar(e.name === 'TimeoutError' ? 'sin respuesta a tiempo' : 'sin conexión'), mensaje });
+    throw new ErrorUsuario(mensaje, 502);
+  }
   let json = null; try { json = JSON.parse(texto); } catch (e) {}
-  if (!r.ok) { log('pagos_error', { url: url.replace(/\?.*/, ''), status: r.status }); throw new ErrorUsuario('El servicio de pagos no respondió bien. Prueba en un rato.', 502); }
+  if (!r.ok) {
+    const detalle = detalleDe(json, texto), mensaje = mensajeDePago(r.status, detalle);
+    if (anotar) anotarError({ proveedor, camino, status: r.status, detalle, mensaje });
+    const err = new ErrorUsuario(mensaje, 502); err.detalle = detalle; err.statusProveedor = r.status;
+    throw err;
+  }
   return json || {};
 }
 
 // ---------- Mercado Pago ----------
 const mpCabeceras = () => ({ Authorization: 'Bearer ' + config.mp.token, 'Content-Type': 'application/json' });
-async function mpCrear(c) {
+export const mpEsPrueba = () => /^TEST-/.test(config.mp.token);
+// dirección a la que vuelve la familia después de pagar: siempre https. Si MP_BACK_URL sigue con la
+// dirección de ejemplo (github.io) y el juego se abre desde otro sitio, se usa ese sitio.
+export function backUrlDe(origen) {
+  const conf = String(config.mp.backUrl || '');
+  const o = String(origen || '');
+  const propio = /^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(o) && !/github\.io$/i.test(o.replace(/:\d+$/, ''));
+  if (propio && (!/^https:\/\//i.test(conf) || /github\.io/i.test(conf))) return o + '/suscripcion-lista.html';
+  return conf;
+}
+async function mpCrear(c, { origen } = {}) {
   if (!config.mp.token) throw new ErrorUsuario('Los pagos aún no están configurados.', 503);
+  const monto = Number(Number(config.mp.precio).toFixed(2));
+  if (!(monto > 0)) throw new ErrorUsuario('El precio del plan no está bien configurado (MP_PLAN_PRECIO).', 503);
+  const back = backUrlDe(origen);
+  if (!/^https:\/\//i.test(back)) throw new ErrorUsuario('Falta la dirección de regreso de Mercado Pago (MP_BACK_URL debe empezar con https://).', 503);
+  // con credenciales de prueba solo puede pagar un usuario de prueba
+  const payer = mpEsPrueba() && config.mp.payerPrueba ? config.mp.payerPrueba : c.email;
   const r = await pedir(config.mp.api + '/preapproval', {
     method: 'POST', headers: mpCabeceras(),
     body: JSON.stringify({
       reason: 'Avelu y Amara · Plan familia (mensual)',
       external_reference: c.id,
-      payer_email: c.email,
-      back_url: config.mp.backUrl,
-      auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: config.mp.precio, currency_id: config.mp.moneda },
+      payer_email: payer,
+      back_url: back,
+      auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: monto, currency_id: String(config.mp.moneda || 'PEN').toUpperCase() },
       status: 'pending',
     }),
-  });
+  }, { proveedor: 'mercadopago' });
   if (!r.init_point || !r.id) throw new ErrorUsuario('No se pudo crear la suscripción.', 502);
   guardarPlan(c.id, { plan: c.plan, hasta: c.plan_hasta, proveedor: 'mercadopago', suscripcionId: r.id, estado: r.status || 'pending' });
+  eventoPago({ proveedor: 'mercadopago', ref: r.id, estado: r.status || 'pending', cuentaId: c.id, tipo: 'creada' });
   return r.init_point;
 }
 async function mpVerificar(id) {
@@ -48,12 +121,26 @@ async function mpVerificar(id) {
     // sigue con "familia" hasta el fin del periodo pagado
     guardarPlan(c.id, { plan: c.plan, hasta: c.plan_hasta, estado: s.status });
   }
-  db.prepare('INSERT INTO pagos_eventos (proveedor, ref, estado, recibido) VALUES (?, ?, ?, ?)').run('mercadopago', id, s.status || '', new Date().toISOString());
+  eventoPago({ proveedor: 'mercadopago', ref: id, estado: s.status || '', cuentaId: c.id, tipo: 'estado' });
   log('pago_mp', { cuenta: c.id, estado: s.status });
 }
 async function mpCancelar(c) {
   await pedir(config.mp.api + '/preapproval/' + encodeURIComponent(c.suscripcion_id), { method: 'PUT', headers: mpCabeceras(), body: JSON.stringify({ status: 'cancelled' }) });
   guardarPlan(c.id, { plan: c.plan, hasta: c.plan_hasta, estado: 'cancelled' });
+  eventoPago({ proveedor: 'mercadopago', ref: c.suscripcion_id, estado: 'cancelled', cuentaId: c.id, tipo: 'cancelada' });
+}
+// diagnóstico para el panel: ¿el token sirve?, ¿es de prueba o de producción?, ¿la cuenta es de Perú?
+export async function diagnosticoMercadoPago() {
+  const d = { proveedor: config.pagos, configurado: !!config.mp.token, tipoToken: !config.mp.token ? 'sin token' : mpEsPrueba() ? 'prueba' : /^APP_USR-/.test(config.mp.token) ? 'producción' : 'desconocido',
+    precio: Number(Number(config.mp.precio).toFixed(2)), moneda: config.mp.moneda, backUrl: config.mp.backUrl, firmaWebhook: !!config.mp.webhookSecret,
+    payerPrueba: !!config.mp.payerPrueba, ultimoError: ultimoErrorPagos() };
+  if (!config.mp.token) return d;
+  try {
+    const yo = await pedir(config.mp.api + '/users/me', { headers: mpCabeceras() }, { proveedor: 'mercadopago', anotar: false });
+    d.tokenValido = true; d.siteId = yo.site_id || ''; d.paisOk = yo.site_id === 'MPE'; d.usuarioDePrueba = Array.isArray(yo.tags) ? yo.tags.includes('test_user') : undefined;
+    d.cuentaCobro = yo.nickname ? String(yo.nickname).slice(0, 40) : '';
+  } catch (e) { d.tokenValido = false; d.errorToken = e.message; }
+  return d;
 }
 
 // ---------- PayPal ----------
@@ -94,17 +181,18 @@ async function ppVerificar(id) {
   } else if (['CANCELLED', 'SUSPENDED', 'EXPIRED'].includes(s.status)) {
     guardarPlan(c.id, { plan: c.plan, hasta: c.plan_hasta, estado: s.status });
   }
-  db.prepare('INSERT INTO pagos_eventos (proveedor, ref, estado, recibido) VALUES (?, ?, ?, ?)').run('paypal', id, s.status || '', new Date().toISOString());
+  eventoPago({ proveedor: 'paypal', ref: id, estado: s.status || '', cuentaId: c.id, tipo: 'estado' });
   log('pago_paypal', { cuenta: c.id, estado: s.status });
 }
 async function ppCancelar(c) {
   await pedir(config.paypal.api + '/v1/billing/subscriptions/' + encodeURIComponent(c.suscripcion_id) + '/cancel', { method: 'POST', headers: await ppCabeceras(), body: JSON.stringify({ reason: 'Cancelada por la familia' }) });
   guardarPlan(c.id, { plan: c.plan, hasta: c.plan_hasta, estado: 'CANCELLED' });
+  eventoPago({ proveedor: 'paypal', ref: c.suscripcion_id, estado: 'CANCELLED', cuentaId: c.id, tipo: 'cancelada' });
 }
 
 // ---------- interfaz común ----------
-export async function crearSuscripcion(c) {
-  if (config.pagos === 'mercadopago') return mpCrear(c);
+export async function crearSuscripcion(c, opciones = {}) {
+  if (config.pagos === 'mercadopago') return mpCrear(c, opciones);
   if (config.pagos === 'paypal') return ppCrear(c);
   throw new ErrorUsuario('Los pagos aún no están configurados.', 503);
 }
