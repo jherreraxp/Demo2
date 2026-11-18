@@ -1,0 +1,33 @@
+# Vuelve el juego a una versión guardada (por ejemplo "version-2026-11-18").
+# No borra historia: crea un cambio nuevo que deja los archivos como estaban en esa versión.
+# Se conservan las voces grabadas y los juegos creados con IA.
+name: Restaurar versión anterior
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Etiqueta de la versión a restaurar'
+        default: version-2026-11-18
+        required: true
+permissions:
+  contents: write
+concurrency: publicar
+jobs:
+  restaurar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, ref: claude/reading-game-children-zpv3xw }
+      - name: Dejar los archivos como en la versión elegida
+        env: { V: '${{ inputs.version }}' }
+        run: |
+          git config user.name "Restaurador del juego"
+          git config user.email "actions@users.noreply.github.com"
+          git rev-parse -q --verify "refs/tags/$V" >/dev/null || { echo "No existe la versión $V"; exit 1; }
+          # todo vuelve a como estaba, menos las voces, los juegos de IA y los flujos de GitHub
+          git rm -rq --cached . && git clean -fdxq -e assets/voz -e juegos-ia -e .github
+          git checkout "$V" -- . ':!assets/voz' ':!juegos-ia' ':!.github'
+          git checkout HEAD -- assets/voz juegos-ia .github 2>/dev/null || true
+          git add -A
+          git commit -qm "Restaurar la versión $V" || { echo "Ya estaba en esa versión"; exit 0; }
+          git push -q origin HEAD:claude/reading-game-children-zpv3xw
