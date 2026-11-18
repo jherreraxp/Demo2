@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Avelu y Amara</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; place-items: center; background: linear-gradient(160deg, #ffd6ec, #d9c6ff); font-family: system-ui, sans-serif; color: #23324a; text-align: center; }
+  main { padding: 24px; max-width: 420px; }
+  .cara { font-size: 84px; line-height: 1; }
+  h1 { font-size: 28px; margin: 12px 0 6px; }
+  p { font-size: 18px; line-height: 1.4; margin: 0 0 20px; }
+  button { font: inherit; font-size: 22px; font-weight: 800; border: 0; border-radius: 999px; padding: 16px 32px; background: #ff5dab; color: #fff; box-shadow: 0 6px 0 #c93a84; }
+  button:active { transform: translateY(4px); box-shadow: 0 2px 0 #c93a84; }
+</style>
+</head>
+<body>
+<main>
+  <div class="cara" aria-hidden="true">📡</div>
+  <h1>Sin conexión…</h1>
+  <p>El juego necesita internet para abrirse. Revisa el wifi o los datos y vuelve a intentar.</p>
+  <button id="reintentar">🔄 Reintentar</button>
+</main>
+<script>
+  var URL_JUEGO = 'https://abu.arcillita.com/';
+  function ir() { location.replace(URL_JUEGO); }
+  document.getElementById('reintentar').onclick = ir;
+  addEventListener('online', ir);
+</script>
+</body>
+</html>

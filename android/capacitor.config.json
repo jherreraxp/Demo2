@@ -1,0 +1,27 @@
+{
+  "appId": "com.arcillita.abu",
+  "appName": "Avelu y Amara",
+  "webDir": "www",
+  "appendUserAgent": " AveluApp",
+  "backgroundColor": "#f3e8ff",
+  "server": {
+    "url": "https://abu.arcillita.com",
+    "cleartext": false,
+    "androidScheme": "https",
+    "errorPath": "index.html",
+    "allowNavigation": [
+      "abu.arcillita.com",
+      "jherreraxp.github.io",
+      "accounts.google.com",
+      "www.mercadopago.com.pe",
+      "*.mercadopago.com.pe",
+      "*.mercadopago.com",
+      "*.mercadolibre.com"
+    ]
+  },
+  "android": {
+    "appendUserAgent": " AveluApp",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

@@ -3,6 +3,11 @@
 // música, sonidos, confeti, regalos y publicación de grabaciones en GitHub.
 (function () {
   'use strict';
+  // app de Android sin voz del navegador: js/pwa.js la conecta a la voz del teléfono
+  if (/AveluApp/.test(navigator.userAgent) && !('speechSynthesis' in window)) {
+    window.SpeechSynthesisUtterance = function (t) { this.text = t; this.rate = 1; this.pitch = 1; this.volume = 1; };
+    window.speechSynthesis = { getVoices: () => [], speak(u) { setTimeout(() => u.onend && u.onend({}), 300); }, cancel() {}, addEventListener() {} };
+  }
 
   // ---------- palabras (palabra, sílabas, dibujo) ----------
   // Vocabulario peruano (palta, choclo, llama, papa). Las marcadas con 3D tienen modelo para buscar o atrapar.

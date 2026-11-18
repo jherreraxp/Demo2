@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c9a2ff">
+<title>Instalar en el celular · Avelu y Amara</title>
+<meta name="description" content="Cómo poner Avelu y Amara como una app en el celular o la tablet: Android (APK o desde Chrome) y iPhone.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Página para adultos: una columna de tarjetas (instalar desde el navegador, APK de Android, iPhone), con los colores del tema. */
+:root {
+  --bg1: var(--tema-bg1, #ffe3f3); --bg2: var(--tema-bg2, #e3dcff); --card: #ffffff; --ink: #23324a; --muted: #5b6b82; --line: #e4e0f0;
+  --accent: var(--tema-acento, #9a6ee0); --accent2: var(--tema-acento2, #ff7eb6); --ok: #2f8a58;
+  --font-display: "Baloo 2", system-ui, sans-serif; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, var(--bg1), var(--bg2)); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
+main { box-sizing: border-box; max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 48px; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 22px; padding: 8px 14px 8px 8px; box-shadow: 0 4px 0 rgba(35,50,74,.08); }
+.top a.casa { text-decoration: none; font-size: 22px; background: #f1ecfb; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.05; }
+h2 { font-family: var(--font-display); font-size: 23px; margin: 0 0 4px; line-height: 1.2; }
+.card { background: var(--card); border-radius: 22px; padding: 20px clamp(16px, 4vw, 28px); box-shadow: 0 4px 0 rgba(35,50,74,.08), 0 6px 18px rgba(35,50,74,.06); }
+.card p { margin: 8px 0; }
+.suave { color: var(--muted); font-size: 15.5px; }
+.app { display: flex; gap: 16px; align-items: center; }
+.app img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 4px 10px rgba(35,50,74,.18); flex: none; }
+.boton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; box-sizing: border-box; padding: 12px 22px; border: 0; border-radius: 18px; background: var(--accent); color: #fff; font: inherit; font-family: var(--font-display); font-size: 21px; font-weight: 800; text-decoration: none; cursor: pointer; box-shadow: 0 5px 0 rgba(35,50,74,.25); }
+.boton:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(35,50,74,.25); }
+.boton.verde { background: #2f9e62; } .boton[disabled] { background: #b9b4c9; box-shadow: none; cursor: default; }
+.boton:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.fila { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+ol.pasos { margin: 12px 0 4px; padding: 0; list-style: none; counter-reset: paso; display: flex; flex-direction: column; gap: 10px; }
+ol.pasos li { counter-increment: paso; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; align-items: start; }
+ol.pasos li::before { content: counter(paso); width: 38px; height: 38px; border-radius: 50%; background: var(--bg2); color: var(--ink); font-family: var(--font-display); font-weight: 800; font-size: 20px; display: grid; place-items: center; }
+.nota { background: #fff7d6; border: 2px solid #ffd23f; border-radius: 16px; padding: 12px 14px; margin-top: 14px; font-size: 16px; }
+.listo { background: #e6f7ee; border: 2px solid #7fd0a3; border-radius: 16px; padding: 12px 14px; font-weight: 700; color: #1d6b43; }
+.tecla { display: inline-block; padding: 1px 8px; border-radius: 8px; background: #eef0f7; border: 1px solid var(--line); font-weight: 700; }
+details { margin-top: 10px; } summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+a { color: #6a3fc0; font-weight: 700; }
+code { background: #eef0f7; padding: 1px 6px; border-radius: 6px; font-size: .92em; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .app img { width: 64px; height: 64px; border-radius: 16px; } .boton { width: 100%; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a class="casa" href="index.html" aria-label="Volver al juego">🏠</a><h1>📱 Instalar en el celular</h1></div>
+
+  <section class="card">
+    <div class="app">
+      <img src="assets/icono-192.png" alt="" width="84" height="84">
+      <div>
+        <h2>Avelu y Amara como una app</h2>
+        <p class="suave">Con su ícono en la pantalla de inicio, a pantalla completa y sin la barra del navegador. El avance y las voces siguen igual.</p>
+      </div>
+    </div>
+    <p class="listo" id="ya-app" hidden>✅ Ya estás usando la app en este aparato.</p>
+    <p class="suave" id="otra-pantalla">¿Estás en la compu? Abre esta página en el celular: <code id="direccion"></code></p>
+  </section>
+
+  <section class="card" id="c-pwa">
+    <h2>⚡ Lo más fácil: instalar desde el navegador</h2>
+    <p>Sirve en Android (Chrome), en tablets y en la compu. No hay que descargar nada ni cambiar ajustes.</p>
+    <div class="fila"><button class="boton" id="instalar" disabled>📲 Instalar la app</button></div>
+    <p class="suave" id="pwa-estado" role="status">Buscando si este navegador puede instalarla…</p>
+    <details id="pwa-manual">
+      <summary>¿No aparece el botón?</summary>
+      <ol class="pasos">
+        <li><span>Abre esta página con <b>Chrome</b> (en Android) o <b>Edge / Chrome</b> (en la compu).</span></li>
+        <li><span>Toca el menú <span class="tecla">⋮</span> de arriba a la derecha.</span></li>
+        <li><span>Elige <span class="tecla">Agregar a pantalla principal</span> o <span class="tecla">Instalar app</span> y confirma.</span></li>
+      </ol>
+    </details>
+  </section>
+
+  <section class="card" id="c-apk">
+    <h2>🤖 Android: descargar la app (APK)</h2>
+    <p>Una app de verdad para celulares y tablets Android (Android 6 o más nuevo). No está en Play Store: se descarga de aquí y se instala a mano.</p>
+    <div class="fila">
+      <a class="boton verde" id="apk" href="https://github.com/jherreraxp/Demo2/releases/download/apk/AveluYAmara.apk" rel="noopener">⬇️ Descargar AveluYAmara.apk</a>
+    </div>
+    <ol class="pasos">
+      <li><span>Toca <b>Descargar</b>. Si el navegador avisa que el archivo "puede ser dañino", toca <span class="tecla">Descargar de todos modos</span>.</span></li>
+      <li><span>Abre el archivo: toca la notificación de la descarga, o búscalo en <span class="tecla">Archivos → Descargas</span>.</span></li>
+      <li><span>Android dirá que <b>no puede instalar apps desconocidas</b> de esta fuente. Toca <span class="tecla">Configuración</span>, enciende <span class="tecla">Permitir de esta fuente</span> y vuelve atrás.</span></li>
+      <li><span>Toca <span class="tecla">Instalar</span>. Si Play Protect pregunta, elige <span class="tecla">Más detalles → Instalar de todas formas</span>.</span></li>
+      <li><span>Toca <span class="tecla">Abrir</span>. El ícono de Avelu y Amara queda en tu pantalla de inicio. 🎉</span></li>
+    </ol>
+    <div class="nota">
+      <b>Para entrar a tu cuenta dentro de la app usa correo y contraseña.</b> El botón "Continuar con Google" no funciona dentro del APK (Google no lo permite en este tipo de apps). Si tu cuenta es solo de Google, usa mejor "Instalar desde el navegador" de arriba: ahí sí funciona.
+    </div>
+    <details>
+      <summary>Más sobre el APK</summary>
+      <p class="suave">• La app necesita internet la primera vez; después, lo que ya jugaste también abre sin conexión.<br>
+      • El juego se actualiza solo. Solo hay que volver a descargar el APK si aquí avisamos de una versión nueva de la app; se instala encima, sin perder nada.<br>
+      • Para grabar voces, la app pedirá permiso para usar el micrófono.<br>
+      • Si el enlace no descarga, mira en <a href="https://github.com/jherreraxp/Demo2/releases/tag/apk" rel="noopener">la página de versiones</a>.<br>
+      • Después de instalar puedes apagar otra vez "Permitir de esta fuente".</p>
+    </details>
+  </section>
+
+  <section class="card" id="c-ios">
+    <h2>🍎 iPhone y iPad</h2>
+    <p>En iPhone no hay APK. Se agrega a la pantalla de inicio desde Safari y queda igual que una app:</p>
+    <ol class="pasos">
+      <li><span>Abre esta página en <b>Safari</b> (no en Chrome ni dentro de WhatsApp).</span></li>
+      <li><span>Toca <span class="tecla">Compartir</span> (el cuadrado con la flecha hacia arriba <span aria-hidden="true">⬆️</span>).</span></li>
+      <li><span>Baja y elige <span class="tecla">Agregar a inicio</span>.</span></li>
+      <li><span>Toca <span class="tecla">Agregar</span>. Listo: abre el juego desde su ícono. 🎉</span></li>
+    </ol>
+  </section>
+</main>
+<script src="js/tema.js"></script>
+<script src="js/pwa.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s), P = window.PWA;
+  $('#direccion').textContent = location.host + location.pathname;
+  const ua = navigator.userAgent, android = /Android/i.test(ua), ios = P.esIOS(), movil = android || ios;
+  $('#otra-pantalla').hidden = movil;
+  // lo que le toca a este aparato va primero
+  if (ios) { $('main').insertBefore($('#c-ios'), $('#c-pwa')); $('#c-apk').hidden = true; }
+  else if (android) $('#c-ios').hidden = true;
+  function pintar() {
+    const b = $('#instalar'), e = $('#pwa-estado');
+    $('#ya-app').hidden = !P.esApp();
+    if (P.esApk()) { $('#c-pwa').hidden = true; $('#ya-app').textContent = '✅ Ya estás usando la app de Android. Para actualizarla, descarga otra vez el APK de abajo.'; return; }
+    if (P.instalada()) { b.disabled = true; b.textContent = '✅ App instalada'; e.textContent = '🎉 Ya está instalada en este aparato. Búscala en tu pantalla de inicio.'; return; }
+    if (ios) { $('#c-pwa').hidden = true; return; }
+    if (P.puedeInstalar()) { b.disabled = false; b.textContent = '📲 Instalar la app'; e.textContent = 'Toca el botón y confirma. Tarda un segundo.'; $('#pwa-manual').open = false; }
+    else { b.disabled = true; e.textContent = 'Este navegador no ofrece el botón ahora (o la app ya está instalada). Sigue los pasos de abajo.'; $('#pwa-manual').open = true; }
+  }
+  $('#instalar').onclick = async () => {
+    const ok = await P.instalar();
+    pintar();
+    if (!ok) $('#pwa-estado').textContent = 'No se instaló. Puedes intentarlo otra vez, o con el menú ⋮ → "Instalar app".';
+  };
+  P.alCambiar(pintar);
+  setTimeout(pintar, 1200); // el navegador avisa un momento después de cargar
+  if (P.esApp() || ios) pintar();
+})();
+</script>
+</body>
+</html>

@@ -202,6 +202,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   async function iniciarGoogle() {
     const cfg = await C.configServidor();
     if (!cfg || !cfg.googleClientId || C.token()) return;
+    // dentro de la app de Android, Google no deja entrar desde un navegador embebido
+    if (/AveluApp/.test(navigator.userAgent)) { $('#google').hidden = false; $('#google-btn').innerHTML = '<p style="margin:0;color:#5b6b82;font-size:15px">Dentro de la app entra con tu correo y contraseña. Para entrar con Google, abre el juego en Chrome.</p>'; return; }
     await new Promise((ok, no) => { if (window.google && google.accounts) return ok(); const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client?hl=es'; sc.async = true; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }).catch(() => null);
     if (!window.google || !google.accounts || !google.accounts.id) return;
     google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: r => conGoogle(r.credential, false), ux_mode: 'popup', locale: 'es' });

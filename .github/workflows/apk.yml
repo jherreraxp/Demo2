@@ -1,0 +1,124 @@
+# Construye el APK de Android (Capacitor) y lo deja en Releases → apk → AveluYAmara.apk.
+# Se corre a mano (Actions → "Construir APK" → Run workflow) o sola al cambiar algo en android/.
+# Detalles en android/LEEME.md.
+name: Construir APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/reading-game-children-zpv3xw, main]
+    paths: ['android/**', '.github/workflows/apk.yml']
+permissions:
+  contents: write
+concurrency:
+  group: apk
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      APK_NOMBRE: AveluYAmara.apk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Herramientas de Android (SDK 35)
+        run: |
+          set -euxo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK" && test -d "$SDK"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKMANAGER="$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager | tail -1)"
+          set +o pipefail   # "yes" termina con error de tubería cuando sdkmanager ya no lee más
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          yes | "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools" > /dev/null
+          set -o pipefail
+          ls "$SDK/platforms" "$SDK/build-tools"
+          java -version
+
+      - name: Preparar el proyecto (Capacitor, ícono, permisos, versión y firma)
+        run: |
+          set -euxo pipefail
+          export VERSION_CODE="$(( $(date +%s) / 60 ))"
+          export VERSION_NAME="$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          bash android/preparar.sh
+
+      - name: Compilar
+        working-directory: android/android
+        run: |
+          set -euxo pipefail
+          chmod +x gradlew
+          ./gradlew --version
+          if ./gradlew --no-daemon --stacktrace assembleRelease; then
+            echo "TIPO=release" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No se pudo compilar la versión release; se compila la de depuración (firmada con la misma llave)."
+            ./gradlew --no-daemon --stacktrace assembleDebug
+            echo "TIPO=debug" >> "$GITHUB_ENV"
+          fi
+
+      - name: Revisar el APK
+        run: |
+          set -euxo pipefail
+          find android/android/app/build/outputs -name '*.apk' -exec ls -la {} +
+          APK="$(find "android/android/app/build/outputs/apk/${TIPO}" -name '*.apk' ! -name '*unsigned*' | head -1)"
+          test -s "$APK"
+          mkdir -p salida && cp "$APK" "salida/${APK_NOMBRE}"
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)"
+          "$APKSIGNER" verify --verbose --print-certs "salida/${APK_NOMBRE}"
+          AAPT="$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)"
+          "$AAPT" dump badging "salida/${APK_NOMBRE}" | grep -E "^(package|sdkVersion|targetSdkVersion|application-label):" || true
+          ls -la salida
+
+      - name: Diagnóstico si algo falló
+        if: failure()
+        run: |
+          set +e
+          echo "ANDROID_HOME=$ANDROID_HOME"; ls "$ANDROID_HOME" "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+          java -version; node --version; npm --version
+          ls -la android android/android android/android/app 2>&1 | head -80
+          cat android/android/variables.gradle android/android/app/build.gradle android/android/app/capacitor.build.gradle 2>&1
+          cat android/android/app/src/main/AndroidManifest.xml 2>&1
+          find android/android -name '*.apk' 2>/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AveluYAmara-apk
+          path: salida/AveluYAmara.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar en Releases (etiqueta "apk")
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          NOTAS="App Android de Avelu y Amara — versión ${VERSION_NAME} (${TIPO}).
+
+          Para instalarla: descarga **${APK_NOMBRE}** en el celular, ábrela y permite «instalar apps desconocidas» para tu navegador. Pasos con dibujitos: https://abu.arcillita.com/app.html
+
+          Firmada con la llave de prueba del repositorio (android/LEEME.md). No es la versión de Google Play."
+          if gh release view apk --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload apk "salida/${APK_NOMBRE}" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit apk --title "Avelu y Amara para Android (${VERSION_NAME})" --notes "$NOTAS" --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create apk "salida/${APK_NOMBRE}" --title "Avelu y Amara para Android (${VERSION_NAME})" --notes "$NOTAS" --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
+          fi
+          gh release view apk --repo "$GITHUB_REPOSITORY"
+          echo "### 📱 APK listo" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/apk/${APK_NOMBRE} (versión ${VERSION_NAME}, ${TIPO})" >> "$GITHUB_STEP_SUMMARY"
