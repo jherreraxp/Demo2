@@ -6,7 +6,14 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .5, metalness: 0, ...o });
+// brillo de contorno suave (como luz de estudio por detrás): hace que los muñecos se despeguen del fondo
+function borde(sh) {
+  sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>',
+    'float bordeF = pow(1.0 - saturate(dot(normalize(vViewPosition), normal)), 3.0);\noutgoingLight += diffuseColor.rgb * bordeF * .32 + vec3(bordeF * .05);\n#include <opaque_fragment>');
+}
+const claveBorde = () => 'borde1';
+const conBorde = m => { m.onBeforeCompile = borde; m.customProgramCacheKey = claveBorde; return m; };
+const mat = (color, o = {}) => conBorde(new THREE.MeshStandardMaterial({ color, roughness: .5, metalness: 0, ...o }));
 function mesh(geo, m, x = 0, y = 0, z = 0) { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; return me; }
 const tagger = parts => (m, part) => { m.userData.part = part; (parts[part] = parts[part] || []).push(m); return m; };
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
@@ -639,6 +646,7 @@ function relojYoga() {
   const r = {
     get dormida() { return dormida; },
     despertar() { if (dormida) { dormida = false; estirar = 1; saludo = 1.5; } quieto = 0; umbral = espera(); },
+    callar() { dormida = false; estirar = 0; saludo = 0; quieto = 0; },
     modo(dt, mode) {
       if (mode !== 'quieto') { if (dormida) r.despertar(); else quieto = 0; }
       else if (!dormida && estirar <= 0 && saludo <= 0) { quieto += dt; if (quieto > umbral) dormida = true; }
@@ -670,78 +678,276 @@ if (typeof document !== 'undefined') document.addEventListener('pointerdown', ()
   if (alguien && window.Juego?.say) window.Juego.say('¡Hola!');
 }, { passive: true });
 
+// ---------- animación de las figuras ----------
+// La pose es un solo arreglo de números (canales), así no se crean objetos en cada cuadro.
+// Cada modo escribe su pose "objetivo"; al cambiar de modo se funde con la anterior (~0,25 s), sin saltos.
+const AL0 = 0, AL1 = 1, AR0 = 2, AR1 = 3, LL0 = 4, LL1 = 5, LR0 = 6, LR1 = 7, CY = 8, SPIN = 9, LEAN = 10, ROLL = 11, TWIST = 12,
+  HT = 13, HN = 14, HZ = 15, SQ = 16, EL = 17, ER = 18, KL = 19, KR = 20, BX = 21, FL = 22, NC = 23;
+const TAU = Math.PI * 2;
+const suave = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+const tope = (x, a, b) => x < a ? a : x > b ? b : x;
+// al caer de un salto: se aplasta y rebota un poquito hasta quedar quieta
+const asienta = w => 1 - .12 * (1 - w) * (1 - w) * Math.cos(w * 10);
+
+// gestos que se pueden pedir con ch.emote('saludo'): devuelve cuánto dura (en segundos)
+export const EMOTES = {
+  saludo: { nombre: 'Saludo', emoji: '✌️' }, corazon: { nombre: 'Corazón', emoji: '💖' }, baile1: { nombre: 'Pasito', emoji: '💃' },
+  baile2: { nombre: 'Disco', emoji: '🪩' }, girar: { nombre: 'Giro', emoji: '🌀' }, reverencia: { nombre: 'Reverencia', emoji: '🙇' },
+  aplauso: { nombre: 'Aplauso', emoji: '👏' }, pensar: { nombre: 'Pensar', emoji: '🤔' }, risa: { nombre: 'Risa', emoji: '😂' },
+  estrella: { nombre: 'Estrella', emoji: '⭐' }, dormir: { nombre: 'Dormir', emoji: '😴' },
+};
+const EMOTE_DUR = { saludo: 1.8, corazon: 2.6, baile1: 4, baile2: 4, girar: 1.8, reverencia: 2.4, aplauso: 2.2, pensar: 2.8, risa: 2.2, estrella: 1.8, dormir: 4.5 };
+const EMOTE_GLOBO = { saludo: '✌️', corazon: '💖', pensar: '💭', risa: '😂', estrella: '⭐', aplauso: '👏' };
+const EMOTE_FELIZ = { saludo: 1, corazon: 1, baile1: 1, baile2: 1, girar: 1, aplauso: 1, risa: 1, estrella: 1 };
+const texGlobo = new Map();
+function matGlobo(emoji) {
+  let tx = texGlobo.get(emoji);
+  if (!tx) {
+    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
+    g.font = '72px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emoji, 48, 52);
+    tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; texGlobo.set(emoji, tx);
+  }
+  return new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false });
+}
+
+// globitos de los gestos (💖, 💭…): salen junto a la cabeza, suben y se desvanecen
+function hacerGlobos(root) {
+  const lista = [];
+  return {
+    lanzar(emoji, x, y, k) { if (lista.length > 2) return; const sp = new THREE.Sprite(matGlobo(emoji)); sp.position.set(x, y, .12); sp.userData.v = 0; sp.userData.k = Math.max(.22, .34 * k); root.add(sp); lista.push(sp); },
+    update(dt) {
+      for (let i = lista.length - 1; i >= 0; i--) {
+        const g = lista[i]; g.userData.v += dt; const v = g.userData.v;
+        g.position.y += dt * .28; g.scale.setScalar(g.userData.k * (v < .25 ? suave(v / .25) * 1.15 : 1));
+        g.material.opacity = v < 1 ? 1 : Math.max(0, 1 - (v - 1) / .5);
+        if (v > 1.5) { root.remove(g); g.material.dispose(); lista.splice(i, 1); }
+      }
+    },
+  };
+}
+
 function animar(f) {
-  let t = 0, blinkT = 2, target = null;
-  const cur = { armL: [0, .08], armR: [0, .08], legL: [0, 0], legR: [0, 0], y: 0 };
-  const lerp = (a, b, k) => a + (b - a) * k;
+  let t = 0, tm = 0, tk = 0, tBaile = 0, ph = 0, blinkT = 2, target = null, targetName = 'primera';
+  let clave = '', ultimo = '', mix = 1, durMix = .25;
+  const cur = new Float32Array(NC), prev = new Float32Array(NC), tg = new Float32Array(NC);
+  cur[AL1] = cur[AR1] = .08; cur[SQ] = 1; cur[EL] = cur[ER] = .12;
   const yoga = relojYoga();
   const cadera = f.legs[0] ? f.legs[0].position.y : .5; // al sentarse, el cuerpo baja casi lo que mide la pierna
-  function update(dt, mode = 'quieto', extra = 1) {
-    t += dt;
-    mode = yoga.modo(dt, mode);
-    blinkT -= dt; let closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
-    if (mode === 'yoga') closed = true; // ojitos cerrados, carita tranquila
-    f.cara.update(dt, closed, mode === 'yoga' || mode === 'estirar' ? 'quieto' : mode);
-    let pose = null, bob = 0, spin = 0, lean = 0, headTurn = 0, headNod = 0;
-    if (mode === 'yoga') {
-      // posición de loto: piernas cruzadas hacia adelante, manos en las rodillas, respira despacito
-      pose = { armL: [-.75, .42], armR: [-.75, .42], legL: [-1.45, .62], legR: [-1.45, .62], y: -cadera * .86 };
-      bob = Math.sin(t * 1.3) * .012; headNod = .12 + Math.sin(t * 1.3) * .03;
-    } else if (mode === 'estirar') {
-      // se despierta: estira los brazos y bosteza
-      pose = { armL: [-.2, 2.8], armR: [-.2, 2.8], legL: [0, .05], legR: [0, .05], y: 0 };
-      bob = .03; headNod = -.18;
-    } else if (mode === 'correr') {
-      const ph = t * 12 * extra, s = Math.sin(ph);
-      pose = { armL: [s * 1.1, .14], armR: [-s * 1.1, .14], legL: [-s * .95, 0], legR: [s * .95, 0], y: 0 };
-      bob = Math.abs(Math.cos(ph)) * .09; lean = .14; headNod = Math.sin(ph * 2) * .04;
-    } else if (mode === 'festejar') {
-      pose = { armL: [-.3, 2.7 + Math.sin(t * 14) * .2], armR: [-.3, 2.7 - Math.sin(t * 14) * .2], legL: [0, .15], legR: [0, .15], y: 0 };
-      bob = Math.abs(Math.sin(t * 7)) * .35; spin = t * 5;
-    } else if (mode === 'bailar') {
-      const s = Math.sin(t * 5);
-      pose = { armL: [-.3, 1.5 + s * .9], armR: [-.3, 1.5 - s * .9], legL: [s * .3, .1], legR: [-s * .3, .1], y: 0 };
-      bob = Math.abs(Math.sin(t * 5)) * .08; spin = Math.sin(t * 2.5) * .6; headTurn = s * .3;
-    } else if (mode === 'saludar') {
-      pose = { armL: [0, .1], armR: [-.2, 2.6 + Math.sin(t * 10) * .35], legL: [0, 0], legR: [0, 0], y: 0 };
-      headTurn = Math.sin(t * 2) * .15; headNod = .05;
-    } else if (mode === 'ballet') {
-      pose = target || POSES.primera;
-      if (pose.spin) spin = t * 7;
-      if (pose.salto) bob = Math.abs(Math.sin(t * 5)) * .3;
-      else bob = Math.sin(t * 2) * .01;
-    } else {
-      pose = { armL: [Math.sin(t * 1.4) * .05, .08], armR: [-Math.sin(t * 1.4) * .05, .08], legL: [0, 0], legR: [0, 0], y: 0 };
-      bob = Math.sin(t * 2) * .012; headTurn = Math.sin(t * .7) * .25;
+  // quieta: mira alrededor de vez en cuando y cambia el peso de una pierna a la otra
+  let lookT = 2 + Math.random() * 3, lookA = 0, lookC = 0, pesoT = 3 + Math.random() * 4, pesoA = Math.random() < .5 ? -1 : 1, pesoC = 0;
+  // gesto en curso
+  let em = null, emT = 0, emDur = 0, emGlobo = false;
+  const globos = hacerGlobos(f.root);
+  const kCab = (f.anclas && f.anclas.k) || 1;
+  const yGlobo = f.head.position.y + ((f.anclas && f.anclas.alto) || HH / 2 + .1) + .18 * kCab;
+  // resortes del pelo, la colita y la capa (se quedan atrás al moverse y luego se acomodan)
+  const res = f.braids.map(b => {
+    const cadena = []; let n = b.children.find(c => c.isGroup);
+    while (n) { cadena.push(n); n = n.children.find(c => c.isGroup); }
+    return { b, cadena, a: .12, v: 0, z: 0, vz: 0, z0: b.rotation.z };
+  });
+  let capaA = .12, capaV = 0, lastY = 0, lastSpin = 0, lastBX = 0;
+  const faldaX = f.falda ? f.falda.scale.x : 1, faldaZ = f.falda ? f.falda.scale.z : 1;
+  const brazos = (a0, a1, b0, b1) => { tg[AL0] = a0; tg[AL1] = a1; tg[AR0] = b0; tg[AR1] = b1; };
+  const piernas = (a0, a1, b0, b1) => { tg[LL0] = a0; tg[LL1] = a1; tg[LR0] = b0; tg[LR1] = b1; };
+
+  function poseQuieta(dt) {
+    lookT -= dt; if (lookT < 0) { lookA = lookA ? 0 : (Math.random() - .5) * .9; lookT = lookA ? 1.2 + Math.random() : 2.5 + Math.random() * 4; }
+    lookC += (lookA - lookC) * Math.min(1, dt * 4);
+    pesoT -= dt; if (pesoT < 0) { pesoA = -pesoA; pesoT = 4 + Math.random() * 5; }
+    pesoC += (pesoA - pesoC) * Math.min(1, dt * 1.6);
+    const r = Math.sin(t * 1.9);
+    brazos(Math.sin(t * 1.4) * .05, .08 + Math.sin(t * 1.1) * .02, -Math.sin(t * 1.4 + .6) * .05, .08 + Math.sin(t * 1.3 + 1) * .02);
+    piernas(0, Math.max(0, pesoC) * .05, 0, Math.max(0, -pesoC) * .05);
+    tg[SQ] = 1 + r * .008; tg[CY] = r * .004;
+    tg[ROLL] = pesoC * .035 + Math.sin(t * .6) * .008; tg[BX] = pesoC * .012; tg[TWIST] = Math.sin(t * .43) * .05;
+    tg[HT] = lookC + Math.sin(t * .7) * .06; tg[HN] = Math.sin(t * .9) * .025 - Math.abs(lookC) * .08; tg[HZ] = -pesoC * .03;
+  }
+  function poseCorrer(dt, vel) {
+    ph += dt * 12 * vel;
+    const s = Math.sin(ph), c = Math.cos(ph), ac = Math.abs(c);
+    brazos(s * 1.05, .16, -s * 1.05, .16);
+    piernas(-s * .95, 0, s * .95, 0);
+    tg[EL] = 1.15 - s * .2; tg[ER] = 1.15 + s * .2; tg[KL] = tg[KR] = .25;
+    tg[CY] = ac * .085; tg[SQ] = 1 - .04 * (1 - ac) * (1 - ac);   // se aplasta un pelín cuando el pie pisa
+    tg[LEAN] = .15; tg[TWIST] = s * .14; tg[ROLL] = c * .025; tg[HN] = Math.sin(ph * 2) * .04;
+  }
+  function poseFestejar() {
+    // saltitos con anticipación (se agacha), vuelo con los brazos arriba y caída con rebote; uno de cada dos con giro
+    const P = .85, n = Math.floor(tm / P), u = tm / P - n, ola = Math.sin(tm * 14) * .18;
+    let r = 1;
+    if (u < .2) { const a = u / .2; r = n ? 1 - suave(a) * .75 : suave(a) * .25; tg[SQ] = 1 - .1 * Math.sin(a * Math.PI / 2); }
+    else if (u < .75) {
+      const v = (u - .2) / .55; r = .25 + .75 * suave(v * 2);
+      tg[CY] = .38 * 4 * v * (1 - v); tg[SQ] = 1 + .07 * Math.cos(v * Math.PI / 2);
+      tg[LL1] = tg[LR1] = .12 + .22 * Math.sin(Math.PI * v); tg[KL] = tg[KR] = .5 * Math.sin(Math.PI * v);
+      if (n & 1) tg[SPIN] = TAU * suave(v);
+    } else { tg[SQ] = asienta((u - .75) / .25); if (n & 1) tg[SPIN] = TAU; tg[LL1] = tg[LR1] = .12; }
+    brazos(.45 * (1 - r) - .3 * r, .45 + r * (2.25 + ola), .45 * (1 - r) - .3 * r, .45 + r * (2.25 - ola));
+    tg[EL] = tg[ER] = .2; tg[HN] = -.1 * r;
+  }
+  function pasito(tb) {  // paso al costado con los brazos acompañando
+    const s = Math.sin(tb * 6);
+    brazos(-.4 + s * .3, .9 + s * .5, -.4 - s * .3, .9 - s * .5); piernas(0, Math.max(0, -s) * .25, 0, Math.max(0, s) * .25);
+    tg[EL] = tg[ER] = .9; tg[BX] = s * .09; tg[ROLL] = -s * .07; tg[TWIST] = s * .15; tg[HT] = s * .2; tg[CY] = Math.abs(Math.cos(tb * 6)) * .05;
+  }
+  function disco(tb) {   // un brazo apunta arriba y el otro abajo, cambiando con el ritmo
+    const s = Math.sin(tb * 6.9), c = suave(.5 + s * 1.5);
+    brazos(-.3, 2.6 - 2.3 * c, -.3, .3 + 2.3 * c); piernas(0, .1, 0, .1);
+    tg[EL] = tg[ER] = .2; tg[ROLL] = (c - .5) * .16; tg[TWIST] = (c - .5) * .5; tg[HT] = (.5 - c) * .3; tg[HZ] = (c - .5) * .15;
+    tg[SQ] = 1 - Math.abs(Math.sin(tb * 6.9)) * .04; tg[KL] = tg[KR] = .25;
+  }
+  function poseBailar(seg, tb) {
+    if (seg === 1) return pasito(tb);
+    if (seg === 2) {     // twist: gira la cintura con los brazos doblados
+      const s = Math.sin(tb * 7);
+      brazos(-.6 - s * .4, .35, -.6 + s * .4, .35); piernas(0, .12, 0, .12);
+      tg[EL] = tg[ER] = 1.5; tg[KL] = tg[KR] = .35; tg[TWIST] = s * .55; tg[HT] = -s * .2; tg[SQ] = 1 - Math.abs(Math.cos(tb * 7)) * .05;
+      return;
     }
-    const k = Math.min(1, dt * (mode === 'correr' ? 30 : 9));
-    ['armL', 'armR', 'legL', 'legR'].forEach(key => { cur[key] = [lerp(cur[key][0], pose[key][0], k), lerp(cur[key][1], pose[key][1], k)]; });
-    cur.y = lerp(cur.y, pose.y || 0, k);
-    f.arms.forEach((a, i) => { const p = i ? cur.armR : cur.armL, sx = i ? 1 : -1; a.rotation.x = p[0]; a.rotation.z = sx * p[1]; });
-    f.legs.forEach((l, i) => { const p = i ? cur.legR : cur.legL, sx = i ? 1 : -1; l.rotation.x = p[0]; l.rotation.z = sx * p[1]; });
-    f.body.position.y = bob + cur.y;
-    f.body.rotation.y = spin;
-    f.body.rotation.x = lean;
-    f.head.rotation.y = headTurn;
-    f.head.rotation.x = headNod;
-    if (f.post) f.post(t, mode);
-    yoga.particulas(dt, f.root, mode === 'yoga');
-    // pelo, trenzas y coletas que se mueven
-    const run = mode === 'correr';
-    f.braids.forEach((b, i) => {
-      let n = b.children.find(c => c.isGroup), j = 1;
-      b.rotation.x = (run ? .5 + Math.sin(t * 6) * .15 : .12 + Math.sin(t * 1.6 + i) * .05) + (f.body.rotation.y ? .2 : 0);
-      while (n) { n.rotation.x = Math.sin(t * 4 - j + i) * .06 + (run ? .05 : 0); n = n.children.find(c => c.isGroup); j++; }
-    });
-    if (f.capa) f.capa.rotation.x = .12 + (run ? .5 : 0) + Math.sin(t * 3) * .03;
-    if (f.falda) f.falda.scale.x = 1 + (run ? Math.sin(t * 24) * .03 : 0);
+    if (seg === 3) {     // brazos arriba saltando y girando a un lado y al otro
+      const s = Math.sin(tb * 6);
+      brazos(-.2, 2.5 + s * .25, -.2, 2.5 - s * .25); piernas(0, .12, 0, .12);
+      tg[EL] = tg[ER] = .3; tg[CY] = Math.abs(s) * .14; tg[SQ] = 1 + Math.abs(s) * .03; tg[SPIN] = Math.sin(tb * 1.5) * 1.2; tg[ROLL] = s * .08;
+      return;
+    }
+    const s = Math.sin(tb * 5); // el baile de siempre: brazos que suben y bajan
+    brazos(-.3, 1.5 + s * .9, -.3, 1.5 - s * .9); piernas(s * .3, .1, -s * .3, .1);
+    tg[EL] = .6 + s * .3; tg[ER] = .6 - s * .3; tg[CY] = Math.abs(s) * .08; tg[SPIN] = Math.sin(tb * 2.5) * .6; tg[HT] = s * .3; tg[ROLL] = s * .05;
+  }
+  function poseEmote(e, x, dur) {
+    const u = x / dur;
+    if (e === 'saludo') {          // saludo con dos deditos en la frente y ¡zas!
+      const k = suave((u - .5) / .12);
+      brazos(.1, .22, -.55 + k * .1, 2.05 + k * .45); tg[ER] = 1.9 - k * 1.3; tg[EL] = .5;
+      tg[HZ] = -.12 + k * .08; tg[HT] = .15; tg[ROLL] = .04; tg[CY] = k * (1 - suave((u - .62) / .2)) * .05;
+    } else if (e === 'corazon') {  // brazos arriba formando un corazón, meciéndose
+      const s = Math.sin(x * 5);
+      brazos(-.25, 2.35, -.25, 2.35); tg[EL] = tg[ER] = 1.5;
+      tg[ROLL] = s * .08; tg[BX] = s * .03; tg[HZ] = s * .1; tg[CY] = Math.abs(s) * .04;
+    } else if (e === 'baile1') pasito(x);
+    else if (e === 'baile2') disco(x);
+    else if (e === 'girar') {      // toma impulso y da dos vueltas en puntitas, con la falda volando
+      const a = suave(u / .14), v = suave((u - .1) / .82), sube = Math.sin(Math.PI * tope((u - .1) / .82, 0, 1));
+      brazos(0, .3 + sube * 1.2, 0, .3 + sube * 1.2); piernas(0, .04, 0, .04);
+      tg[SPIN] = -.35 * a * (1 - v) + TAU * 2 * v; tg[SQ] = 1 - .06 * a * (1 - suave((u - .1) / .1)) + sube * .03; tg[CY] = sube * .07; tg[FL] = sube;
+    } else if (e === 'reverencia') {
+      const k = suave(u / .3) * (1 - suave((u - .72) / .25));
+      brazos(.5 * k, .1 + .5 * k, -.9 * k, .25); tg[ER] = .12 + 1.3 * k; piernas(0, .03, .28 * k, .03);
+      tg[LEAN] = .75 * k; tg[HN] = .3 * k; tg[SQ] = 1 - .04 * k; tg[KR] = .3 * k;
+    } else if (e === 'aplauso') {
+      const c = Math.sin(x * 16);
+      brazos(-1.15, .05 + .13 * (c + 1), -1.15, .05 + .13 * (c + 1)); tg[EL] = tg[ER] = .9;
+      tg[CY] = Math.abs(Math.sin(x * 8)) * .02; tg[HN] = -.05; tg[HZ] = Math.sin(x * 4) * .06;
+    } else if (e === 'pensar') {   // mano en la barbilla, mira arriba y da golpecitos con el pie
+      brazos(-.55, -.2, -1.25, .12); tg[EL] = 1.5; tg[ER] = 2.1;
+      tg[HZ] = .14; tg[HT] = -.2; tg[HN] = -.08 + Math.sin(x * 1.5) * .03; tg[ROLL] = .03; tg[LL0] = -Math.max(0, Math.sin(x * 7)) * .12;
+    } else if (e === 'risa') {     // se ríe con todo el cuerpo
+      const sh = Math.sin(x * 22);
+      brazos(-.75, -.05, -.75, -.05); tg[EL] = tg[ER] = 1.5;
+      tg[CY] = Math.abs(sh) * .025; tg[SQ] = 1 + sh * .02; tg[LEAN] = -.1 + Math.sin(x * 3) * .1; tg[HN] = -.22; tg[ROLL] = Math.sin(x * 5) * .04;
+    } else if (e === 'estrella') { // salta y queda como una estrella en el aire
+      if (u < .18) { const a = u / .18; tg[SQ] = 1 - .12 * Math.sin(a * Math.PI / 2); brazos(.3 * a, .3, .3 * a, .3); }
+      else if (u < .7) {
+        const v = (u - .18) / .52, ab = suave(v * 3) * (1 - suave((v - .8) / .2));
+        tg[CY] = .45 * 4 * v * (1 - v); tg[SQ] = 1 + .06 * Math.cos(v * Math.PI / 2);
+        brazos(0, .3 + 1.9 * ab, 0, .3 + 1.9 * ab); piernas(0, .5 * ab, 0, .5 * ab); tg[HN] = -.12 * ab;
+      } else tg[SQ] = asienta((u - .7) / .3);
+    }
+  }
+
+  function update(dt, mode = 'quieto', extra = 1) {
+    if (dt > .1) dt = .1;
+    t += dt;
+    if (em) { if (mode === 'correr') em = null; else { emT += dt; if (emT >= emDur) em = null; } }
+    let m;
+    if (em === 'dormir') { yoga.callar(); m = 'yoga'; }
+    else if (em) { yoga.callar(); m = 'emote'; }
+    else m = yoga.modo(dt, mode);
+    if (m !== ultimo) { tm = 0; if (m === 'bailar') tBaile = 0; }
+    tm += dt; if (m === 'bailar') tBaile += dt;
+    const seg = m === 'bailar' ? Math.floor(tBaile / 3.4) & 3 : 0;
+    const k = m === 'bailar' ? m + seg : m === 'ballet' ? m + targetName : m === 'emote' ? m + em : m;
+    if (k !== clave) {
+      // funde desde la pose en la que estaba (el giro se acorta a la vuelta más cercana)
+      prev.set(cur); prev[SPIN] = ((prev[SPIN] + Math.PI) % TAU + TAU) % TAU - Math.PI;
+      mix = clave ? 0 : 1; durMix = m === 'correr' ? .12 : m === 'yoga' ? .5 : .25; clave = k; ultimo = m; tk = 0;
+    }
+    tk += dt;
+    // pose objetivo de este cuadro
+    tg.fill(0); tg[AL1] = tg[AR1] = .08; tg[SQ] = 1; tg[EL] = tg[ER] = .12; tg[KL] = tg[KR] = .02;
+    if (m === 'yoga') {
+      // posición de loto: piernas cruzadas hacia adelante, manos en las rodillas, respira despacito
+      brazos(-.75, .42, -.75, .42); piernas(-1.45, .62, -1.45, .62);
+      tg[CY] = -cadera * .86 + Math.sin(t * 1.3) * .012; tg[HN] = .12 + Math.sin(t * 1.3) * .03; tg[KL] = tg[KR] = 2.1; tg[EL] = tg[ER] = .5;
+      tg[SQ] = 1 + Math.sin(t * 1.3) * .01;
+    } else if (m === 'estirar') {
+      // se despierta: estira los brazos y bosteza
+      brazos(-.2, 2.8, -.2, 2.8); piernas(0, .05, 0, .05); tg[CY] = .03; tg[HN] = -.18; tg[SQ] = 1.03;
+    } else if (m === 'correr') poseCorrer(dt, extra);
+    else if (m === 'festejar') poseFestejar();
+    else if (m === 'bailar') poseBailar(seg, tBaile);
+    else if (m === 'saludar') {
+      const w = Math.sin(tm * 10);
+      brazos(Math.sin(t * 1.4) * .05, .1, -.2, 2.55 + w * .3); tg[ER] = .5 + w * .35;
+      tg[HT] = Math.sin(tm * 2) * .15; tg[HN] = .05; tg[HZ] = -.08; tg[ROLL] = -.035; tg[CY] = Math.abs(Math.sin(tm * 5)) * .015;
+    } else if (m === 'ballet') {
+      const p = target || POSES.primera;
+      brazos(p.armL[0], p.armL[1] + Math.sin(t * 1.6) * .03, p.armR[0], p.armR[1] + Math.sin(t * 1.6 + 1) * .03);
+      piernas(p.legL[0], p.legL[1], p.legR[0], p.legR[1]);
+      tg[CY] = p.y || 0;
+      if (p.spin) tg[SPIN] = tk * 7;
+      if (p.salto) { const s = Math.abs(Math.sin(tm * 5)); tg[CY] += s * .3; tg[SQ] = 1 + (s - .4) * .08; } else tg[CY] += Math.sin(t * 2) * .01;
+      if ((p.y || 0) < -.05) tg[KL] = tg[KR] = .6;
+    } else if (m === 'emote') poseEmote(em, emT, emDur);
+    else poseQuieta(dt);
+    if (mix < 1) { mix = Math.min(1, mix + dt / durMix); const e = suave(mix); for (let i = 0; i < NC; i++) cur[i] = prev[i] + (tg[i] - prev[i]) * e; }
+    else cur.set(tg);
+    // la pose pasa al muñeco
+    const roll = cur[ROLL], sq = cur[SQ], an = 1 / Math.sqrt(sq);
+    for (let i = 0; i < f.arms.length; i++) { const a = f.arms[i], sx = i ? 1 : -1; a.rotation.x = i ? cur[AR0] : cur[AL0]; a.rotation.z = sx * (i ? cur[AR1] : cur[AL1]) - roll * .6; }
+    for (let i = 0; i < f.legs.length; i++) { const l = f.legs[i], sx = i ? 1 : -1; l.rotation.x = i ? cur[LR0] : cur[LL0]; l.rotation.z = sx * (i ? cur[LR1] : cur[LL1]) - roll; }
+    f.body.position.y = cur[CY]; f.body.position.x = cur[BX];
+    f.body.rotation.set(cur[LEAN], cur[SPIN] + cur[TWIST], roll);
+    f.body.scale.set(an, sq, an);
+    f.head.rotation.y = cur[HT] - cur[TWIST] * .7;
+    f.head.rotation.x = cur[HN];
+    f.head.rotation.z = cur[HZ] - roll * .5;
+    // carita (parpadeo, guiños) — después de la cabeza, porque al llorar o enojarse la sacude
+    blinkT -= dt; let closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
+    if (m === 'yoga' || (m === 'emote' && em === 'risa')) closed = true; // ojitos cerrados
+    f.cara.update(dt, closed, m === 'yoga' || m === 'estirar' ? 'quieto' : m === 'emote' ? (EMOTE_FELIZ[em] ? 'festejar' : 'quieto') : m);
+    // velocidades del cuerpo, para que el pelo y la capa se queden atrás y reboten
+    const giro = cur[SPIN] + cur[TWIST];
+    let w = (giro - lastSpin) / dt; if (Math.abs(giro - lastSpin) > 3) w = 0; w = tope(w, -12, 12);
+    const vy = tope((cur[CY] - lastY) / dt, -4, 4), vx = tope((cur[BX] - lastBX) / dt, -2, 2);
+    lastSpin = giro; lastY = cur[CY]; lastBX = cur[BX];
+    const run = m === 'correr', vuelo = Math.min(.9, Math.abs(w) * .09);
+    const objX = (run ? .5 : .12) + vuelo - vy * .12 - cur[LEAN] * .3, objZ = tope(-roll * 1.5 - vx * 1.2, -.6, .6);
+    for (let i = 0; i < res.length; i++) {
+      const r = res[i];
+      r.v += ((objX + Math.sin(t * 1.6 + i) * .04 - r.a) * 70 - r.v * 7) * dt; r.a += r.v * dt;
+      r.vz += ((objZ - r.z) * 60 - r.vz * 6) * dt; r.z += r.vz * dt;
+      r.b.rotation.x = r.a; r.b.rotation.z = r.z0 + r.z;
+      for (let j = 0; j < r.cadena.length; j++) r.cadena[j].rotation.x = tope(-r.v * .03, -.25, .25) + Math.sin(t * 4 - j - 1 + i) * .04 + (run ? .05 : 0);
+    }
+    capaV += ((.12 + (run ? .5 : 0) + vuelo * .7 - vy * .1 - capaA) * 55 - capaV * 6) * dt; capaA += capaV * dt;
+    if (f.capa) f.capa.rotation.x = capaA + Math.sin(t * 3) * .03;
+    if (f.falda) { const fl = 1 + (cur[FL] + vuelo * .5) * .3; f.falda.scale.x = faldaX * fl * (1 + (run ? Math.sin(t * 24) * .03 : 0)); f.falda.scale.z = faldaZ * fl; }
+    if (f.post) f.post(t, m, cur, capaA);
+    yoga.particulas(dt, f.root, m === 'yoga');
+    if (em && !emGlobo && EMOTE_GLOBO[em] && emT > (em === 'estrella' ? .55 : .25)) { emGlobo = true; globos.lanzar(EMOTE_GLOBO[em], .3 * kCab + .08, yGlobo, kCab); }
+    globos.update(dt);
   }
   return {
     group: f.root, parts: f.parts, update, ballet: true, _repintar: f._repintar,
     despertar: () => yoga.despertar(), get durmiendo() { return yoga.dormida; },
+    // gesto corto (saludo, corazón, baile…): se corta si el juego la pone a correr
+    emote(nombre) { if (!EMOTES[nombre]) return 0; em = nombre; emT = 0; emDur = EMOTE_DUR[nombre]; emGlobo = false; clave = clave + '!'; yoga.callar(); return emDur; },
+    get gesto() { return em; },
     // puntos donde se pueden poner adornos (cuidar.html)
     anclas: { cabeza: f.head, cuerpo: f.body, mano: f.arms[1], alto: HH / 2 + .1, cuello: 1.17, frente: HD / 2, ojos: .03, k: 1, espalda: .98, espaldaZ: -.15, ...(f.anclas || {}) },
-    setPose(name) { target = POSES[name] || POSES.primera; },
+    setPose(name) { target = POSES[name] || POSES.primera; targetName = POSES[name] ? name : 'primera'; },
     setCara(name) { f.cara.set(name); },
     get cara() { return f.cara.actual; },
     setTutu(on) { if (f.tutu) f.tutu.visible = on; if (f.vestido) { f.vestido.visible = !on; if (f.piernasBajoVestido) f.legs.forEach(l => { l.visible = on; }); } if (f.falda) f.falda.visible = !on; },
@@ -1087,12 +1293,10 @@ function figuraRealista(id) {
   const f = { root, body, head, arms, legs, cara, parts, vestido, falda, tutu, capa: null, braids: head.userData.braids || [],
     anclas: { alto: RR * 1.1 + .07, cuello: T0 + .44, frente: RR + .008, mano: arms[1].userData.toma, ojos: .03, k: .52, espalda: T0 + .28, espaldaZ: -.09 } };
   // codos y rodillas: se doblan al correr, en el plié y al saltar
-  f.post = (t, mode) => {
-    const run = mode === 'correr';
+  f.post = (t, mode, c, capaA) => {
     if (vestidoOn) legs.forEach(l => { l.rotation.x *= .3; l.rotation.z *= .5; });
-    if (capa) capa.rotation.x = .28 + (run ? .35 : 0) + Math.sin(t * 3) * .03;
-    legs.forEach((l, i) => { const back = Math.max(0, l.rotation.x); rodillas[i].rotation.x = mode === 'yoga' ? 2.1 : (run ? .25 : .02) + back * 1.4 + (mode === 'ballet' && body.position.y < -.05 ? .6 : 0); });
-    arms.forEach((a, i) => { codos[i].rotation.x = run ? -1.1 : mode === 'bailar' ? -.6 - Math.sin(t * 5 + i) * .3 : mode === 'saludar' && i ? -.5 : -.12; });
+    if (capa) capa.rotation.x = .16 + capaA + Math.sin(t * 3) * .03;
+    for (let i = 0; i < 2; i++) { rodillas[i].rotation.x = Math.max(0, legs[i].rotation.x) * 1.4 + c[i ? KR : KL]; codos[i].rotation.x = -c[i ? ER : EL]; }
   };
   return animar(f);
 }
@@ -1320,35 +1524,114 @@ function animal(id) {
   else if (tipo === 'perro') { const tl = tag(mesh(rbox(.07, .07, .24, .03), fur('cola'), 0, .08, -.1), 'cola'); tl.rotation.x = -.9; tail.add(tl); }
   else if (uni) { const tl = tag(mesh(rbox(.14, .14, .42, .06), mat(C.cola, { roughness: .6 }), 0, -.08, -.16), 'cola'); tl.rotation.x = .7; tail.add(tl); }
   else { const tl = tag(mesh(rbox(bushy ? .17 : .07, bushy ? .17 : .07, bushy ? .46 : .3, bushy ? .07 : .03), fur('cola'), 0, .05, -.2), bushy ? 'cola' : 'pelaje'); tl.rotation.x = -.5; tail.add(tl); }
-  let t = 0, blinkT = 2;
+  let t = 0, tm = 0, ph = 0, blinkT = 2, ultimo = '';
   const yoga = relojYoga();
+  // valores suavizados: al cambiar de modo las patas y el cuerpo llegan solos, sin saltos
+  const pata = new Float32Array(4);
+  let yC = 0, giro = 0, incl = 0, sqC = 1, hzC = 0, hyC = 0, nkC = 0, colaA = 0, colaV = 0, lookT = 3, lookA = 0;
+  let em = null, emT = 0, emDur = 0, emGlobo = false;
+  const globos = hacerGlobos(root);
+  const yGlobo = L + (llama ? 1.35 : uni ? 1.1 : .75);
   function update(dt, mode = 'quieto', speed = 1) {
-    t += dt; mode = yoga.modo(dt, mode);
+    if (dt > .1) dt = .1;
+    t += dt;
+    if (em) { if (mode === 'correr') em = null; else { emT += dt; if (emT >= emDur) em = null; } }
+    if (em) { yoga.callar(); mode = em === 'dormir' ? 'yoga' : em === 'baile1' || em === 'baile2' ? 'bailar' : 'emote'; }
+    else mode = yoga.modo(dt, mode);
+    if (mode !== ultimo) { tm = 0; ultimo = mode; }
+    tm += dt;
+    const run = mode === 'correr', happy = mode === 'festejar' || mode === 'feliz', echado = mode === 'yoga', baila = mode === 'bailar' || mode === 'ballet';
+    if (run) ph += dt * 12 * speed;
+    // pose a la que quiere llegar
+    let p0 = 0, p1 = 0, p2 = 0, p3 = 0, y = 0, sq = 1 + Math.sin(t * 1.9) * .012, pit = 0, hz = 0, hy = 0, nk = Math.sin(t * 1.5) * .05, giroA = 0, giraLibre = false, meneo = 4;
+    if (echado) { p0 = p1 = -1.3; p2 = p3 = 1.3; y = -L * .78 + Math.sin(t * 1.3) * .01; nk = .1; }       // se echa con las patitas dobladas
+    else if (mode === 'estirar') { p0 = p1 = -.5; p2 = p3 = .4; pit = .12; nk = -.2; }
+    else if (run) {
+      const s = Math.sin(ph); p0 = p3 = s * .75; p1 = p2 = -s * .75;
+      y = Math.abs(Math.sin(ph)) * .07; sq = 1 - .04 * Math.abs(Math.cos(ph)); pit = Math.sin(ph * 2) * .03; nk = -.1; meneo = 9;
+    } else if (happy) {
+      // saltitos con impulso y caída blandita, dando vueltas
+      const u = (tm / .62) % 1;
+      if (u < .2) sq = 1 - .12 * Math.sin(u / .2 * Math.PI / 2);
+      else if (u < .78) { const v = (u - .2) / .58; y = .3 * 4 * v * (1 - v); sq = 1 + .07 * Math.cos(v * Math.PI / 2); p0 = p1 = -.35 * Math.sin(Math.PI * v); p2 = p3 = .35 * Math.sin(Math.PI * v); }
+      else sq = asienta((u - .78) / .22);
+      giraLibre = mode === 'festejar'; meneo = 14; nk = -.12;
+    } else if (baila) {
+      const s = Math.sin(tm * 6); p0 = p3 = s * .3; p1 = p2 = -s * .3; y = Math.abs(s) * .06; giroA = Math.sin(tm * 3) * .5; hz = Math.sin(tm * 5) * .2; meneo = 14;
+    } else if (mode === 'saludar') { p1 = -1.1 + Math.sin(tm * 10) * .25; hz = -.12; meneo = 10; }
+    else if (mode === 'emote') {
+      const u = emT / emDur;
+      if (em === 'saludo') { p1 = -1.2 + Math.sin(emT * 12) * .2; hz = -.15; meneo = 12; }
+      else if (em === 'girar') { giroA = TAU * 2 * suave(u); y = Math.sin(Math.PI * u) * .12; meneo = 12; }
+      else if (em === 'reverencia') { const k = suave(u / .3) * (1 - suave((u - .72) / .25)); p0 = p1 = -.9 * k; pit = .3 * k; y = -L * .2 * k; nk = .25 * k; meneo = 10; }
+      else if (em === 'pensar') { hz = .22; hy = Math.sin(emT * 1.5) * .25; nk = -.12; }
+      else if (em === 'risa') { y = Math.abs(Math.sin(emT * 22)) * .03; hz = Math.sin(emT * 9) * .12; nk = -.2; meneo = 14; }
+      else if (em === 'estrella') { const v = tope((u - .18) / .52, 0, 1); y = .5 * 4 * v * (1 - v); sq = u < .18 ? 1 - .12 * Math.sin(u / .18 * Math.PI / 2) : u > .7 ? asienta((u - .7) / .3) : 1.06; p0 = p1 = -.9 * Math.sin(Math.PI * v); p2 = p3 = .9 * Math.sin(Math.PI * v); }
+      else { const s = Math.abs(Math.sin(emT * 8)); y = s * .1; sq = 1 + (s - .5) * .06; hz = Math.sin(emT * 4) * .15; meneo = 14; } // corazón, aplauso: brinquitos de alegría
+    } else {
+      // quieto: mira alrededor de vez en cuando
+      lookT -= dt; if (lookT < 0) { lookA = lookA ? 0 : (Math.random() - .5) * .9; lookT = lookA ? 1.2 + Math.random() : 3 + Math.random() * 4; }
+      hy = lookA;
+    }
+    const k = Math.min(1, dt * (run ? 26 : 11));
+    pata[0] += (p0 - pata[0]) * k; pata[1] += (p1 - pata[1]) * k; pata[2] += (p2 - pata[2]) * k; pata[3] += (p3 - pata[3]) * k;
+    for (let i = 0; i < 4; i++) legs[i].rotation.x = pata[i];
+    yC += (y - yC) * Math.min(1, dt * 18); sqC += (sq - sqC) * Math.min(1, dt * 20); incl += (pit - incl) * k;
+    if (giraLibre) giro += dt * 4;
+    else { if (giro > Math.PI || giro < -Math.PI) giro = ((giro + Math.PI) % TAU + TAU) % TAU - Math.PI; giro += (giroA - giro) * Math.min(1, dt * (mode === 'emote' ? 14 : 7)); }
+    hzC += (hz - hzC) * k; hyC += (hy - hyC) * Math.min(1, dt * 4); nkC += (nk - nkC) * k;
+    const an = 1 / Math.sqrt(sqC);
+    body.position.y = yC; body.rotation.y = giro; body.rotation.x = incl; body.scale.set(an, sqC, an);
+    neck.rotation.x = nkC; head.rotation.y = hyC; head.rotation.z = hzC;
     blinkT -= dt; let closed = blinkT < 0 && blinkT > -.13; if (blinkT < -.13) blinkT = 2 + Math.random() * 3;
-    if (mode === 'yoga') closed = true;
-    cara.update(dt, closed, mode === 'yoga' || mode === 'estirar' ? 'quieto' : mode);
-    const run = mode === 'correr', happy = mode === 'festejar' || mode === 'feliz', echado = mode === 'yoga';
-    const ph = t * 12 * speed;
-    // descansando: se echa con las patitas dobladas y respira despacio
-    legs.forEach((l, i) => { l.rotation.x = echado ? (i < 2 ? -1.3 : 1.3) : mode === 'estirar' ? (i < 2 ? -.5 : .4) : run ? Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * .75 : happy ? Math.sin(t * 12 + i) * .25 : 0; });
-    body.position.y = echado ? -L * .78 + Math.sin(t * 1.3) * .01 : run ? Math.abs(Math.sin(ph)) * .07 : happy ? Math.abs(Math.sin(t * 7)) * .3 : 0;
+    if (echado || (mode === 'emote' && em === 'risa')) closed = true;
+    cara.update(dt, closed, echado || mode === 'estirar' ? 'quieto' : mode === 'emote' ? (EMOTE_FELIZ[em] ? 'festejar' : 'quieto') : mode);
+    // la cola se menea y además rebota como un resorte con los saltos
+    colaV += ((-(y - yC) * 3 - colaA) * 60 - colaV * 7) * dt; colaA += colaV * dt;
+    tail.rotation.y = Math.sin(t * meneo) * (meneo > 4 ? .5 : .3); tail.rotation.x = tope(colaA, -.6, .6);
     yoga.particulas(dt, root, echado);
-    body.rotation.y = mode === 'festejar' ? t * 4 : (mode === 'bailar' || mode === 'ballet') ? Math.sin(t * 3) * .5 : 0;
-    tail.rotation.y = Math.sin(t * (happy || mode === 'bailar' ? 14 : 4)) * .5;
-    neck.rotation.x = run ? -.1 : Math.sin(t * 1.5) * .05;
-    if (mode === 'bailar' || mode === 'ballet') head.rotation.z = Math.sin(t * 5) * .2;
-    else if (cara.actual !== 'enojada' && cara.actual !== 'llora') head.rotation.z = 0;
+    if (em && !emGlobo && EMOTE_GLOBO[em] && emT > .25) { emGlobo = true; globos.lanzar(EMOTE_GLOBO[em], .3, yGlobo, 1); }
+    globos.update(dt);
   }
   return {
     group: root, parts, update, setPose() {}, setTutu() {}, setCara: n => cara.set(n), get cara() { return cara.actual; },
     despertar: () => yoga.despertar(), get durmiendo() { return yoga.dormida; },
+    emote(nombre) { if (!EMOTES[nombre]) return 0; em = nombre; emT = 0; emDur = EMOTE_DUR[nombre]; emGlobo = false; yoga.callar(); return emDur; },
+    get gesto() { return em; },
     _repintar(part, c) { if (part === 'nariz') cara.redibujar({ hocico: hex(c) }); },
     anclas: { cabeza: head, cuerpo: body, mano: null, alto: hh / 2 + .02, cuello: L + .3, frente: hd / 2, animal: true },
   };
 }
 
+// sombrita redonda bajo los pies (barata: un disco con degradado); se achica cuando el muñeco salta
+let texSombra = null;
+function ponerSombra(ch, largo) {
+  if (!texSombra) {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(10,8,40,.6)'); gr.addColorStop(.55, 'rgba(10,8,40,.3)'); gr.addColorStop(1, 'rgba(10,8,40,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); texSombra = new THREE.CanvasTexture(c);
+  }
+  const geo = new THREE.CircleGeometry(.5, 20); geo.rotateX(-Math.PI / 2);
+  geo.boundingBox = new THREE.Box3(); // caja vacía: los juegos miden al muñeco con Box3 y la sombra no debe contar
+  const m = new THREE.MeshBasicMaterial({ map: texSombra, transparent: true, depthWrite: false, opacity: .8, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const blob = new THREE.Mesh(geo, m);
+  blob.position.y = .012; blob.renderOrder = -1; blob.userData.sombra = true;
+  blob.raycast = () => {};
+  Object.defineProperty(blob, 'castShadow', { get: () => false, set() {} });
+  const sx = largo ? .95 : .9, sz = largo ? 1.5 : .9;
+  blob.scale.set(sx, 1, sz);
+  ch.group.add(blob); ch.sombra = blob;
+  const upd = ch.update, cuerpo = ch.anclas.cuerpo;
+  ch.update = (dt, mode, extra) => {
+    upd(dt, mode, extra);
+    const k = 1 / (1 + Math.max(0, cuerpo.position.y) * 1.8);
+    blob.scale.set(sx * k, 1, sz * k); m.opacity = .8 * k; blob.position.x = cuerpo.position.x; blob.rotation.y = cuerpo.rotation.y;
+  };
+}
+
 // estilo de las figuras humanas: 'bloques' (por defecto), 'lego' o 'muneca' (se elige en Personajes)
-export async function crearPersonaje(id, base = '', { colores = true, estilo } = {}) {
+// opciones: colores (usar los pintados), estilo, sombra (false = sin la sombrita bajo los pies)
+export async function crearPersonaje(id, base = '', { colores = true, estilo, sombra = true } = {}) {
   const propio = CUSTOM[id]?.estilo;
   const est = ESTILOS[estilo] ? estilo : ESTILOS[propio] ? propio : estiloActual();
   const hum = est === 'lego' ? figuraLego : est === 'muneca' ? figuraMuneca : est === 'realista' ? figuraRealista : figura;
@@ -1359,6 +1642,7 @@ export async function crearPersonaje(id, base = '', { colores = true, estilo } =
   ch.premium = PREMIUM.has(id);
   if (ch.despertar) VIVOS.add(ch);
   ch.group.scale.multiplyScalar(1.05);
+  if (sombra) ponerSombra(ch, !!ANIMALES[id]);
   const saved = colores && window.Juego?.progress?.colors?.[id];
   if (saved) Object.entries(saved).forEach(([part, c]) => pintarParte(ch, part, c));
   const carita = window.Juego?.progress?.caras?.[id];
@@ -1367,7 +1651,8 @@ export async function crearPersonaje(id, base = '', { colores = true, estilo } =
 }
 export function pintarParte(ch, part, c) {
   (ch.parts[part] || []).forEach(m => {
-    if (!m.userData.ownMat) { m.material = m.material.clone(); m.userData.ownMat = true; }
+    if (m.userData.sombra) return;
+    if (!m.userData.ownMat) { const v = m.material; m.material = v.clone(); if (v.onBeforeCompile === borde) conBorde(m.material); m.userData.ownMat = true; }
     m.material.color.set(c);
   });
   if (ch._repintar) ch._repintar(part, c);

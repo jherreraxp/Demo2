@@ -7,56 +7,100 @@
 <link rel="icon" href="assets/icono-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="assets/icono-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#c9a2ff">
+<meta name="theme-color" content="#2a2a9e">
 <title>Elige tu Personaje</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
 <link rel="stylesheet" href="css/juego3d.css">
 <style>
-body { background: #bfe6ff; overflow: hidden; }
-canvas.mundo { touch-action: none; }
-/* luz de escenario sobre el parque difuminado */
-.foco { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 34% 60% at 50% 58%, rgba(255,255,255,.0) 0, rgba(255,255,255,0) 60%, rgba(35,25,70,.28) 100%); }
+/* vestidor: telón azul → violeta con rayos de luz; el color de acento sale del tema elegido */
+:root { --v-1: #4f86ff; --v-2: #3a2bbd; --v-3: #160b52; --v-acento: var(--tema-acento, #7b5cff); --v-pop: #ffe14a; --v-pop2: #ffb21a; --v-tinta: #1b1464; }
+@supports (color: color-mix(in srgb, red, blue)) {
+  :root { --v-1: color-mix(in srgb, var(--tema-bg1, #4f86ff) 26%, #3f7dff); --v-2: color-mix(in srgb, var(--tema-acento, #3a2bbd) 22%, #3a2bbd); }
+}
+body { background: var(--v-3); overflow: hidden; }
+canvas.mundo { touch-action: none; cursor: grab; }
+canvas.mundo.girando { cursor: grabbing; }
+.telon { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse 85% 68% at 50% 47%, var(--v-1) 0, var(--v-2) 52%, var(--v-3) 100%); }
+.telon::before, .telon::after { content: ""; position: absolute; top: -22%; width: 30vmax; height: 130%; background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,0) 78%); filter: blur(22px); animation: rayo 7s ease-in-out infinite alternate; }
+.telon::before { left: 4%; transform: rotate(-17deg); } .telon::after { right: 4%; transform: rotate(17deg); animation-delay: -3.5s; }
+@keyframes rayo { from { opacity: .35; } to { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .telon::before, .telon::after { animation: none; opacity: .6; } }
+/* oscurece un poco las orillas para que el del centro resalte */
+.foco { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 46% 62% at 50% 54%, rgba(10,6,50,0) 55%, rgba(10,6,50,.42) 100%); }
 .arriba { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
 .arriba > * { pointer-events: auto; }
-.arriba h1 { margin: 0; font-size: clamp(22px, 5vw, 34px); line-height: 1; text-shadow: 0 2px 0 rgba(255,255,255,.7); pointer-events: none; }
-.quien { display: inline-flex; gap: 6px; background: rgba(255,255,255,.55); padding: 4px; border-radius: 999px; }
-.quien button { border-radius: 999px; padding: 4px 14px; font-size: 17px; font-weight: 800; background: transparent; }
-.quien button.on { background: #fff; box-shadow: 0 3px 0 var(--shadow); }
+.arriba h1 { margin: 0; font: italic 800 clamp(22px, 4.6vw, 34px)/1 "Baloo 2", system-ui, sans-serif; text-transform: uppercase; letter-spacing: 1px; color: #fff; text-shadow: 0 3px 0 rgba(16,8,80,.55); pointer-events: none; }
+.quien { display: inline-flex; gap: 6px; background: rgba(12,8,70,.4); padding: 4px; border-radius: 999px; border: 2px solid rgba(255,255,255,.28); }
+.quien button { border-radius: 999px; padding: 4px 14px; font-size: 17px; font-weight: 800; background: transparent; color: #fff; }
+.quien button.on { background: #fff; color: var(--v-tinta); box-shadow: 0 3px 0 rgba(10,6,60,.4); }
 .cats { display: flex; gap: 6px; overflow-x: auto; max-width: calc(100vw - 24px); padding: 2px 4px 6px; scrollbar-width: none; }
 .cats::-webkit-scrollbar { display: none; }
-.cats button { flex: none; border-radius: 999px; padding: 6px 14px; font-size: 16px; font-weight: 800; background: rgba(255,255,255,.62); box-shadow: 0 3px 0 rgba(0,0,0,.12); white-space: nowrap; }
-.cats button.on { background: #23324a; color: #fff; }
-.seg { display: inline-flex; background: rgba(255,255,255,.55); border-radius: 14px; padding: 3px; gap: 2px; }
-.seg button { border-radius: 11px; padding: 4px 10px; font-size: 14px; font-weight: 800; background: transparent; display: flex; align-items: center; gap: 4px; }
-.seg button.on { background: #fff; box-shadow: 0 2px 0 var(--shadow); }
-.flecha { position: fixed; top: 50%; transform: translateY(-50%); z-index: 6; width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,.88); font-size: 34px; font-weight: 800; box-shadow: 0 5px 0 var(--shadow); color: #23324a; }
-.flecha:active { transform: translateY(-46%); box-shadow: 0 2px 0 var(--shadow); }
+.cats button { flex: none; border-radius: 12px; padding: 6px 14px; font-size: 16px; font-weight: 800; color: #fff; background: rgba(12,8,70,.38); border: 2px solid rgba(255,255,255,.3); box-shadow: 0 3px 0 rgba(10,6,60,.35); white-space: nowrap; }
+.cats button.on { background: var(--v-pop); border-color: #fff; color: var(--v-tinta); }
+.seg { display: inline-flex; background: rgba(12,8,70,.38); border: 2px solid rgba(255,255,255,.25); border-radius: 14px; padding: 3px; gap: 2px; }
+.seg button { border-radius: 10px; padding: 4px 10px; font-size: 14px; font-weight: 800; background: transparent; color: #fff; display: flex; align-items: center; gap: 4px; }
+.seg button.on { background: #fff; color: var(--v-tinta); box-shadow: 0 2px 0 rgba(10,6,60,.4); }
+.flecha { position: fixed; top: 50%; transform: translateY(-50%); z-index: 6; width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,.16); border: 3px solid rgba(255,255,255,.7); font-size: 32px; font-weight: 800; box-shadow: 0 5px 0 rgba(10,6,60,.4); color: #fff; }
+.flecha:active { transform: translateY(-46%); box-shadow: 0 2px 0 rgba(10,6,60,.4); background: var(--v-pop); color: var(--v-tinta); }
 #prev { left: max(12px, env(safe-area-inset-left)); } #next { right: max(12px, env(safe-area-inset-right)); }
-.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 26px); pointer-events: none; }
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 24px); pointer-events: none; }
 .abajo > * { pointer-events: auto; }
-.nombre { font-family: Andika, sans-serif; font-weight: 700; font-size: clamp(30px, 7vw, 54px); line-height: 1; color: #23324a; background: rgba(255,255,255,.9); padding: 6px 24px 8px; border-radius: 22px; box-shadow: 0 5px 0 var(--shadow); display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.nombre small { font-size: .5em; }
-.puntos { display: flex; gap: 5px; }
-.puntos i { width: 8px; height: 8px; border-radius: 50%; background: rgba(35,50,74,.25); }
-.puntos i.on { background: #23324a; width: 20px; border-radius: 4px; }
-.elegir { font-size: 28px; padding: 12px 46px; border-radius: 999px; }
-.elegir.bloq { background: #8a7fb0; box-shadow: 0 6px 0 #5f5585; font-size: 22px; }
-.chip-plan { display: inline-block; margin-left: 10px; vertical-align: middle; font: 800 14px/1 system-ui, sans-serif; background: linear-gradient(135deg, #ffd23f, #ff7eb6); color: #5a2d00; border-radius: 999px; padding: 6px 10px; }
-.banner-regalo { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 172px); transform: translateX(-50%); z-index: 8; background: repeating-linear-gradient(45deg, #ffd23f 0 14px, #ffe27a 14px 28px); color: #5a2d00; font: 800 clamp(20px, 4.4vw, 28px) "Baloo 2", system-ui, sans-serif; border-radius: 999px; padding: 8px 22px; box-shadow: 0 5px 0 #d49a12; transition: opacity .6s; animation: regalo-in .4s ease-out; pointer-events: none; }
+/* gestos: botones redondos con carita */
+.gestos { display: flex; gap: 8px; max-width: min(100vw, 780px); overflow-x: auto; padding: 8px 20px 4px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent); }
+.gestos::-webkit-scrollbar { display: none; }
+.gestos button { flex: none; width: 58px; height: 58px; border-radius: 50%; font-size: 28px; line-height: 1; display: grid; place-items: center; background: radial-gradient(circle at 35% 26%, rgba(255,255,255,.42), rgba(255,255,255,.12) 62%); border: 2.5px solid rgba(255,255,255,.6); box-shadow: 0 4px 0 rgba(10,6,60,.45); transition: transform .15s, background .15s; }
+.gestos button:active { transform: translateY(3px); }
+.gestos button.on { background: var(--v-pop); border-color: #fff; transform: translateY(-5px) scale(1.08); box-shadow: 0 8px 14px rgba(255,225,74,.45); }
+.palabra { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 6px) scale(.8); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none !important; background: #fff; color: var(--v-tinta); font: 700 clamp(22px, 5vw, 30px)/1 Andika, sans-serif; padding: 8px 18px 10px; border-radius: 18px; box-shadow: 0 5px 0 rgba(10,6,60,.4); white-space: nowrap; }
+.palabra.ver { opacity: 1; transform: translate(-50%, -4px) scale(1); }
+/* placa con el nombre, en mayúsculas inclinadas, y su etiqueta de colección */
+.nombre { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 44px 2px; max-width: 100vw; background: linear-gradient(90deg, rgba(14,8,70,0), rgba(14,8,70,.5) 20%, rgba(14,8,70,.5) 80%, rgba(14,8,70,0)); }
+.nombre .nom { font: italic 800 clamp(30px, 8vw, 56px)/1 "Baloo 2", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .5px; color: #fff; text-shadow: 0 3px 0 rgba(16,8,80,.65), 0 0 22px rgba(130,170,255,.55); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }
+.nombre .nom small { font-size: .55em; font-style: normal; margin-right: 8px; vertical-align: .12em; }
+.nombre .raya { width: 68%; min-width: 90px; height: 5px; border-radius: 3px; transform: skewX(-24deg); background: var(--r, var(--v-pop)); }
+.rareza { font: italic 800 13px/1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .8px; color: #fff; padding: 4px 11px; border-radius: 6px; transform: skewX(-8deg); background: var(--r); box-shadow: 0 2px 0 rgba(10,6,60,.4); white-space: nowrap; }
+.r-azul { --r: linear-gradient(135deg, #39b6ff, #2a6bff); } .r-verde { --r: linear-gradient(135deg, #5fe08a, #1fae5b); }
+.r-oro { --r: linear-gradient(135deg, #ffe14a, #ff9a2e); } .r-oro.rareza { color: #5a2d00; }
+.r-rosa { --r: linear-gradient(135deg, #ff8ad8, #c94dff); } .r-morado { --r: linear-gradient(135deg, #b58cff, #7b4dff); }
+.puntos { display: flex; gap: 5px; color: #fff; }
+.puntos i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.35); }
+.puntos i.on { background: var(--v-pop); width: 20px; border-radius: 4px; }
+.elegir { font: italic 800 28px/1 "Baloo 2", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .5px; padding: 14px 50px; border-radius: 16px; background: linear-gradient(180deg, #fff27a, var(--v-pop) 45%, var(--v-pop2)); color: var(--v-tinta); box-shadow: 0 6px 0 #b97a00, 0 0 26px rgba(255,225,74,.45); }
+.elegir:active:not(:disabled) { box-shadow: 0 1px 0 #b97a00; }
+.elegir.bloq { background: #8a7fb0; color: #fff; box-shadow: 0 6px 0 #5f5585; font-size: 20px; }
+.elegir.ya { background: linear-gradient(180deg, #7dea9f, #3fc474); color: #0c3b22; box-shadow: 0 6px 0 #2e8a55; }
+.banner-regalo { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 172px); transform: translateX(-50%); z-index: 8; background: repeating-linear-gradient(45deg, #ffd23f 0 14px, #ffe27a 14px 28px); color: #5a2d00; font: 800 clamp(20px, 4.4vw, 28px) "Baloo 2", system-ui, sans-serif; border-radius: 999px; padding: 8px 24px; box-shadow: 0 5px 0 rgba(10,6,60,.4); transition: opacity .6s; pointer-events: none; white-space: nowrap; }
 .banner-regalo.fuera { opacity: 0; }
-.banner-regalo { white-space: nowrap; }
-@media (max-width: 560px) { .banner-regalo { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 296px); font-size: 17px; padding: 6px 16px; } .chip-plan { font-size: 12px; padding: 4px 8px; } }
 #aviso-plan { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translate(-50%, 140%); z-index: 30; background: #23324a; color: #fff; border-radius: 16px; padding: 12px 16px; font: 700 15px system-ui, sans-serif; transition: transform .3s; max-width: 90vw; }
 #aviso-plan.ver { transform: translate(-50%, 0); } #aviso-plan a { color: #ffd23f; }
-.elegir.ya { background: #4cb87a; box-shadow: 0 6px 0 #2e8a55; }
-.secund { display: flex; gap: 10px; }
-.secund a { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 4px 0 var(--shadow); display: grid; place-items: center; font-size: 26px; text-decoration: none; position: relative; }
-.secund a span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 800; color: #23324a; white-space: nowrap; }
-.vacio { position: fixed; left: 50%; top: 48%; transform: translate(-50%, -50%); z-index: 5; background: #fff; border-radius: 20px; padding: 16px 22px; font-weight: 800; text-align: center; box-shadow: 0 6px 0 var(--shadow); }
-@media (max-width: 560px) { .arriba { top: calc(env(safe-area-inset-top, 0px) + 66px); } .arriba h1 { display: none; } .flecha { width: 54px; height: 54px; font-size: 26px; top: 46%; } .elegir { font-size: 24px; padding: 10px 36px; } .secund a { width: 50px; height: 50px; font-size: 22px; } .seg button { padding: 3px 7px; font-size: 12px; } .cats button { font-size: 14px; padding: 5px 11px; } }
-@media (max-height: 560px) { .arriba h1 { display: none; } .secund a span { display: none; } }
+.secund { display: flex; gap: 12px; padding-bottom: 14px; }
+.secund a { width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.16); border: 2.5px solid rgba(255,255,255,.6); box-shadow: 0 4px 0 rgba(10,6,60,.45); display: grid; place-items: center; font-size: 25px; text-decoration: none; position: relative; }
+.secund a span { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 800; color: #fff; white-space: nowrap; }
+.vacio { position: fixed; left: 50%; top: 48%; transform: translate(-50%, -50%); z-index: 5; background: #fff; border-radius: 20px; padding: 16px 22px; font-weight: 800; text-align: center; box-shadow: 0 6px 0 rgba(10,6,60,.4); }
+@media (max-width: 560px) {
+  .arriba { top: calc(env(safe-area-inset-top, 0px) + 66px); } .arriba h1 { display: none; }
+  .flecha { width: 52px; height: 52px; font-size: 24px; top: 42%; }
+  .abajo { gap: 6px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
+  .gestos button { width: 52px; height: 52px; font-size: 25px; }
+  .elegir { font-size: 24px; padding: 12px 40px; } .elegir.bloq { font-size: 17px; padding: 12px 22px; }
+  .secund a { width: 46px; height: 46px; font-size: 21px; } .seg button { padding: 3px 7px; font-size: 13px; }
+  .rareza { font-size: 11px; padding: 3px 9px; }
+  .banner-regalo { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 330px); font-size: 17px; padding: 6px 16px; }
+}
+/* pantallas anchas: los gestos van en una rueda a la derecha y los botones chicos abajo a la izquierda, para dejar libre al personaje */
+@media (min-width: 900px) and (min-height: 561px) {
+  .gestos { position: fixed; right: 104px; top: 52%; transform: translateY(-50%); display: grid; grid-template-columns: repeat(2, 58px); gap: 10px; max-width: none; overflow: visible; padding: 0; -webkit-mask-image: none; mask-image: none; }
+  .secund { position: fixed; left: 28px; bottom: 36px; padding: 0; }
+  .abajo { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 30px); }
+}
+@media (max-height: 560px) {
+  .arriba h1 { display: none; } .secund a span { display: none; } .secund { padding-bottom: 0; position: fixed; right: 96px; bottom: 14px; }
+  .gestos { position: fixed; left: 84px; top: 50%; transform: translateY(-50%); flex-direction: column; flex-wrap: wrap; max-height: 62vh; max-width: none; padding: 4px; -webkit-mask-image: none; mask-image: none; }
+  .gestos button { width: 44px; height: 44px; font-size: 21px; } .palabra { position: fixed; bottom: 46%; }
+  .nombre .nom { font-size: 30px; } .elegir { font-size: 20px; padding: 9px 30px; } .abajo { padding-bottom: 10px; gap: 4px; }
+}
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -66,7 +110,7 @@ canvas.mundo { touch-action: none; }
 <script src="js/cuenta.js"></script>
 </head>
 <body>
-<canvas class="parque" id="parque" aria-hidden="true"></canvas>
+<div class="telon" aria-hidden="true"></div>
 <div class="foco"></div>
 <canvas class="mundo" id="mundo" aria-label="Personaje elegido en el escenario"></canvas>
 <div class="hud">
@@ -83,6 +127,8 @@ canvas.mundo { touch-action: none; }
 <button class="flecha" id="next" aria-label="Siguiente">▶</button>
 <div class="vacio" id="vacio" hidden></div>
 <div class="abajo">
+  <div class="palabra" id="palabra" aria-live="polite"></div>
+  <div class="gestos" id="gestos" role="group" aria-label="Gestos del personaje"></div>
   <div class="nombre" id="nombre" role="button" aria-live="polite"></div>
   <div class="puntos" id="puntos" aria-hidden="true"></div>
   <button class="go elegir" id="elegir">¡Elegir!</button>
@@ -96,9 +142,7 @@ canvas.mundo { touch-action: none; }
 <script type="module">
 import * as THREE from 'three';
 import { crearMundo, chispitas } from './js/mundo3d.js';
-import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, FIGURAS, nombrePersonaje, estiloActual, esPropio, esPremium } from './js/personajes.js';
-import { pintarParque } from './js/parque.js';
-pintarParque(document.querySelector('#parque'));
+import { crearPersonaje, PERSONAJES, ESTILOS, EMOJI, EMOTES, FIGURAS, nombrePersonaje, estiloActual, esPropio, esPremium } from './js/personajes.js';
 
 const J = window.Juego, P = J.progress;
 const $ = s => document.querySelector(s);
@@ -124,26 +168,47 @@ const qs = new URLSearchParams(location.search);
 const regaloId = qs.get('regalo') && PERSONAJES.includes(qs.get('regalo')) ? qs.get('regalo') : null;
 let regaloT = regaloId ? 9 : 0;
 
-// ---------- escena: un pedestal al centro con su foco ----------
+// ---------- escena: vestidor con una tornamesa luminosa al centro ----------
 const W = crearMundo($('#mundo'), { fog: null });
 const { scene, camera } = W;
 W.fovFor = a => a < .8 ? 52 : 38;
 const fx = chispitas(scene);
+const TAU = Math.PI * 2;
 const narrow = () => innerWidth / innerHeight < .8;
-function encuadre() { const n = narrow(); camera.position.set(0, n ? 2.0 : 1.75, n ? 8.6 : 7.4); camera.lookAt(0, n ? 1.05 : 1.15, 0); }
+function encuadre() { const n = narrow(); camera.position.set(0, n ? 2.0 : 1.75, n ? 8.9 : 7.4); camera.lookAt(0, n ? .8 : 1.15, 0); }
 encuadre(); addEventListener('resize', encuadre);
-const matPed = c => new THREE.MeshStandardMaterial({ color: c, roughness: .35, metalness: .1 });
-const pedCentro = new THREE.Group(); scene.add(pedCentro);
-const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.15, .28, 48), matPed(0xffffff)); p1.position.y = .14; p1.receiveShadow = true; pedCentro.add(p1);
-const anillo = new THREE.Mesh(new THREE.TorusGeometry(1.1, .05, 10, 64), new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xffb000, emissiveIntensity: .8 }));
-anillo.rotation.x = Math.PI / 2; anillo.position.y = .29; pedCentro.add(anillo);
-const luz = new THREE.SpotLight(0xffffff, 60, 14, .42, .6, 1.2); luz.position.set(0, 7, 2.5); luz.target.position.set(0, 0, 0); scene.add(luz, luz.target);
-const cono = new THREE.Mesh(new THREE.ConeGeometry(1.5, 6.5, 40, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff6cc, transparent: true, opacity: .1, depthWrite: false, side: THREE.DoubleSide }));
-cono.position.set(0, 3.4, 0); scene.add(cono);
+// luces de estudio: el cielo y el suelo tiñen de azul y violeta, y dos contraluces dibujan el contorno
+const cielo = scene.children.find(o => o.isHemisphereLight); if (cielo) { cielo.groundColor.set(0x7a5cff); cielo.intensity = 1.55; }
+const contra = new THREE.DirectionalLight(0x9fd0ff, 1.7); contra.position.set(-4, 5, -6); scene.add(contra);
+const contra2 = new THREE.DirectionalLight(0xff9ae0, 1.1); contra2.position.set(5, 3, -5); scene.add(contra2);
+const matPed = (c, e = 0, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .35, metalness: .25, emissive: e, emissiveIntensity: .6, ...o });
+// resplandor del piso
+const cg = document.createElement('canvas'); cg.width = cg.height = 256;
+{ const g = cg.getContext('2d'), gr = g.createRadialGradient(128, 128, 8, 128, 128, 127); gr.addColorStop(0, 'rgba(215,230,255,.95)'); gr.addColorStop(.3, 'rgba(150,180,255,.5)'); gr.addColorStop(.62, 'rgba(140,110,255,.16)'); gr.addColorStop(1, 'rgba(140,110,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
+const brilloPiso = new THREE.Mesh(new THREE.PlaneGeometry(11, 11), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cg), transparent: true, depthWrite: false }));
+brilloPiso.rotation.x = -Math.PI / 2; brilloPiso.position.y = .004; brilloPiso.renderOrder = -3; scene.add(brilloPiso);
+// tornamesa: gira despacito sola y también se puede girar con el dedo
+const plato = new THREE.Group(); scene.add(plato);
+const pBase = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.44, .2, 56), matPed(0x1f2390)); pBase.position.y = .1; pBase.receiveShadow = true; plato.add(pBase);
+const pTapa = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.22, .08, 56), matPed(0x4a5cf0, 0x1a2bb0)); pTapa.position.y = .24; pTapa.receiveShadow = true; plato.add(pTapa);
+const anillo = new THREE.Mesh(new THREE.TorusGeometry(1.24, .045, 10, 72), new THREE.MeshStandardMaterial({ color: 0xffe14a, emissive: 0xffc400, emissiveIntensity: .9 }));
+anillo.rotation.x = Math.PI / 2; anillo.position.y = .26; plato.add(anillo);
+const matFoco = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbfe0ff, emissiveIntensity: 1.2 }), geoFoco = new THREE.SphereGeometry(.035, 10, 8), geoRaya = new THREE.BoxGeometry(.05, .006, .42);
+const matRaya = new THREE.MeshStandardMaterial({ color: 0x8fa2ff, emissive: 0x5a6dff, emissiveIntensity: .7 });
+for (let i = 0; i < 16; i++) {
+  const a = i / 16 * TAU, f = new THREE.Mesh(geoFoco, matFoco); f.position.set(Math.sin(a) * 1.37, .15, Math.cos(a) * 1.37); plato.add(f);
+  if (i % 2 === 0) { const r = new THREE.Mesh(geoRaya, matRaya); r.position.set(Math.sin(a) * .9, .282, Math.cos(a) * .9); r.rotation.y = a; plato.add(r); }
+}
+const luz = new THREE.SpotLight(0xffffff, 55, 14, .42, .6, 1.2); luz.position.set(0, 7, 2.5); luz.target.position.set(0, 0, 0); scene.add(luz, luz.target);
+// rayos de luz que bajan al escenario
+const haz = (x, inc, color, op) => { const m = new THREE.Mesh(new THREE.ConeGeometry(1.55, 8, 36, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide })); m.position.set(x, 4.1, x ? -1.2 : 0); m.rotation.z = inc; m.userData.op = op; m.userData.inc = inc; scene.add(m); return m; };
+const rayos = [haz(0, 0, 0xfff6cc, .1), haz(-3.1, -.42, 0x9fd0ff, .07), haz(3.1, .42, 0xd9b0ff, .07)];
 // pedestales de los vecinos (2 a cada lado)
 const LADO = [-2, -1, 1, 2];
-const posDe = o => ({ x: o * (narrow() ? 1.55 : 2.15), z: -Math.abs(o) * 1.1, s: o === 0 ? 1 : Math.abs(o) === 1 ? .62 : .45 });
-const pedVecinos = LADO.map(o => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.75, .82, .18, 36), matPed(0xe9ddff)); m.receiveShadow = true; scene.add(m); return { o, m }; });
+const posDe = o => ({ x: o * (narrow() ? 1.55 : 2.2), z: -Math.abs(o) * 1.15, s: o === 0 ? 1 : Math.abs(o) === 1 ? .6 : .44 });
+const pedVecinos = LADO.map(o => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.75, .84, .18, 36), matPed(0x3a34b8, 0x2a1f9a)); m.receiveShadow = true; scene.add(m); return { o, m }; });
+// giro de la tornamesa
+let yaw = 0, yawV = 0, pausa = 0, gestoT = 0;
 
 // ---------- personajes: solo se arman los 5 que se ven ----------
 const cache = new Map(); // clave id|estilo → { ch, t }
@@ -203,11 +268,38 @@ function renderQuien() {
   $('#quien').hidden = !P.two;
   $('#quien').innerHTML = P.players.map((p, i) => `<button data-p="${i}" class="${i === editing ? 'on' : ''}">${J.esc(J.CHARS[p.char]?.emoji || '⭐')} ${J.esc(p.name)}</button>`).join('');
 }
+// etiqueta de colección (como la "rareza" de los juegos)
+function rareza(id) {
+  if (esPremium(id)) return { c: 'oro', t: (bloqueado(id) ? '🔒' : '⭐') + ' Plan Familia' };
+  if (esPropio(id)) return { c: 'rosa', t: '🧵 Hecho por ti' };
+  if (CATS[3].f(id)) return { c: 'verde', t: '🐾 Animalito' };
+  if (FAMILIA.includes(id)) return { c: 'morado', t: '💞 Familia' };
+  return { c: 'azul', t: '✨ Clásico' };
+}
+function renderGestos() {
+  $('#gestos').innerHTML = Object.entries(EMOTES).map(([k, e]) => `<button data-g="${k}" aria-label="${e.nombre}" title="${e.nombre}">${e.emoji}</button>`).join('');
+}
+let palabraT = null;
+function gesto(id) {
+  const v = visibles.get(0), e = EMOTES[id]; if (!v || !e || !v.ch.emote) return 0;
+  const d = v.ch.emote(id); if (!d) return 0;
+  gestoT = d; v.llego = 0;
+  if (id === 'corazon' || id === 'estrella' || id === 'girar') J.sparkle(); else J.sfx('pop', .6, 1.2);
+  if (id === 'aplauso' || id === 'estrella') fx.burst(new THREE.Vector3(0, 2, 0), 30, 1);
+  J.say(e.nombre);
+  $('#gestos').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === id));
+  $('#palabra').textContent = e.emoji + ' ' + e.nombre; $('#palabra').classList.add('ver');
+  clearTimeout(palabraT); palabraT = setTimeout(() => { $('#palabra').classList.remove('ver'); $('#gestos').querySelectorAll('.on').forEach(b => b.classList.remove('on')); }, d * 1000);
+  return d;
+}
 function renderInfo() {
-  const id = lista[idx]; if (!id) { $('#nombre').hidden = true; return; }
+  const id = lista[idx]; if (!id) { $('#nombre').hidden = true; $('#gestos').hidden = true; return; }
   $('#nombre').hidden = false;
   const lock = bloqueado(id);
-  $('#nombre').innerHTML = `<small>${info(id).emoji}</small>${J.esc(info(id).name)}${esPremium(id) ? `<span class="chip-plan">${lock ? '🔒' : '⭐'} Plan Familia</span>` : ''}`;
+  const r = rareza(id);
+  $('#nombre').className = 'nombre r-' + r.c;
+  $('#nombre').innerHTML = `<span class="rareza r-${r.c}">${r.t}</span><span class="nom"><small>${info(id).emoji}</small>${J.esc(info(id).name)}</span><span class="raya"></span>`;
+  $('#gestos').hidden = false;
   const n = lista.length, MAX = 12;
   $('#puntos').innerHTML = n <= MAX ? lista.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('') : `<span style="font-weight:800">${idx + 1} / ${n}</span>`;
   const ya = elegido() === id;
@@ -221,6 +313,7 @@ let decirT = null;
 function mover(d, silencio = false) {
   const n = lista.length; if (n < 2) return;
   idx = (idx + d + n) % n;
+  yaw = 0; yawV = 0; pausa = 0; gestoT = 0; $('#palabra').classList.remove('ver');
   J.sfx('pop', .5, 1 + d * .08);
   renderInfo(); colocar();
   clearTimeout(decirT); if (!silencio) decirT = setTimeout(() => J.say(info(lista[idx]).name), 280);
@@ -250,6 +343,7 @@ $('#prev').onclick = () => mover(-1);
 $('#next').onclick = () => mover(1);
 $('#elegir').onclick = elegir;
 $('#nombre').onclick = () => J.say(info(lista[idx]).name);
+$('#gestos').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (b) gesto(b.dataset.g); });
 $('#cats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b && b.dataset.cat !== cat) { J.sfx('pop'); usarCategoria(b.dataset.cat, lista[idx]); } });
 $('#quien').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (!b) return; editing = +b.dataset.p; J.sfx('pop'); renderQuien(); usarCategoria(cat); });
 $('#estilos').addEventListener('click', async e => {
@@ -262,13 +356,26 @@ addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') { e.preventDefault(); mover(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); mover(1); }
   if (e.key === 'Enter' && document.activeElement === document.body) elegir();
+  if (/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey) { const k = Object.keys(EMOTES)[(+e.key + 9) % 10]; if (k) gesto(k); }
 });
-// deslizar con el dedo (o arrastrar con el ratón); un toque en el del centro lo elige
+// con el dedo (o el ratón): arrastrar sobre el personaje del centro lo gira; un deslizón rápido, o deslizar a los lados, pasa al siguiente
 const cv = $('#mundo'); let ini = null;
-cv.addEventListener('pointerdown', e => { ini = { x: e.clientX, y: e.clientY, t: performance.now() }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointerdown', e => {
+  const fx2 = (e.clientX / innerWidth - .5) * 2;
+  ini = { x: e.clientX, y: e.clientY, ux: e.clientX, t: performance.now(), ut: performance.now(), centro: Math.abs(fx2) < (narrow() ? .42 : .26) && visibles.has(0), yaw0: yaw };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!ini || !ini.centro) return;
+  const ahora = performance.now(), d = (e.clientX - ini.ux) * .011, dt = Math.max(8, ahora - ini.ut) / 1000;
+  if (Math.abs(e.clientX - ini.x) < 8 && !ini.gira) return;
+  ini.gira = true; cv.classList.add('girando');
+  yaw += d; yawV = Math.max(-9, Math.min(9, d / dt)); pausa = 3.5; ini.ux = e.clientX; ini.ut = ahora;
+});
 cv.addEventListener('pointerup', e => {
-  if (!ini) return; const dx = e.clientX - ini.x, dy = e.clientY - ini.y; ini = null;
-  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) mover(dx < 0 ? 1 : -1);
+  if (!ini) return; const dx = e.clientX - ini.x, dy = e.clientY - ini.y, rapido = performance.now() - ini.t < 350, a = ini; ini = null;
+  cv.classList.remove('girando');
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && (!a.centro || rapido)) mover(dx < 0 ? 1 : -1);
   else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
     // ¿tocó a un vecino? se trae al centro
     const fx2 = (e.clientX / innerWidth - .5) * 2;
@@ -276,29 +383,41 @@ cv.addEventListener('pointerup', e => {
     else { const v = visibles.get(0); if (v) { v.llego = 1.2; J.say(info(lista[idx]).name); } }
   }
 });
-cv.addEventListener('pointercancel', () => { ini = null; });
+cv.addEventListener('pointercancel', () => { ini = null; cv.classList.remove('girando'); });
 
 // ---------- animación ----------
 const tmp = new THREE.Vector3();
 W.onFrame((dt, t) => {
   const k = Math.min(1, dt * 8);
+  const centro = visibles.get(0);
+  // la tornamesa: mira al frente mientras saluda o hace un gesto; si no, gira sola (o sigue el empujón del dedo)
+  if (gestoT > 0) gestoT -= dt;
+  const ocupado = gestoT > 0 || (centro && centro.llego > 0) || (regaloT > 0 && lista[idx] === regaloId);
+  if (ini && ini.gira) { /* la lleva el dedo */ }
+  else if (ocupado) { yaw += (Math.round(yaw / TAU) * TAU - yaw) * Math.min(1, dt * 6); yawV = 0; }
+  else if (pausa > 0) { pausa -= dt; yaw += yawV * dt; yawV *= Math.exp(-dt * 3); }
+  else { yawV += (.42 - yawV) * Math.min(1, dt * 1.5); yaw += yawV * dt; }
+  plato.rotation.y = yaw;
   pedVecinos.forEach(p => { const q = posDe(p.o); p.m.position.set(q.x, .09, q.z); });
   for (const [o, v] of visibles) {
     const q = posDe(o), g = v.ch.group;
     tmp.set(q.x, o ? .18 : .28, q.z);
     g.position.lerp(tmp, k);
     const s = g.scale.x + ((o ? q.s * 1.05 : 1.25) - g.scale.x) * k; g.scale.setScalar(s);
-    g.rotation.y += ((o ? -o * .35 : Math.sin(t * .6) * .25) - g.rotation.y) * k;
+    if (o) { if (g.rotation.y > Math.PI || g.rotation.y < -Math.PI) g.rotation.y = ((g.rotation.y + Math.PI) % TAU + TAU) % TAU - Math.PI; g.rotation.y += (-o * .35 - g.rotation.y) * k; }
+    else g.rotation.y += (yaw - g.rotation.y) * Math.min(1, dt * 16);
     if (o === 0 && regaloT > 0 && lista[idx] === regaloId) { regaloT -= dt; v.ch.update(dt, regaloT > 6 ? 'festejar' : 'bailar'); }
     else if (o === 0 && v.llego > 0) { v.llego -= dt; v.ch.update(dt, v.llego > 1 ? 'festejar' : 'saludar'); }
-    else v.ch.update(dt, o === 0 ? 'quieto' : 'quieto');
+    else v.ch.update(dt, 'quieto');
   }
-  anillo.material.emissiveIntensity = .6 + Math.sin(t * 3) * .3;
-  cono.material.opacity = .08 + Math.sin(t * 1.3) * .02;
+  anillo.material.emissiveIntensity = .7 + Math.sin(t * 3) * .3;
+  matFoco.emissiveIntensity = 1 + Math.sin(t * 5) * .4;
+  brilloPiso.material.opacity = .82 + Math.sin(t * 1.7) * .12;
+  for (let i = 0; i < rayos.length; i++) { const r = rayos[i]; r.material.opacity = r.userData.op * (.8 + Math.sin(t * 1.3 + i * 2) * .25); r.rotation.z = r.userData.inc + Math.sin(t * .5 + i) * .04; }
   fx.update(dt);
 });
 
-renderEstilos(); renderQuien(); usarCategoria('todos', regaloId || undefined);
+renderEstilos(); renderGestos(); renderQuien(); usarCategoria('todos', regaloId || undefined);
 J.refreshMusic(); W.start();
 if (regaloId) {
   // regalo de hoy: baila con confeti; si es un traje especial, se mira pero no se elige
@@ -306,7 +425,7 @@ if (regaloId) {
   setTimeout(() => { J.confetti(140); J.cheer(true); fx.burst(new THREE.Vector3(0, 1.6, 0), 90, 1.6); J.say(['¡Regalo sorpresa!', info(regaloId).name], { queue: true }); }, 500);
   setTimeout(() => b.classList.add('fuera'), 9000);
 } else setTimeout(() => J.say('¡Elige tu personaje!'), 400);
-if (location.hash === '#prueba') window.__pj = { get idx() { return idx; }, get lista() { return lista; }, mover, elegir, usarCategoria, visibles, cache, bloqueado, regaloId };
+if (location.hash === '#prueba') window.__pj = { get idx() { return idx; }, get lista() { return lista; }, get yaw() { return yaw; }, mover, elegir, usarCategoria, gesto, visibles, cache, bloqueado, regaloId };
 </script>
 </body>
 </html>
