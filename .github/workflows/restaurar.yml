@@ -1,4 +1,4 @@
-# Vuelve el juego a una versión guardada (por ejemplo "version-2026-11-18").
+# Vuelve el juego a una versión guardada (una rama "respaldo/...", por ejemplo "respaldo/2026-11-18").
 # No borra historia: crea un cambio nuevo que deja los archivos como estaban en esa versión.
 # Se conservan las voces grabadas y los juegos creados con IA.
 name: Restaurar versión anterior
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Etiqueta de la versión a restaurar'
-        default: version-2026-11-18
+        description: 'Respaldo a restaurar (rama respaldo/...)'
+        default: respaldo/2026-11-18
         required: true
 permissions:
   contents: write
@@ -23,11 +23,19 @@ jobs:
         run: |
           git config user.name "Restaurador del juego"
           git config user.email "actions@users.noreply.github.com"
-          git rev-parse -q --verify "refs/tags/$V" >/dev/null || { echo "No existe la versión $V"; exit 1; }
+          case "$V" in respaldo/*) ;; *) echo "Solo se restauran ramas respaldo/..."; exit 1;; esac
+          git rev-parse -q --verify "origin/$V" >/dev/null || { echo "No existe el respaldo $V"; exit 1; }
           # todo vuelve a como estaba, menos las voces, los juegos de IA y los flujos de GitHub
           git rm -rq --cached . && git clean -fdxq -e assets/voz -e juegos-ia -e .github
-          git checkout "$V" -- . ':!assets/voz' ':!juegos-ia' ':!.github'
+          git checkout "origin/$V" -- . ':!assets/voz' ':!juegos-ia' ':!.github'
           git checkout HEAD -- assets/voz juegos-ia .github 2>/dev/null || true
           git add -A
           git commit -qm "Restaurar la versión $V" || { echo "Ya estaba en esa versión"; exit 0; }
           git push -q origin HEAD:claude/reading-game-children-zpv3xw
+          # publicar también (los cambios hechos por este flujo no disparan el publicador)
+          git fetch -q origin gh-pages
+          git checkout -q -B gh-pages origin/gh-pages
+          git merge -q --no-edit -X theirs origin/claude/reading-game-children-zpv3xw
+          git checkout origin/gh-pages -- assets/voz juegos-ia 2>/dev/null || true
+          git commit -qam "Conservar voces y juegos de IA" || true
+          test -s assets/voz/lista.json && git push -q origin gh-pages
